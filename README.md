@@ -2,11 +2,11 @@
 
 A local-first presentation editor. Make slides, review optional AI changes, and take your work with you.
 
-[**Try the editable sample**](https://decksprig.kens-toolbox.com/app?demo=1) · [Website & demo](https://decksprig.kens-toolbox.com/) · [Getting started](docs/open-source/getting-started.md) · [中文](README.zh-CN.md) · [Downloads](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.6)
+[**Try the editable sample**](https://decksprig.kens-toolbox.com/app?demo=1) · [Website & demo](https://decksprig.kens-toolbox.com/) · [Getting started](docs/open-source/getting-started.md) · [中文](README.zh-CN.md) · [Downloads](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.7)
 
 ![The actual Decksprig editor](public/website/assets/editor-light.jpg)
 
-An early **0.1.6** release by Ken Pan, developed with Codex. Code is [MIT licensed](LICENSE); commercial use and closed-source derivatives are welcome. Original decorative artwork is CC0 to the extent of the rights held; [fonts, icons, third-party assets and brand marks](ASSET_LICENSES.md) have separate terms.
+An early **0.1.7** release by Ken Pan, developed with Codex. Code is [MIT licensed](LICENSE); commercial use and closed-source derivatives are welcome. Original decorative artwork is CC0 to the extent of the rights held; [fonts, icons, third-party assets and brand marks](ASSET_LICENSES.md) have separate terms.
 
 ## Guides
 
@@ -86,7 +86,7 @@ The browser website/editor is written to `output/website/dist`; optional resourc
 npm run package:source
 ```
 
-Creates a fresh directory under `output/open-source/<timestamp>/` containing `decksprig-source.tar.gz`, a file manifest and `SHA256SUMS`. Local documents, credentials, private evidence and historical builds are excluded. The [v0.1.6 release](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.6) contains a reviewed source archive, browser build, sample and demo video. `private:true` prevents accidental npm publication and does not restrict GitHub use.
+Creates a fresh directory under `output/open-source/<timestamp>/` containing `decksprig-source.tar.gz`, a file manifest and `SHA256SUMS`. Local documents, credentials, private evidence and historical builds are excluded. The [v0.1.7 release](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.7) contains a reviewed source archive, browser build, sample and demo video. `private:true` prevents accidental npm publication and does not restrict GitHub use.
 
 ## License, support and contributions
 

@@ -1,14 +1,14 @@
 import {tick} from 'svelte';
 import {canvasWheel,pagesWithWheel,SlideWheelPager} from './canvas-wheel';
+import {captureViewAnchor,scrollForAnchor,type ViewAnchor,type ViewGeometry} from './canvas-viewport-anchor';
 
 export type ViewportOptions = {scale:number; fit:boolean; key:string; slideKey:string; pageBlocked:boolean; page:(direction:number)=>void; zoom:(value:number|'fit')=>void; cancel:()=>void};
-type Anchor = {x:number; y:number; horizontal:number; vertical:number};
 const controls = 'button,a,input,textarea,select,[contenteditable="true"],[popover],.prototype-shell';
 
 // View navigation never creates a document transaction. Keep its anchor in
 // document coordinates, so changes to zoom or pane geometry share one rule.
 export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
-  let anchor:Anchor|undefined, frame=0, touchDriven=false, disposed=false;
+  let anchor:ViewAnchor|undefined, frame=0, touchDriven=false, disposed=false,keepScreenPoint=false;
   let panPending=false,panX=0,panY=0;
   const pager=new SlideWheelPager();
   let pointerViewport:{id:number;width:number;height:number}|undefined;
@@ -45,19 +45,19 @@ export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
   }
   function capture(horizontal=.5,vertical=.5) {
     const art=artwork();if(!art||!options.scale)return undefined;
-    return {x:(node.scrollLeft+node.clientWidth*horizontal-art.offsetLeft)/options.scale,
-      y:(node.scrollTop+node.clientHeight*vertical-art.offsetTop)/options.scale,horizontal,vertical};
+    return captureViewAnchor(geometry(art),horizontal,vertical);
   }
+  function geometry(art:HTMLElement):ViewGeometry {return {width:node.clientWidth,height:node.clientHeight,left:node.clientLeft,top:node.clientTop,
+    scrollX:node.scrollLeft,scrollY:node.scrollTop,artX:art.offsetLeft,artY:art.offsetTop,scale:options.scale};}
   function reconcile() {
     frame=0;if(disposed)return;
     margins();const art=artwork();if(!art)return;
     if(options.fit)node.scrollTo(0,0);
     else if(!anchor)node.scrollTo(0,0);
     else if(!touchDriven&&!node.hasAttribute('data-touch-navigating')) {
-      node.scrollTo(art.offsetLeft+anchor.x*options.scale-node.clientWidth*anchor.horizontal,
-        art.offsetTop+anchor.y*options.scale-node.clientHeight*anchor.vertical);
+      const scroll=scrollForAnchor(anchor,geometry(art),keepScreenPoint);node.scrollTo(scroll.left,scroll.top);
     }
-    touchDriven=false;anchor=capture();recoverFocus();
+    touchDriven=false;keepScreenPoint=false;anchor=capture();recoverFocus();
   }
   function schedule() {if(!frame)frame=requestAnimationFrame(reconcile);}
   const scrolled=()=>{if(!frame)anchor=capture();};
@@ -127,9 +127,12 @@ export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
       if(next.scale!==options.scale&&!next.fit||next.fit!==options.fit||next.key!==options.key||next.pageBlocked!==options.pageBlocked)pager.reset();
       if(!changed){options=next;return;}
       const touch=node.hasAttribute('data-touch-navigating');
+      // Entering manual view introduces native scrollbars. Preserve the same
+      // screen point for this transition rather than its newly smaller center.
+      keepScreenPoint||=options.fit&&!next.fit;
       if(next.scale!==options.scale&&!touch)options.cancel();
       if(next.key!==options.key)anchor=undefined;
-      else if(next.slideKey!==options.slideKey){const art=artwork();anchor=art?{x:art.offsetWidth/options.scale/2,y:art.offsetHeight/options.scale/2,horizontal:.5,vertical:.5}:undefined;}
+      else if(next.slideKey!==options.slideKey){const art=artwork();anchor=art?{...capture()!,x:art.offsetWidth/options.scale/2,y:art.offsetHeight/options.scale/2}:undefined;}
       touchDriven||=touch;options=next;margins();
       void tick().then(()=>{if(disposed)return;const art=artwork();if(art)resize.observe(art);schedule();});
     },

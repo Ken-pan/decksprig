@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {canEditText} from '../core/shapes';
   import '../fonts.css';
   import FeedbackState from './FeedbackState.svelte';
   import Notice from './ui/Notice.svelte';
@@ -19,7 +20,7 @@
   let {onclose,initialTab='browse'}: {onclose: () => void;initialTab?:'browse'|'document'} = $props();
   let tab=$state<'browse'|'document'>(untrack(()=>initialTab));
   const target = $state(untrack(() => ({deckId: editor.deck?.id, slideId: editor.slide?.id, revision: editor.deck?.revision,
-    elements: editor.selection.filter(e => e.type === 'text' && !e.locked).map(e => ({id: e.id, text: e.text, family: e.fontFamily, weight: e.fontWeight}))})));
+    elements: editor.selection.filter(e => canEditText(e) && !e.locked).map(e => ({id: e.id, text: e.text, family: e.fontFamily, weight: e.fontWeight}))})));
   const originalText = target.elements[0]?.text.trim().slice(0, 240) || 'Designing for clearer decisions';
   const originalFamily = target.elements[0]?.family ?? 'Manrope';
   const storedFont = untrack(() => editor.deck?.onlineFonts?.find(f => f.family === originalFamily));
@@ -104,7 +105,7 @@
       if (stale) throw new Error('The document has changed. Reopen the font library.');
       editor.commit(operations, '', 'manual', target.revision);
       if (editor.deck.revision === target.revision) throw new Error(editor.error || 'The font was not applied. Try again.');
-      editor.notify(`Applied ${family} to ${countLabel(target.elements.length, "text object")}`); onclose();
+      onclose();
     } catch (e: any) { error = /fetch|network|timeout|abort|font service unavailable/i.test(String(e.message)) ? 'This font could not load. Try again or choose a local font.' : e.message; } finally { applying = false; }
   }
 </script>

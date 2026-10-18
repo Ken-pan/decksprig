@@ -6,13 +6,13 @@ export type TouchOptions = {scale:()=>number; zoom:(scale:number)=>void; cancel:
 // transactions; a second contact cancels that provisional transaction first.
 export function canvasTouch(node:HTMLElement, options:TouchOptions) {
   const points = new Map<number,TouchPoint>();
-  let navigating=false, blocked=false, pan=false, frame=0, epoch=0;
-  let origin={x:0,y:0,distance:0}, anchor={x:0,y:0}, scale=1, scroll={x:0,y:0};
+  let navigating=false, blocked=false, pan=false, panning=false, frame=0, epoch=0;
+  let origin={x:0,y:0,distance:0}, anchor={x:0,y:0}, scale=1;
   const artwork=()=>node.querySelector<HTMLElement>('.stage-canvas');
   const controls='button:not(.resize-handle),a,input,textarea,select,[contenteditable="true"],.selection-context,.prototype-shell,[popover]';
   const capture=(id:number)=>{try{node.setPointerCapture(id);}catch{/* Contact may already have ended. */}};
   function reset() {
-    epoch++;cancelAnimationFrame(frame);frame=0;navigating=false;blocked=false;pan=false;
+    epoch++;cancelAnimationFrame(frame);frame=0;navigating=false;blocked=false;pan=false;panning=false;
     const ids=[...points.keys()];points.clear();
     for(const id of ids)if(node.hasPointerCapture(id))node.releasePointerCapture(id);
     delete node.dataset.touchNavigating;
@@ -23,7 +23,8 @@ export function canvasTouch(node:HTMLElement, options:TouchOptions) {
     if(!points.size&&event.isPrimary===false){options.cancel();blocked=true;}
     points.set(event.pointerId,{x:event.clientX,y:event.clientY});
     if(blocked){event.preventDefault();event.stopImmediatePropagation();capture(event.pointerId);return;}
-    if(points.size===1){origin=touchFrame([...points.values()]);scroll={x:node.scrollLeft,y:node.scrollTop};pan=!event.target.closest('.slide-element,.resize-handle,.insertion-surface,.drawing-surface');return;}
+    if(points.size===1){origin=touchFrame([...points.values()]);pan=!event.target.closest('.slide-element,.resize-handle,.insertion-surface,.drawing-surface');
+      const rect=artwork()!.getBoundingClientRect();anchor={x:(origin.x-rect.left)/options.scale(),y:(origin.y-rect.top)/options.scale()};return;}
     options.cancel();event.preventDefault();event.stopImmediatePropagation();
     navigating=true;pan=false;node.dataset.touchNavigating='';
     for(const id of points.keys())capture(id);
@@ -45,9 +46,15 @@ export function canvasTouch(node:HTMLElement, options:TouchOptions) {
       });
     }else if(pan){
       const dx=event.clientX-origin.x,dy=event.clientY-origin.y;
-      if(Math.hypot(dx,dy)<8&&!node.hasPointerCapture(event.pointerId))return;
+      if(Math.hypot(dx,dy)<8&&!panning)return;
+      if(!panning){panning=true;options.cancel();node.dataset.touchNavigating='';options.zoom(options.scale());}
       capture(event.pointerId);event.preventDefault();event.stopImmediatePropagation();
-      node.scrollTo(scroll.x-dx,scroll.y-dy);
+      cancelAnimationFrame(frame);const point={x:event.clientX,y:event.clientY},generation=epoch;
+      frame=requestAnimationFrame(async()=>{
+        frame=0;await tick();if(generation!==epoch||navigating||!pan||points.size!==1)return;
+        const rect=artwork()?.getBoundingClientRect();if(!rect)return;
+        node.scrollBy(rect.left+anchor.x*options.scale()-point.x,rect.top+anchor.y*options.scale()-point.y);
+      });
     }
   }
   function end(event:PointerEvent) {

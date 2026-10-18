@@ -3,11 +3,12 @@ import type { Operation } from './operations';
 import { fontOperations, fontStack, type FontChoice } from './fonts';
 import { loadOnlineFont, onlineReference } from './online-fonts';
 import {documentFontRole} from './document-style-choices';
+import {canEditText} from './shapes';
 
 // Both the quick picker and the full library prepare one undoable transaction.
 // Callers check the captured document revision again before committing it.
 export async function fontSelectionOperations(deck: Deck, slideId: string, ids: string[], font: FontChoice, weight?: number, reference?: OnlineFont | null): Promise<Operation[]> {
-  const elements = deck.slides.find(s => s.id === slideId)?.elements.filter(e => ids.includes(e.id) && e.type === 'text' && !e.locked) ?? [];
+  const elements = deck.slides.find(s => s.id === slideId)?.elements.filter(e => ids.includes(e.id) && canEditText(e) && !e.locked) ?? [];
   if (!elements.length) return [];
   const stored = deck.onlineFonts?.find(f => f.family === font.family);
   const ref = font.online ? reference ?? stored ?? await onlineReference(font) : null;
@@ -34,7 +35,7 @@ export async function fontSelectionOperations(deck: Deck, slideId: string, ids: 
 
 // A document font links only its family; the text role, size and spacing remain independent.
 export async function documentFontSelectionOperations(deck:Deck,slideId:string,ids:string[],font:FontChoice):Promise<Operation[]>{
-  const elements=deck.slides.find(s=>s.id===slideId)?.elements.filter(e=>ids.includes(e.id)&&e.type==='text'&&!e.locked&&!e.resource&&!e.sourceRegion)??[];
+  const elements=deck.slides.find(s=>s.id===slideId)?.elements.filter(e=>ids.includes(e.id)&&canEditText(e)&&!e.locked&&!e.resource&&!e.sourceRegion)??[];
   const operations=await fontSelectionOperations(deck,slideId,elements.map(e=>e.id),font);
   return operations.map(op=>{
     if(op.op!=='update_element')return op;

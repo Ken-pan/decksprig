@@ -17,10 +17,10 @@
 .canvas-dock-slot { display:contents; min-width:0; max-width:100%; }
 .panel-swap[hidden] { display:none; }
 /* Center fitted pages; overflowing artwork starts inside the scrollable area. */
-.canvas-stage { align-items:safe center; justify-content:safe center; overflow-anchor:none; overscroll-behavior:contain; }
-/* Fit measures clientHeight. Reserve the horizontal scrollbar so out-of-page
-   selection handles cannot toggle its height and start a fit/overflow loop. */
-.canvas-stage:not(.manual-zoom):has(.stage-canvas) { overflow-x:scroll; }
+.canvas-stage { min-width:0; align-items:safe center; justify-content:safe center; overflow-anchor:none; overscroll-behavior:contain; }
+/* Fitted artwork has no scrollable overflow from selection handles. Pan and
+   zoom explicitly enter manual view before moving the viewport. */
+.canvas-stage:not(.manual-zoom):has(.stage-canvas) { overflow:clip; }
 /* Loading group navigation must never enter the canvas centering calculation. */
 .canvas-group-navigation { position:absolute; inset:0; pointer-events:none; }
 .canvas-group-navigation > * { pointer-events:auto; }
@@ -175,6 +175,7 @@
 .canvas-insert-dock.unavailable { visibility:hidden; pointer-events:none; }
 .short-workspace .selection-context { flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; }
 .short-workspace .selection-context > * { flex-shrink:0; }
+.short-workspace .selection-context > :is(.element-quick-tools,.text-quick-tools,.drawing-object-tools) { flex:none; flex-wrap:nowrap; }
 .short-workspace .selection-context > span { display:none; }
 .short-workspace .selection-completion-actions { position:sticky; right:0; background:var(--surface-chrome); }
 @media (max-width:760px) {

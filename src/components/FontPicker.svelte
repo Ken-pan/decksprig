@@ -37,7 +37,8 @@
   let targetKey = '';
   let target = $state<{deckId: string; slideId: string; revision: number; ids: string[]} | null>(null);
   const selected = $derived(editor.selection.filter(e => canEditText(e) && !e.locked));
-  const familyState = $derived(textPropertyState(editor.selection, 'fontFamily'));
+  // Labels inherit the same family/run fields as text, without the shape fill.
+  const familyState = $derived(textPropertyState(editor.selection.filter(canEditText).map(e=>({...e,type:'text' as const})), 'fontFamily'));
   const currentFamily = $derived(familyState.value ?? 'Manrope');
   const mixedFamily = $derived(familyState.mixed);
   const familyLabel=$derived(mixedFamily?'Mixed fonts':fontDisplayName(findFont(currentFamily) ?? {family:currentFamily}));
@@ -187,7 +188,7 @@
       if (selectionKey() !== targetKey) throw new Error('The selected text has changed. Select the font again.');
       editor.commit(operations, '', 'manual', captured.revision);
       if (editor.deck.id !== captured.deckId || editor.deck.revision === captured.revision) throw new Error(editor.error || 'The font was not applied. Try again.');
-      editor.notify(`Applied ${fontDisplayName(font)}`); close(true);
+      close(true);
     } catch (e: any) {
       if (open && session === generation) error = /fetch|network|timeout|abort|font service unavailable/i.test(String(e.message))
         ? 'This font could not load. Try again or choose a local font.' : e.message;
