@@ -1,3 +1,4 @@
+import {enhanceWebsiteSeo} from './website-seo.mjs';
 import { cp, mkdir, readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -70,6 +71,7 @@ for (const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
   const path = match[1].split(/[?#]/)[0];
   if (!/^(https?:|#)/.test(match[1]) && path !== '/app') await stat(resolve(out,path.replace(/^\//,'')));
 }
+await enhanceWebsiteSeo(out,origin);
 const manifest = {};
 async function inspect(dir,prefix='') {
   for (const entry of await readdir(dir,{withFileTypes:true})) {

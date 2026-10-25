@@ -1,3 +1,4 @@
+import {enhanceWebsiteSeo} from './website-seo.mjs';
 import {build} from 'vite';
 import {mkdir,cp,readFile,writeFile,rm,readdir,stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -30,6 +31,7 @@ for(const name of ['favicon.svg','favicon.ico'])await cp(resolve(root,'public',n
 await cp(resolve(root,'public/speaker.html'),resolve(out,'speaker.html'));
 await cp(resolve(root,'public/publication-preview.html'),resolve(out,'publication-preview.html'));
 for(const name of ['privacy.html','licenses.html','legal.css','licenses'])await cp(resolve(root,'public',name),resolve(out,name),{recursive:true});
+await enhanceWebsiteSeo(out,publicOrigin());
 await mkdir(resolve(out,'examples'),{recursive:true});
 for(const name of ['decksprig-demo.deck.json','deckleaf-demo.deck.json'])await cp(resolve(root,'public/examples',name),resolve(out,'examples',name));
 // Only project-owned template artwork is public; imported examples stay excluded.

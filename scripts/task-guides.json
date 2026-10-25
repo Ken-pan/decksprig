@@ -1,0 +1,79 @@
+{
+  "name": "Decksprig",
+  "origin": "https://decksprig.kens-toolbox.com",
+  "color": "#b34b35",
+  "icon": "/favicon.svg",
+  "image": "/assets/editor-light.jpg",
+  "imageAlt": "Decksprig slide editor with its slide list, canvas and editing panel",
+  "home": "/",
+  "zhHome": "/",
+  "cta": "Open editable sample",
+  "zhCta": "打开可编辑示例",
+  "action": "/app?demo=1",
+  "pages": [
+    {
+      "path": "/guides/build-a-slide-deck/",
+      "title": "Build, present and back up a three-slide deck",
+      "description": "Use the real Decksprig sample to edit a short presentation, rehearse it and export a recoverable Deck backup.",
+      "sections": [
+        {
+          "title": "Open the sample as a new document",
+          "body": "<p>Choose <a href=\"/app?demo=1\">Open editable sample</a> on a desktop browser. Decksprig creates a new three-slide document and preserves existing documents. Read and close the import report. Rename the new document in the top bar so you can recognize your own copy.</p><p>This walkthrough uses the existing sample rather than requiring an AI provider or an account connection. Desktop is the primary editing surface.</p>"
+        },
+        {
+          "title": "Give the three slides one clear purpose each",
+          "body": "<p>Use the first slide for the subject, the second for one supporting idea and the third for the next action. For a practice brief, try the title “A clearer checkout,” an observation about delivery details, and a final action to review the form. This is a writing exercise, not a claimed research result.</p><p>Select the first title and choose Edit text, or double-click it. Replace only the words you need, then click outside to finish. Repeat on the remaining slides. Keep the sample’s layout until you have checked how the new text fits.</p>"
+        },
+        {
+          "title": "Check the actual edited slides",
+          "body": "<p>Look for clipped titles, awkward line breaks, missing images and text that sits too close to another object. Select an object to adjust its properties; a grouped object may need another click to select a member. Use Document menu → Undo, or Command/Control+Z, to reverse a change.</p><p>Use the <a href=\"/guides/examples/slide-review-checklist.txt\" download>slide review checklist</a> to record what you checked. Read citations, notes, hidden slides and embedded media before sharing the document.</p>"
+        },
+        {
+          "title": "Rehearse in presentation mode",
+          "body": "<p>Choose Present. Use the arrow keys to advance and Escape to return to the editor. Check the presentation at the size you plan to show it, including media and any links. Hidden slides stay editable but are skipped while presenting.</p><p>Read each slide aloud. If the title needs a long explanation, shorten the title or move the detail into the supporting content.</p>"
+        },
+        {
+          "title": "Export an editable backup before the final format",
+          "body": "<p>Wait for “Saving…” to finish. Then use Document menu → Export document → Deck file. Keep this full editable backup separately from the browser. If “Not saved” appears, keep the tab open and export a Deck backup before attempting recovery.</p><p>For PowerPoint, check fonts, effects and supported editable objects in the target app. For a standalone web page, check motion and any media that still requires the network. For PDF, choose the PDF export and use Save as PDF in the browser print dialog.</p>"
+        },
+        {
+          "title": "Reopen and verify the deliverable",
+          "body": "<p>Open the exported presentation in the intended viewer and inspect every slide. To test the backup, import the Deck file as a separate document and confirm that text and objects remain editable. Browser documents do not automatically sync; export before clearing site data or moving to another browser.</p><p>For installation, optional AI and migration details, read the <a href=\"/guide\">getting-started guide</a>. This task does not require enabling any connected service.</p>"
+        }
+      ]
+    },
+    {
+      "path": "/zh/guides/build-a-slide-deck/",
+      "title": "制作、演示并备份一份三页演示稿",
+      "description": "使用 Decksprig 的真实示例，完成文字修改、演示检查和可恢复的 Deck 文件备份。",
+      "sections": [
+        {
+          "title": "将示例打开为新文档",
+          "body": "<p>在桌面浏览器选择<a href=\"/app?demo=1\">打开可编辑示例</a>。Decksprig 会新建一份三页文档，并保留已有文档。阅读并关闭导入报告，在顶部栏为新文档命名，便于之后找到自己的版本。</p><p>这份教程直接使用现有示例，不需要配置 AI 服务或连接账号。桌面是主要编辑环境。</p>"
+        },
+        {
+          "title": "让三页各自承担一个任务",
+          "body": "<p>第一页说明主题，第二页提供一个支持观点，第三页给出下一步行动。练习文案可以是“让结账更清楚”、关于配送信息的一条观察，以及检查表单的行动。这是写作练习，不代表已验证的研究结论。</p><p>选中标题后选择 Edit text，或双击文字进入编辑；修改后点击外部结束。依次调整三页，先保留示例布局，再检查新文字是否合适。</p>"
+        },
+        {
+          "title": "检查实际修改后的页面",
+          "body": "<p>逐页查看标题是否被截断、换行是否自然、图片是否缺失，以及对象之间是否过近。选中对象后可修改属性；组合内的对象可能需要再次点击。Document 菜单中的 Undo 或 Command/Control+Z 可以撤销修改。</p><p>下载<a href=\"/guides/examples/slide-review-checklist.txt\" download>幻灯片检查清单</a>记录检查结果。分享前也要检查备注、隐藏页、来源链接与嵌入媒体。</p>"
+        },
+        {
+          "title": "进入演示模式排练",
+          "body": "<p>选择 Present，使用方向键翻页，按 Escape 回到编辑器。以实际展示尺寸检查每一页，包括媒体和链接。隐藏页仍可编辑，但演示时会跳过。</p><p>试着读出每页内容。如果标题需要很长的解释，可以缩短标题，或把细节放到支持内容中。</p>"
+        },
+        {
+          "title": "先备份可编辑文件，再导出交付格式",
+          "body": "<p>等待“Saving…”结束，再通过 Document → Export document → Deck file 导出完整可编辑备份，并将其保存在浏览器之外。如果出现“Not saved”，保持标签页打开，先导出 Deck 备份，再处理恢复。</p><p>导出 PowerPoint 后，在目标软件中检查字体、效果与可编辑对象。导出独立网页后，检查动效和仍然需要网络的媒体。导出 PDF 会打开浏览器打印窗口，再选择 Save as PDF。</p>"
+        },
+        {
+          "title": "重新打开交付文件进行验证",
+          "body": "<p>在目标查看器中打开导出文件并逐页检查。验证备份时，将 Deck 文件导入为独立文档，确认文字和对象仍可编辑。浏览器文档不会自动同步；清理站点数据或换浏览器之前，请先导出。</p><p>本地安装、可选 AI 和迁移说明见<a href=\"/guide.zh-cn\">入门指南</a>。完成本次任务不需要启用任何外部连接。</p>"
+        }
+      ]
+    }
+  ],
+  "imageWidth": 1600,
+  "imageHeight": 1000
+}
