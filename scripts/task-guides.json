@@ -2,7 +2,7 @@
   "name": "Decksprig",
   "origin": "https://decksprig.kens-toolbox.com",
   "color": "#b34b35",
-  "icon": "/favicon.svg",
+  "icon": "/assets/favicon.svg",
   "image": "/assets/editor-light.jpg",
   "imageAlt": "Decksprig slide editor with its slide list, canvas and editing panel",
   "home": "/",
