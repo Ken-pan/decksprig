@@ -1,4 +1,5 @@
-import {z} from 'zod';
+import {patchSchema} from './patch-schema';
+import {z} from './schema';
 import type {Deck,SlideElement} from './model';
 import type {Operation} from './operations';
 import type {EditScope} from './ai-editing';
@@ -11,13 +12,13 @@ import {deckDesignSystem} from './deck-design-system';
 import {GraphicRecipeSchema} from './graphic-recipe';
 import {CharacterRecipeSchema} from './character-recipe-schema';
 
-export const ReadAssetsSchema=z.object({slideIds:z.array(z.string()).max(3000).optional(),elementIds:z.array(z.string()).max(3000).optional(),query:z.string().max(120).optional(),kind:z.enum(['all','icon','illustration','photo','region-fill']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(40).optional()}).strict();
-export const ReplaceAssetsSchema=z.object({baseRevision:z.number().int().min(0),replacements:z.array(z.object({
-  slideId:z.string(),elementId:z.string(),resourceId:z.string().min(1).max(200).optional(),
-  sourceSlideId:z.string().optional(),sourceElementId:z.string().describe('Only reuse different existing artwork when requested. Never supply the target itself. Normal replacements use a different resourceId from search_resources.').optional(),
-  color:z.string().regex(/^#[\da-fA-F]{6}$/).optional(),graphic:GraphicRecipeSchema.partial().optional(),
-  characterRecipeJson:z.string().max(4000).optional(),fit:z.enum(['auto','contain','cover','region']).optional(),
-}).strict()).min(1).max(12)}).strict();
+export const ReadAssetsSchema=z.strictObject({slideIds:z.optional(z.array(z.string()).check(z.maxLength(3000))),elementIds:z.optional(z.array(z.string()).check(z.maxLength(3000))),query:z.optional(z.string().check(z.maxLength(120))),kind:z.optional(z.enum(['all','icon','illustration','photo','region-fill'])),offset:z.optional(z.number().check(z.int()).check(z.minimum(0))),limit:z.optional(z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(40)))});
+export const ReplaceAssetsSchema=z.strictObject({baseRevision:z.number().check(z.int()).check(z.minimum(0)),replacements:z.array(z.strictObject({
+  slideId:z.string(),elementId:z.string(),resourceId:z.optional(z.string().check(z.minLength(1)).check(z.maxLength(200))),
+  sourceSlideId:z.optional(z.string()),sourceElementId:z.optional(z.string().clone().register(z.globalRegistry,{description:'Only reuse different existing artwork when requested. Never supply the target itself. Normal replacements use a different resourceId from search_resources.'})),
+  color:z.optional(z.string().check(z.regex(/^#[\da-fA-F]{6}$/))),graphic:z.optional(patchSchema(GraphicRecipeSchema)),
+  characterRecipeJson:z.optional(z.string().check(z.maxLength(4000))),fit:z.optional(z.enum(['auto','contain','cover','region'])),
+})).check(z.minLength(1)).check(z.maxLength(12))});
 
 function replacementBlock(e:SlideElement) {
   if(e.locked)return 'Unlock this object in the editor before replacing its asset.';

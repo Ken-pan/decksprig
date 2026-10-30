@@ -2,11 +2,11 @@
 
 本地优先的演示文稿编辑器：编辑幻灯片、审阅可选的 AI 修改、导出自己的作品。
 
-[**直接试用可编辑示例**](https://decksprig.kens-toolbox.com/app?demo=1) · [演示与视频](https://decksprig.kens-toolbox.com/demo.html) · [中文使用指南](docs/open-source/getting-started.zh-CN.md) · [English](README.md) · [下载 v0.1.7](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.7)
+[**直接试用可编辑示例**](https://decksprig.kens-toolbox.com/app?demo=1) · [演示与视频](https://decksprig.kens-toolbox.com/demo.html) · [中文使用指南](docs/open-source/getting-started.zh-CN.md) · [English](README.md) · [下载 v0.1.8](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.8)
 
 ![实际编辑器画面](public/website/assets/editor-light.jpg)
 
-Ken Pan 的个人项目，使用 Codex 开发。当前公开版本为 **0.1.7**；首个公开版本为 0.1.0。代码采用 [MIT](LICENSE)，允许商业使用及闭源二次开发；原创装饰插图在作者持有权利的范围内采用 CC0，字体、图标、第三方素材和品牌标志遵守[各自的许可](ASSET_LICENSES.md)。界面目前为英文。
+Ken Pan 的个人项目，使用 Codex 开发。当前公开版本为 **0.1.8**；首个公开版本为 0.1.0。代码采用 [MIT](LICENSE)，允许商业使用及闭源二次开发；原创装饰插图在作者持有权利的范围内采用 CC0，字体、图标、第三方素材和品牌标志遵守[各自的许可](ASSET_LICENSES.md)。界面目前为英文。
 
 ## 使用指导
 

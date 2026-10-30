@@ -443,8 +443,9 @@
     "license": "MIT",
     "dev": true,
     "optional": true,
+    "repository": "git+https://github.com/jridgewell/sourcemaps.git",
     "noticeFiles": [
-      "public/licenses/upstream/jridgewell-source-map-0.3.11.txt"
+      "LICENSE"
     ]
   },
   {
@@ -1074,7 +1075,7 @@
   },
   {
     "name": "body-parser",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "license": "MIT",
     "dev": false,
     "optional": false,
@@ -1100,8 +1101,9 @@
     "license": "MIT",
     "dev": true,
     "optional": true,
+    "repository": "LinusU/buffer-from",
     "noticeFiles": [
-      "public/licenses/upstream/buffer-from-1.1.2.txt"
+      "LICENSE"
     ]
   },
   {
@@ -1176,8 +1178,9 @@
     "license": "MIT",
     "dev": true,
     "optional": true,
+    "repository": "https://github.com/tj/commander.js.git",
     "noticeFiles": [
-      "public/licenses/upstream/commander-2.20.3.txt"
+      "LICENSE"
     ]
   },
   {
@@ -2536,7 +2539,7 @@
   },
   {
     "name": "qs",
-    "version": "6.16.0",
+    "version": "6.17.1",
     "license": "BSD-3-Clause",
     "dev": false,
     "optional": false,
@@ -2782,8 +2785,9 @@
     "license": "BSD-3-Clause",
     "dev": true,
     "optional": true,
+    "repository": "http://github.com/mozilla/source-map.git",
     "noticeFiles": [
-      "public/licenses/upstream/source-map-0.6.1.txt"
+      "LICENSE"
     ]
   },
   {
@@ -2803,8 +2807,9 @@
     "license": "MIT",
     "dev": true,
     "optional": true,
+    "repository": "https://github.com/evanw/node-source-map-support",
     "noticeFiles": [
-      "public/licenses/upstream/source-map-support-0.5.21.txt"
+      "LICENSE.md"
     ]
   },
   {
@@ -2879,8 +2884,9 @@
     "license": "BSD-2-Clause",
     "dev": true,
     "optional": true,
+    "repository": "https://github.com/terser/terser",
     "noticeFiles": [
-      "public/licenses/upstream/terser-5.51.2.txt"
+      "LICENSE"
     ]
   },
   {
@@ -3072,7 +3078,7 @@
   },
   {
     "name": "zod",
-    "version": "3.25.76",
+    "version": "4.6.7",
     "license": "MIT",
     "dev": false,
     "optional": false,

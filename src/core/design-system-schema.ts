@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from './schema';
 
 export const COLOR_ROLES = ['background', 'ink', 'muted', 'accent', 'surface', 'line', 'dark', 'onDark'] as const;
 export const TEXT_ROLES = ['title', 'heading', 'body', 'caption'] as const;
@@ -6,24 +6,24 @@ export const TYPE_PROPERTIES = ['fontFamily', 'fontSize', 'fontWeight', 'lineHei
 export type ColorRole = typeof COLOR_ROLES[number];
 export type TextRole = typeof TEXT_ROLES[number];
 export type TypeProperty = typeof TYPE_PROPERTIES[number];
-const color = z.string().regex(/^#[\da-fA-F]{6}$/);
-export const TypeStyleSchema = z.object({
-  fontFamily: z.string().trim().min(1).max(100).regex(/^[^";{}<>\\]+$/),
-  fontSize: z.number().min(4).max(200), fontWeight: z.number().int().min(100).max(900),
-  lineHeight: z.number().min(.5).max(4), letterSpacing: z.number().min(-30).max(50),
-}).strict();
-export const DesignSystemSchema = z.object({
-  name: z.string().trim().min(1).max(80),
-  colors: z.object({background:color,ink:color,muted:color,accent:color,surface:color,line:color,dark:color,onDark:color}).strict(),
-  typography: z.object({title:TypeStyleSchema,heading:TypeStyleSchema,body:TypeStyleSchema,caption:TypeStyleSchema}).strict(),
-  pattern: z.object({kind:z.enum(['none','dots','grid']),spacing:z.number().min(12).max(160),opacity:z.number().min(0).max(.3)}).strict(),
-}).strict();
-export const StyleBindingSchema = z.object({
-  text: z.enum(TEXT_ROLES).optional(), textScale: z.number().positive().max(30).optional(),
-  font: z.enum(TEXT_ROLES).optional(),
-  fill:z.enum(COLOR_ROLES).optional(), stroke:z.enum(COLOR_ROLES).optional(),
-  overrides:z.array(z.enum(TYPE_PROPERTIES)).max(5).optional(),
-}).strict();
+const color = z.string().check(z.regex(/^#[\da-fA-F]{6}$/));
+export const TypeStyleSchema = z.strictObject({
+  fontFamily: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)).check(z.regex(/^[^";{}<>\\]+$/)),
+  fontSize: z.number().check(z.minimum(4)).check(z.maximum(200)), fontWeight: z.number().check(z.int()).check(z.minimum(100)).check(z.maximum(900)),
+  lineHeight: z.number().check(z.minimum(.5)).check(z.maximum(4)), letterSpacing: z.number().check(z.minimum(-30)).check(z.maximum(50)),
+});
+export const DesignSystemSchema = z.strictObject({
+  name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
+  colors: z.strictObject({background:color,ink:color,muted:color,accent:color,surface:color,line:color,dark:color,onDark:color}),
+  typography: z.strictObject({title:TypeStyleSchema,heading:TypeStyleSchema,body:TypeStyleSchema,caption:TypeStyleSchema}),
+  pattern: z.strictObject({kind:z.enum(['none','dots','grid']),spacing:z.number().check(z.minimum(12)).check(z.maximum(160)),opacity:z.number().check(z.minimum(0)).check(z.maximum(.3))}),
+});
+export const StyleBindingSchema = z.strictObject({
+  text: z.optional(z.enum(TEXT_ROLES)), textScale: z.optional(z.number().check(z.gt(0)).check(z.maximum(30))),
+  font: z.optional(z.enum(TEXT_ROLES)),
+  fill:z.optional(z.enum(COLOR_ROLES)), stroke:z.optional(z.enum(COLOR_ROLES)),
+  overrides:z.optional(z.array(z.enum(TYPE_PROPERTIES)).check(z.maxLength(5))),
+});
 export type DesignSystem = z.infer<typeof DesignSystemSchema>;
 export type StyleBinding = z.infer<typeof StyleBindingSchema>;
 

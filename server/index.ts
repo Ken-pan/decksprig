@@ -13,7 +13,7 @@ import {workflows} from './workflows';
 import {editorContexts} from './editor-context';
 import {workspaceIdentity} from './mcp-workflows';
 import {publishing} from './publishing';
-import {z} from 'zod';
+import {z} from '../src/core/schema';
 import {WorkflowActionSchema,WorkflowListInputSchema} from '../src/core/workflows';
 import {editingServices} from './ai-services';
 import { convertUpload, converters, exportKeynote } from './convert';
@@ -52,7 +52,7 @@ const server = createServer(async (req, res) => {
     if(path==='/api/workflows/connections'&&req.method==='GET')return send(res,{...await workflowServices(googleSession).connections() as object,workspaceId:workspaceIdentity,editorReachable:true});
     if(path==='/api/workflows/history'&&req.method==='GET'){const deckId=requestUrl.searchParams.get('deckId')||'';await readDeck(deckId);const input=WorkflowListInputSchema.parse({status:requestUrl.searchParams.get('status')||undefined,offset:requestUrl.searchParams.has('offset')?Number(requestUrl.searchParams.get('offset')):undefined,limit:requestUrl.searchParams.has('limit')?Number(requestUrl.searchParams.get('limit')):undefined});return send(res,await workflows.page(deckId,input));}
     if(path==='/api/workflows'&&req.method==='GET'){const deckId=requestUrl.searchParams.get('deckId')||'';await readDeck(deckId);return send(res,await workflows.list(deckId));}
-    if(path==='/api/workflows'&&req.method==='POST'){const input=z.object({deckId:z.string(),baseRevision:z.number().int().min(0),action:WorkflowActionSchema}).strict().parse(await json(req)),deck=await readDeck(input.deckId);if(deck.revision!==input.baseRevision)throw new Error('Save the current document before requesting an action.');return send(res,await workflows.request(deck,input.action));}
+    if(path==='/api/workflows'&&req.method==='POST'){const input=z.strictObject({deckId:z.string(),baseRevision:z.number().check(z.int()).check(z.minimum(0)),action:WorkflowActionSchema}).parse(await json(req)),deck=await readDeck(input.deckId);if(deck.revision!==input.baseRevision)throw new Error('Save the current document before requesting an action.');return send(res,await workflows.request(deck,input.action));}
     const workflow=path.match(/^\/api\/workflows\/([\da-f-]{36})(?:\/(claim|resolve))?$/);
     if(workflow){if(req.method==='GET'&&!workflow[2])return send(res,await workflowServices(googleSession).read(workflow[1]));if(req.method!=='POST'||!workflow[2])throw new Error('Unsupported workflow operation.');const input=await json(req);return send(res,workflow[2]==='claim'?await workflows.claim(workflow[1],input.clientId):await workflows.resolve(workflow[1],input.clientId,input.status,input.result));}
     if(path==='/api/publishing/connection'&&req.method==='GET')return send(res,publishing.connection());

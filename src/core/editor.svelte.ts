@@ -67,6 +67,7 @@ export class Editor {
   saving = $state(false);
   savedRevision = $state(0);
   recoveries = $state.raw<Deck[]>([]);
+  recoveryIndex = $state(0);
   pending = $state<Proposal | null>(null);
   pendingId = $state('');
   clipboard = $state.raw<SlideElement[]>([]);
@@ -100,7 +101,7 @@ export class Editor {
   get selectionScope():string {return this.selectedContainer||(this.individualSelection?individualSelectionScope:this.selected.length===1?this.selected[0]:this.editingGroup?editingSelectionScope(this.editingGroup):'');}
   get selection(): SlideElement[] { const ids=this.selectedIds;return this.slide?.elements.filter(e => ids.has(e.id)) ?? []; }
   get dirty(): boolean { return Boolean(this.deck && this.deck.revision > this.savedRevision); }
-  get recovery(): Deck | undefined { return this.recoveries[0]; }
+  get recovery(): Deck | undefined { return this.recoveries[this.recoveryIndex]; }
   snapshot(): Deck { return clone(resolveDeckTextSizing(this.deck!)); }
   // Capture one immutable revision before yielding. Export/copy readers need
   // measured geometry, but do not need a mutable clone of all embedded assets.
@@ -137,8 +138,8 @@ export class Editor {
       readDraft(id).then(value => ({value, failed: false}), () => ({value: undefined, failed: true})),
     ]);
     let draft: ReturnType<typeof resolveDraft> = {}, draftError = '';
-    try { if (draftRead.failed) throw new Error('Recovery read failed'); draft = resolveDraft(draftRead.value, d); } catch { draftError = 'Could not read the browser recovery draft. The local document is open and the browser backup is preserved.'; }
-    this.deck = adoptDeckRevision(draft.restore ?? d); this.recoveries = draft.conflicts ?? [];
+    try { if (draftRead.failed) throw new Error('Recovery read failed'); draft = resolveDraft(draftRead.value, d); } catch { draftError = 'Could not read the browser recovery draft. The saved document is open. Try reopening it or export a copy before leaving.'; }
+    this.deck = adoptDeckRevision(draft.restore ?? d); this.recoveries = draft.conflicts ?? []; this.recoveryIndex = 0;
     this.savedRevision = d.revision; this.activeId = this.deck.slides[0].id;
     this.selectedSlides=[this.activeId];this.slideAnchor=this.activeId;this.slideSelectionMode=false;
     this.selected = []; this.selectedGroup=''; this.individualSelection=false; this.editingGroupId=''; this.hovered = ''; this.editingId = ''; this.past = []; this.future = []; this.pending = null; this.pendingId = ''; this.error = ''; this.notice = draftError; this.saveState = savedDocumentLabel;

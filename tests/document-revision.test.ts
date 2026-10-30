@@ -1,3 +1,4 @@
+import {z} from 'zod';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {blankSlide,element,newDeck,validateDeck,type Deck} from '../src/core/model';
@@ -58,7 +59,7 @@ test('reused immutable pages still obey document-wide identities and changed pag
   const base=adoptDeckRevision(newDeck('Bounds',[slide],400,300));
   assert.throws(()=>validateDeckRevision(base,{...base,slides:[base.slides[0],base.slides[0]]}),/Duplicate slide/);
   assert.throws(()=>validateDeckRevision(base,{...base,width:150}),/Margins/);
-  assert.throws(()=>validateDeckRevision(base,{...base,slides:[]}),/at least 1/);
+  assert.throws(()=>validateDeckRevision(base,{...base,slides:[]}),(error:unknown)=>error instanceof z.core.$ZodError&&error.issues.some(issue=>issue.code==='too_small'&&issue.minimum===1));
 });
 
 test('externally frozen roots cannot bypass validation or preserve mutable children as trusted data',()=>{

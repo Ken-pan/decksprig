@@ -18,8 +18,17 @@
 {#if active && kind === 'feedback'}
   <div class="notification-feedback" class:notification-in-dialog={Boolean(owner)}>
     {#if editor.recovery}
-      <Notice tone="warning" title={editor.recoveries.length === 1 ? 'Recovery draft found' : `${editor.recoveries.length} recovery drafts found`} message="Unsaved changes are available.">
-        {#snippet actions()}<Button variant="secondary" busy={notificationUI.recoveryBusy} disabled={Boolean(notificationUI.busy)} onclick={notificationUI.recover}>Recover as copy</Button><Button variant="quiet" disabled={Boolean(notificationUI.busy)} onclick={notificationUI.exportRecovery}>Export draft</Button>{/snippet}
+      <Notice tone="warning" title={editor.recoveries.length === 1 ? 'Recovery draft found' : `${editor.recoveries.length} recovery drafts found`} message="Choose a draft to recover or export. Original drafts stay unchanged.">
+        {#snippet actions()}
+          <label class="recovery-choice field-label">
+            <span>Recovery draft</span>
+            <select bind:value={editor.recoveryIndex} disabled={Boolean(notificationUI.busy) || notificationUI.recoveryBusy}>
+              {#each editor.recoveries as draft, index}
+                <option value={index}>{index + 1}. {draft.title} · {new Date(draft.updatedAt).toLocaleString('en-US', {dateStyle:'medium', timeStyle:'short'})} · {draft.slides.length} {draft.slides.length === 1 ? 'slide' : 'slides'}</option>
+              {/each}
+            </select>
+          </label>
+          <Button variant="secondary" busy={notificationUI.recoveryBusy} disabled={Boolean(notificationUI.busy)} onclick={notificationUI.recover}>Recover as copy</Button><Button variant="quiet" disabled={Boolean(notificationUI.busy)} onclick={notificationUI.exportRecovery}>Export draft</Button>{/snippet}
       </Notice>
     {/if}
     {#if editor.saveFailed && editor.dirty}
@@ -36,3 +45,9 @@
     </div>
   </div>
 {/if}
+
+
+<style>
+  .recovery-choice { display:flex; flex-direction:column; flex:1 1 100%; min-width:0; max-width:100%; }
+  .recovery-choice select { width:100%; min-width:0; }
+</style>

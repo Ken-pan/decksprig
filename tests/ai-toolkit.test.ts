@@ -31,7 +31,7 @@ for(const partial of ['tool','final'] as const)test(`model combines prepared pag
 
 test('discovery uses the complete canonical operation schema and strictly typed tool inputs',async()=>{
  const deck=fixture(),kit=editingToolkit(async()=>deck),caps=await invoke(kit,'get_capabilities');
- assert.deepEqual(caps.operations,OperationSchema.options.map(s=>s.shape.op.value));
+ assert.deepEqual(caps.operations,OperationSchema.def.options.map(s=>s.shape.op.def.values[0]));
  for(const op of caps.operations)assert(await invoke(kit,'get_edit_schema',{operation:op}));
  const elementSchema=JSON.stringify(await invoke(kit,'get_edit_schema',{operation:'update_element'}));for(const field of ['cells','shape','crop','runs','paragraphs','prototype','animation','chart'])assert(elementSchema.includes(`"${field}"`));
  const inspect=(schema:any)=>{if(schema.type==='object'){assert.equal(schema.additionalProperties,false);assert.deepEqual(schema.required,Object.keys(schema.properties));}for(const [k,v] of Object.entries(schema)){if(k==='properties')Object.values(v as any).forEach(inspect);else if(Array.isArray(v))v.forEach(x=>typeof x==='object'&&x&&inspect(x));else if(v&&typeof v==='object')inspect(v);}};

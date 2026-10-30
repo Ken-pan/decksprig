@@ -1,0 +1,242 @@
+{
+  "capturedWith": "zod3.25.76 at1181c3d6; synthetic data only",
+  "cases": [
+    {
+      "name": "legacy-document-defaults-and-source",
+      "module": "model",
+      "schema": "DeckSchema",
+      "input": {
+        "schema": "deck-studio/1",
+        "id": "fixture-deck",
+        "title": "Synthetic migration fixture",
+        "width": 1440,
+        "height": 810,
+        "revision": 7,
+        "updatedAt": "2026-10-30T00:00:00.000Z",
+        "slides": [
+          {
+            "id": "fixture-slide",
+            "elements": [
+              {
+                "id": "fixture-text",
+                "type": "text",
+                "x": 80,
+                "y": 90,
+                "w": 600,
+                "h": 80,
+                "text": "Original 中文\n<source>",
+                "fontSize": 46,
+                "fill": "#123456"
+              }
+            ],
+            "source": {
+              "provider": "PPTX",
+              "fidelity": "converted"
+            }
+          }
+        ],
+        "nativeSource": {
+          "provider": "Keynote",
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "success": true,
+      "output": {
+        "schema": "deck-studio/1",
+        "id": "fixture-deck",
+        "title": "Synthetic migration fixture",
+        "width": 1440,
+        "height": 810,
+        "revision": 7,
+        "updatedAt": "2026-10-30T00:00:00.000Z",
+        "slides": [
+          {
+            "id": "fixture-slide",
+            "background": "#f4f3ee",
+            "notes": "",
+            "elements": [
+              {
+                "id": "fixture-text",
+                "type": "text",
+                "name": "Element",
+                "x": 80,
+                "y": 90,
+                "w": 600,
+                "h": 80,
+                "rotation": 0,
+                "opacity": 1,
+                "flipX": false,
+                "flipY": false,
+                "locked": false,
+                "hidden": false,
+                "text": "Original 中文\n<source>",
+                "fontFamily": "Manrope",
+                "fontSize": 46,
+                "fontWeight": 400,
+                "italic": false,
+                "underline": false,
+                "align": "left",
+                "lineHeight": 1.25,
+                "letterSpacing": 0,
+                "fill": "#123456",
+                "stroke": "transparent",
+                "strokeWidth": 0,
+                "radius": 0,
+                "fit": "contain",
+                "verticalAlign": "top",
+                "wrap": true,
+                "textSizing": "fixed"
+              }
+            ],
+            "source": {
+              "provider": "PPTX",
+              "warnings": [],
+              "fidelity": "converted"
+            }
+          }
+        ],
+        "nativeSource": {
+          "provider": "Keynote",
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "text-only-element-patch",
+      "module": "operations",
+      "schema": "OperationSchema",
+      "input": {
+        "op": "update_element",
+        "slideId": "fixture-slide",
+        "elementId": "fixture-text",
+        "patch": {
+          "text": "Changed"
+        }
+      },
+      "success": true,
+      "output": {
+        "op": "update_element",
+        "slideId": "fixture-slide",
+        "elementId": "fixture-text",
+        "patch": {
+          "text": "Changed"
+        }
+      }
+    },
+    {
+      "name": "empty-element-patch",
+      "module": "operations",
+      "schema": "OperationSchema",
+      "input": {
+        "op": "update_element",
+        "slideId": "fixture-slide",
+        "elementId": "fixture-text",
+        "patch": {}
+      },
+      "success": true,
+      "output": {
+        "op": "update_element",
+        "slideId": "fixture-slide",
+        "elementId": "fixture-text",
+        "patch": {}
+      }
+    },
+    {
+      "name": "notes-only-slide-patch",
+      "module": "operations",
+      "schema": "OperationSchema",
+      "input": {
+        "op": "update_slide",
+        "slideId": "fixture-slide",
+        "patch": {
+          "notes": "Changed notes"
+        }
+      },
+      "success": true,
+      "output": {
+        "op": "update_slide",
+        "slideId": "fixture-slide",
+        "patch": {
+          "notes": "Changed notes"
+        }
+      }
+    },
+    {
+      "name": "animation-defaults",
+      "module": "model",
+      "schema": "AnimationSchema",
+      "input": {
+        "effect": "fade"
+      },
+      "success": true,
+      "output": {
+        "effect": "fade",
+        "duration": 500,
+        "delay": 0,
+        "trigger": "auto",
+        "order": 0,
+        "easing": "smooth"
+      }
+    },
+    {
+      "name": "layout-defaults",
+      "module": "model",
+      "schema": "LayoutItemSchema",
+      "input": {},
+      "success": true,
+      "output": {
+        "widthMode": "fixed",
+        "heightMode": "fixed"
+      }
+    },
+    {
+      "name": "permissive-legacy-source-uuid",
+      "module": "model",
+      "schema": "NativeSourceSchema",
+      "input": {
+        "provider": "Keynote",
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "success": true,
+      "output": {
+        "provider": "Keynote",
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "strict-source-extra-rejected",
+      "module": "model",
+      "schema": "NativeSourceSchema",
+      "input": {
+        "provider": "Keynote",
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "extra": true
+      },
+      "success": false,
+      "issuePaths": [
+        []
+      ]
+    },
+    {
+      "name": "prototype-defaults",
+      "module": "model",
+      "schema": "PrototypeSchema",
+      "input": {
+        "url": "https://example.com/prototype"
+      },
+      "success": true,
+      "output": {
+        "url": "https://example.com/prototype",
+        "scaling": "contain",
+        "responsive": false,
+        "chrome": false,
+        "deviceFrame": false
+      }
+    }
+  ]
+}

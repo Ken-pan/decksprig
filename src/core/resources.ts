@@ -1,3 +1,4 @@
+import {z} from './schema';
 import { element, uid, ResourceAttributionSchema, type ResourceAttribution, type SlideElement, type Deck } from './model';
 import { applyOperations, type Operation } from './operations';
 import { resourceReplacementPatch, type ResourceReplacementOptions } from './resource-replacement';
@@ -23,7 +24,7 @@ export function photoBrowseUrl(source: StockPhotoProvider, query: string) { cons
 export function unsplashImageUrl(raw: string) { try { const url = new URL(raw); return url.protocol === 'https:' && url.hostname === 'images.unsplash.com' && !url.username && !url.password && !url.port && !['client_id','access_key','api_key'].some(key => url.searchParams.has(key)); } catch { return false; } }
 export type ResourceCatalog = {iconCount: number; illustrationCount: number; collections: {id: string; label: string; count: number; license: string}[]};
 export const MAX_RESOURCE_BATCH = 12;
-export function resourceMetadata(item: ResourceAttribution): ResourceAttribution { return ResourceAttributionSchema.strip().parse(item); }
+export function resourceMetadata(item: ResourceAttribution): ResourceAttribution { return z.object(ResourceAttributionSchema.shape).parse(item); }
 export const DOODLES = [
   ['running', 'Running', 'run running fitness 运动'], ['reading-side', 'Reading time', 'read reading book 学习 阅读'],
   ['jumping', 'Jumping', 'jump energy 跳跃 活力'], ['sitting-reading', 'Seated reading', 'reading book 学习 阅读'],

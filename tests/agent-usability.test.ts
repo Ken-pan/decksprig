@@ -1,3 +1,4 @@
+import {z} from 'zod';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
@@ -25,7 +26,7 @@ test('typed object batches create one reviewable recipe and cannot be rebased af
  let deck=fixture();const kit=editingToolkit(async()=>deck);const batch=await invoke(kit,'prepare_elements',{slideId:deck.slides[0].id,elements:[{type:'text',text:'A',box:{x:20,y:30,w:400,h:90}},{type:'rect',box:{x:20,y:150,w:400,h:8},style:{fill:'#112233'}}]});assert.equal(batch.objects.length,2);assert.notEqual(batch.objects[0].id,batch.objects[1].id);assert.equal(batch.baseRevision,0);assert.equal(deck.slides[0].elements.length,2);
  const proposal=await invoke(kit,'propose_prepared_edits',{baseRevision:0,summary:'Add block',recipeIds:[batch.recipeId]});assert.equal(proposal.operations.length,2);
  deck={...deck,revision:1};await assert.rejects(()=>invoke(kit,'read_prepared_edit',{recipeId:batch.recipeId}),/changed/);await assert.rejects(()=>invoke(kit,'propose_prepared_edits',{baseRevision:1,summary:'Unsafe rebase',recipeIds:[batch.recipeId]}),/revision changed/);assert.equal(deck.slides[0].elements.length,2);
- assert.throws(()=>AgentBoxSchema.parse({x:0,y:0,w:100}),/Required/);
+ assert.throws(()=>AgentBoxSchema.parse({x:0,y:0,w:100}),(error:unknown)=>error instanceof z.core.$ZodError&&error.issues.some(issue=>issue.code==='invalid_type'&&issue.path.join('.')==='h'));
 });
 
 test('discovery and projected schemas reduce irrelevant detail while keeping canonical required fields',async()=>{

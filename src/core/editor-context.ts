@@ -1,3 +1,3 @@
-import {z} from 'zod';
-export const EditorContextSchema=z.object({clientId:z.string().uuid(),deckId:z.string().min(1).max(120).nullable(),revision:z.number().int().min(0),activeSlideId:z.string().max(120).optional(),selectedIds:z.array(z.string().max(120)).max(3000),focused:z.boolean(),visible:z.boolean(),dirty:z.boolean(),sourceMode:z.boolean(),presenting:z.boolean(),pendingProposal:z.boolean()}).strict();
+import {z} from './schema';
+export const EditorContextSchema=z.strictObject({clientId:z.string().check(z.guid()),deckId:z.nullable(z.string().check(z.minLength(1)).check(z.maxLength(120))),revision:z.number().check(z.int()).check(z.minimum(0)),activeSlideId:z.optional(z.string().check(z.maxLength(120))),selectedIds:z.array(z.string().check(z.maxLength(120))).check(z.maxLength(3000)),focused:z.boolean(),visible:z.boolean(),dirty:z.boolean(),sourceMode:z.boolean(),presenting:z.boolean(),pendingProposal:z.boolean()});
 export type EditorContext=z.infer<typeof EditorContextSchema>;

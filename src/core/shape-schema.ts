@@ -1,14 +1,14 @@
-import { z } from 'zod';
+import {z} from './schema';
 
 export const ShapeVariantSchema = z.enum(['triangle', 'pentagon', 'hexagon', 'star', 'arrow', 'chevron']);
 export type ShapeVariant = z.infer<typeof ShapeVariantSchema>;
-export const ElementShadowSchema = z.object({
-  color: z.string().regex(/^#[\da-fA-F]{6}$/),
-  opacity: z.number().finite().min(0).max(1),
-  blur: z.number().finite().min(0).max(200),
-  x: z.number().finite().min(-500).max(500),
-  y: z.number().finite().min(-500).max(500),
-}).strict();
+export const ElementShadowSchema = z.strictObject({
+  color: z.string().check(z.regex(/^#[\da-fA-F]{6}$/)),
+  opacity: z.number().check(z.minimum(0)).check(z.maximum(1)),
+  blur: z.number().check(z.minimum(0)).check(z.maximum(200)),
+  x: z.number().check(z.minimum(-500)).check(z.maximum(500)),
+  y: z.number().check(z.minimum(-500)).check(z.maximum(500)),
+});
 export type ElementShadow = z.infer<typeof ElementShadowSchema>;
 
 export const DEFAULT_SHADOW: ElementShadow = {color: '#000000', opacity: .18, blur: 8, x: 0, y: 6};

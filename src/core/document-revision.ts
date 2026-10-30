@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from './schema';
 import { DeckSchema, SlideSchema, validateDeck, assertDeckInvariants, type Deck } from './model';
 import { shareDocumentRevision } from './document-data';
 
@@ -6,7 +6,7 @@ import { shareDocumentRevision } from './document-data';
 // externally frozen root is not proof that its children or schema are valid.
 const frozenData = new WeakSet<object>();
 const revisions = new WeakSet<Deck>();
-const slideList = z.array(z.unknown()).min(1).max(500);
+const slideList = z.array(z.unknown()).check(z.minLength(1)).check(z.maxLength(500));
 
 function freezeData(value: unknown): void {
   if (!value || typeof value !== 'object' || frozenData.has(value)) return;

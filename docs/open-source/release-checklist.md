@@ -59,3 +59,10 @@ This release integrates the current editor, drawing/line, table/block, crop, int
 Application, website and font-source packages can be built independently. Runtime export retains full editable native fonts, browser fonts/licenses and template originals; source TTFs and their original manifest/hashed inputs live in a separate development archive. The legacy combined browser-hosting build remains available.
 
 The frozen release candidate passed type checking with no diagnostics, 1,192 tests, the dependency audit, local/browser production builds and the source-package publication scan. Local startup stays within the existing 450 KB JS / 180 KB CSS budgets. Published-site acceptance, older-tab resource retention and same-origin stored-document continuity are recorded separately from source/build checks. Existing cloud-provider/native-conversion limitations remain.
+
+
+## Recovery release 0.1.8
+
+Failed saves no longer claim that a browser recovery draft was retained without an acknowledged backup. Keep the current tab open to retry or export a copy. Recovery drafts expose an explicit branch choice used by both export and recovery; recovery creates a new document without changing the originals. Silent save requests now release their pending state without automatically replaying an uncertain write.
+
+The repair is bounded to the independently checked failure and branch-selection paths. Real two-window write ordering, Node-service file-persistence UI, physical devices and actual storage-capacity exhaustion remain separate acceptance work. This release does not claim general storage reliability.

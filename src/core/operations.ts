@@ -1,7 +1,8 @@
+import {patchSchema} from './patch-schema';
 import {isBlockSizingFrame} from './block-frame';
 import {adaptSlideColors} from './slide-colors';
 import {selectionMembers} from './selection-transform';
-import { z } from 'zod';
+import {z} from './schema';
 import { cloneDocumentData } from './document-data';
 import { editedTextStyle } from './text-editing';
 import { ElementSchema, SlideSchema, DeckSchema, PageElementsSchema, GroupLayoutSchema, GroupSchema, OnlineFontSchema, DocumentFontSchema, validateDeck, assertDeckInvariants, type Deck, type SlideElement } from './model';
@@ -19,33 +20,33 @@ import {formatChartValue} from './chart-format';
 import {isShape} from './shapes';
 import {createRevisionValidator} from './document-revision';
 
-const patch = ElementSchema.omit({id: true, type: true}).partial().extend({type:ElementSchema.shape.type.optional()});
+const patch = z.extend(patchSchema(z.omit(ElementSchema, {id: true, type: true})), {type:z.optional(ElementSchema.shape.type)});
 export const OperationSchema = z.discriminatedUnion('op', [
-  z.object({op: z.literal('set_page_elements'), settings: PageElementsSchema, slideIds: z.array(z.string()).min(1).max(500).optional()}).strict(),
-  z.object({op: z.literal('update_element'), slideId: z.string(), elementId: z.string(), patch, unset:z.array(z.enum(['crop','resource'])).max(2).optional()}).strict(),
-  z.object({op: z.literal('add_element'), slideId: z.string(), element: ElementSchema}).strict(),
-  z.object({op: z.literal('delete_element'), slideId: z.string(), elementId: z.string()}).strict(),
-  z.object({op: z.literal('update_slide'), slideId: z.string(), patch: SlideSchema.omit({id: true, title: true, elements: true, source: true, autoLayouts: true, groups: true}).partial()}).strict(),
-  z.object({op:z.literal('set_group'),slideId:z.string(),group:GroupSchema}).strict(),
-  z.object({op:z.literal('remove_group'),slideId:z.string(),groupId:z.string()}).strict(),
-  z.object({op: z.literal('set_group_layout'), slideId: z.string(), layout: GroupLayoutSchema}).strict(),
-  z.object({op: z.literal('remove_group_layout'), slideId: z.string(), groupId: z.string()}).strict(),
-  z.object({op: z.literal('reorder_elements'), slideId: z.string(), ids: z.array(z.string())}).strict(),
-  z.object({op: z.literal('add_slide'), slide: SlideSchema, afterId: z.string().optional(), templateCollection: DeckSchema.shape.templateCollection}).strict(),
-  z.object({op: z.literal('delete_slide'), slideId: z.string()}).strict(),
-  z.object({op: z.literal('reorder_slides'), ids: z.array(z.string())}).strict(),
-  z.object({op: z.literal('rename_deck'), title: z.string().min(1).max(300)}).strict(),
-  z.object({op: z.literal('set_illustration_accent'), color: z.string().regex(/^#[\da-fA-F]{6}$/)}).strict(),
-  z.object({op:z.literal('set_design_system'),system:DesignSystemSchema,adopt:z.boolean().optional(),templateCollection:DeckSchema.shape.templateCollection}).strict(),
-  z.object({op: z.literal('register_local_font'), font: DocumentFontSchema}).strict(),
-  z.object({op: z.literal('register_online_font'), font: OnlineFontSchema}).strict(),
+  z.strictObject({op: z.literal('set_page_elements'), settings: PageElementsSchema, slideIds: z.optional(z.array(z.string()).check(z.minLength(1)).check(z.maxLength(500)))}),
+  z.strictObject({op: z.literal('update_element'), slideId: z.string(), elementId: z.string(), patch, unset:z.optional(z.array(z.enum(['crop','resource'])).check(z.maxLength(2)))}),
+  z.strictObject({op: z.literal('add_element'), slideId: z.string(), element: ElementSchema}),
+  z.strictObject({op: z.literal('delete_element'), slideId: z.string(), elementId: z.string()}),
+  z.strictObject({op: z.literal('update_slide'), slideId: z.string(), patch: patchSchema(z.omit(SlideSchema, {id: true, title: true, elements: true, source: true, autoLayouts: true, groups: true}))}),
+  z.strictObject({op:z.literal('set_group'),slideId:z.string(),group:GroupSchema}),
+  z.strictObject({op:z.literal('remove_group'),slideId:z.string(),groupId:z.string()}),
+  z.strictObject({op: z.literal('set_group_layout'), slideId: z.string(), layout: GroupLayoutSchema}),
+  z.strictObject({op: z.literal('remove_group_layout'), slideId: z.string(), groupId: z.string()}),
+  z.strictObject({op: z.literal('reorder_elements'), slideId: z.string(), ids: z.array(z.string())}),
+  z.strictObject({op: z.literal('add_slide'), slide: SlideSchema, afterId: z.optional(z.string()), templateCollection: DeckSchema.shape.templateCollection}),
+  z.strictObject({op: z.literal('delete_slide'), slideId: z.string()}),
+  z.strictObject({op: z.literal('reorder_slides'), ids: z.array(z.string())}),
+  z.strictObject({op: z.literal('rename_deck'), title: z.string().check(z.minLength(1)).check(z.maxLength(300))}),
+  z.strictObject({op: z.literal('set_illustration_accent'), color: z.string().check(z.regex(/^#[\da-fA-F]{6}$/))}),
+  z.strictObject({op:z.literal('set_design_system'),system:DesignSystemSchema,adopt:z.optional(z.boolean()),templateCollection:DeckSchema.shape.templateCollection}),
+  z.strictObject({op: z.literal('register_local_font'), font: DocumentFontSchema}),
+  z.strictObject({op: z.literal('register_online_font'), font: OnlineFontSchema}),
 ]);
 export type Operation = z.infer<typeof OperationSchema>;
-export const ProposalSchema = z.object({
-  baseRevision: z.number().int().min(0), summary: z.string().max(3000),
-  operations: z.array(OperationSchema).min(1).max(1000),
-  reviewWarnings:z.array(z.object({slide:z.number().int().min(1).max(3000),problem:z.string().max(1000),evidence:z.string().max(600)}).strict()).max(30).optional(),
-}).strict();
+export const ProposalSchema = z.strictObject({
+  baseRevision: z.number().check(z.int()).check(z.minimum(0)), summary: z.string().check(z.maxLength(3000)),
+  operations: z.array(OperationSchema).check(z.minLength(1)).check(z.maxLength(1000)),
+  reviewWarnings:z.optional(z.array(z.strictObject({slide:z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(3000)),problem:z.string().check(z.maxLength(1000)),evidence:z.string().check(z.maxLength(600))})).check(z.maxLength(30))),
+});
 export type Proposal = z.infer<typeof ProposalSchema>;
 function reorder<T extends {id: string}>(items: T[], ids: string[]): T[] {
   const byId = new Map(items.map(item => [item.id, item]));
