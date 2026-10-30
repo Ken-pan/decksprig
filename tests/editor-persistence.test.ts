@@ -461,3 +461,19 @@ test('auto layout creation requires multiple objects or a selected group, includ
     e.choose('child',false,true);assert.equal(e.selectedContainer,'');assert.equal(canAddAutoLayout(e.selected.length,e.selectedContainer),false);
   }finally{clearTimeout(e.timer);}
 });
+
+
+test('recovery selection distinguishes same-document branches and captures the chosen copy before navigation',async()=>{
+ const e=new Editor(),a=newDeck('Branch A',[blankSlide()]),b={...structuredClone(a),title:'Branch B',revision:7};
+ e.recoveries=[a,b];const originals=structuredClone(e.recoveries),copies:typeof a[]=[];
+ e.create=async deck=>{copies.push(deck);};
+ e.recoveryIndex=1;assert.equal(e.recovery,b);await e.recoverAsCopy();
+ e.recoveryIndex=0;await e.recoverAsCopy();await e.recoverAsCopy();
+ assert.deepEqual(copies.map(d=>d.title),['Branch B · Recovery draft','Branch A · Recovery draft','Branch A · Recovery draft']);
+ assert.equal(new Set(copies.map(d=>d.id)).size,3);assert(copies.every(d=>d.id!==a.id&&d.revision===0));
+ assert.deepEqual(e.recoveries,originals);assert.deepEqual(copies[0].slides,b.slides);
+ e.recoveryIndex=99;assert.equal(e.recovery,undefined);await e.recoverAsCopy();assert.equal(copies.length,3);
+ let release!:()=>void;e.create=async deck=>{copies.push(deck);await new Promise<void>(resolve=>release=resolve);};
+ e.recoveryIndex=1;const pending=e.recoverAsCopy();e.recoveryIndex=0;release();await pending;
+ assert.equal(copies.at(-1)!.title,'Branch B · Recovery draft');assert.deepEqual(e.recoveries,originals);
+});

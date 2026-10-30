@@ -39,7 +39,7 @@ test('failure after dispatch rejects the save and never replays an uncertain wri
   const worker=new FakeWorker(),saver=new BackgroundDocumentSaver(()=>worker.asWorker());let fallback=0;
   const pending=saver.save('/api/decks/a',{},async()=>{fallback++;return {};});
   worker.reply({type:'ready'});await turn();assert.equal(worker.messages.length,1);
-  const rejected=assert.rejects(pending,/browser draft is retained/);worker.fail();await rejected;
+  const rejected=assert.rejects(pending,/Keep this tab open/);worker.fail();await rejected;
   assert.equal(fallback,0);assert.equal(worker.terminated,true);
 });
 
@@ -71,7 +71,7 @@ test('document creation uses POST and never replays an uncertain duplicate',asyn
  const worker=new FakeWorker(),saver=new BackgroundDocumentSaver(()=>worker.asWorker());let fallback=0;
  const pending=saver.save('/api/decks',{id:'independent-copy'},async()=>{fallback++;return {};},'POST');worker.reply({type:'ready'});await turn();
  assert.equal((worker.messages[0] as unknown as {method:string}).method,'POST');
- const rejected=assert.rejects(pending,/browser draft is retained/);worker.fail();await rejected;assert.equal(fallback,0);
+ const rejected=assert.rejects(pending,/Keep this tab open/);worker.fail();await rejected;assert.equal(fallback,0);
 });
 
 test('idle save workers release memory, restart cleanly, and never terminate an active request',async()=>{
@@ -88,3 +88,28 @@ test('minimal editor writes skip successful document echo bodies but preserve er
  await assert.rejects(jsonRequest('/api/decks/a','PUT',{},async()=>Response.json({error:'Stale revision'},{status:409}),{minimal:true}),error=>(error as {status:number}).status===409&&error instanceof Error&&error.message==='Stale revision');
  assert.deepEqual(await jsonRequest('/api/decks/a','POST',{},async()=>Response.json({schema:'deck-studio/1',revision:1})),{schema:'deck-studio/1',revision:1});
 });
+
+test('a silent worker timeout releases every pending save without replay and permits a fresh explicit request',async context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const workers:FakeWorker[]=[];let fallback=0;
+  const saver=new BackgroundDocumentSaver(()=>{const w=new FakeWorker();workers.push(w);return w.asWorker();},15,'Save did not complete',25);
+  const first=saver.save('/api/decks/a',{},async()=>{fallback++;});
+  const second=saver.save('/api/decks/b',{},async()=>{fallback++;});
+  const rejected=Promise.all([assert.rejects(first,/Save did not complete/),assert.rejects(second,/Save did not complete/)]);
+  workers[0].reply({type:'ready'});await turn();context.mock.timers.tick(25);await rejected;
+  assert.equal(workers[0].messages.length,2);assert.equal(workers[0].terminated,true);assert.equal(fallback,0);
+  const retry=saver.save('/api/decks/a',{});workers[1].reply({type:'ready'});await turn();
+  workers[1].reply({type:'result',id:workers[1].messages[0].id,value:{ok:true}});assert.deepEqual(await retry,{ok:true});
+  context.mock.timers.tick(35);assert.equal(workers[1].terminated,true);
+});
+
+test('successful replies clear the request watchdog without interrupting later saves',async context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const worker=new FakeWorker(),saver=new BackgroundDocumentSaver(()=>worker.asWorker(),100,'Timed out',40);
+  const first=saver.save('/api/decks/a',{});worker.reply({type:'ready'});await turn();
+  worker.reply({type:'result',id:worker.messages[0].id});await first;
+  context.mock.timers.tick(30);
+  const second=saver.save('/api/decks/a',{});await turn();context.mock.timers.tick(20);
+  assert.equal(worker.terminated,false);worker.reply({type:'result',id:worker.messages[1].id,value:true});assert.equal(await second,true);
+});
+
