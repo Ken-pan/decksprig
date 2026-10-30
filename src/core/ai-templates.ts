@@ -1,4 +1,5 @@
-import {z} from 'zod';
+import {patchSchema} from './patch-schema';
+import {z} from './schema';
 import {newDeck,type Deck,type Slide,type SlideElement} from './model';
 import {applyOperations,type Operation} from './operations';
 import {AI_TEMPLATE_LAYOUTS,TemplateContentSchema,StoryCollectionSchema} from './ai-story';
@@ -69,7 +70,7 @@ export function readTemplate(slide:Slide){
  if(items.size)content.items=[...items].sort(([a],[b])=>a-b).map(([,value])=>value);if(dates.size)content.dates=[...dates].sort(([a],[b])=>a-b).map(([,value])=>value);
  return {slideId:slide.id,layout:slide.template?.prototype,collection:slide.template?.collection,content,notes:slide.notes,mapped:Boolean(content.heading),missingSlots:missing,canReflow:Boolean(content.heading&&!slide.source&&!missing.length),guidance:content.heading?'Content reflects current objects, including manual text/data edits. Omitted update fields stay unchanged.':'This older template has no authored slot map. Use read_deck and propose_updates/canonical operations to modify it in place; prepare_template can add a new layout beside it.'};
 }
-export const TemplateUpdateSchema=z.object({slideId:z.string(),layout:z.enum(AI_TEMPLATE_LAYOUTS).optional(),collection:StoryCollectionSchema.optional(),density:z.enum(['presentation','reading']).optional().describe('Use reading when a reading or denser text layout is requested; changing layout alone preserves the existing density.'),content:TemplateContentSchema.partial().extend({chart:ChartSchema.partial().optional().describe('Patch only requested chart fields. Omitted values, labels, source and display settings stay unchanged in merge mode.')}).optional(),contentMode:z.enum(['merge','replace']).optional(),notes:z.string().max(5000).optional()}).strict();
+export const TemplateUpdateSchema=z.strictObject({slideId:z.string(),layout:z.optional(z.enum(AI_TEMPLATE_LAYOUTS)),collection:z.optional(StoryCollectionSchema),density:z.optional(z.enum(['presentation','reading'])).clone().register(z.globalRegistry,{description:'Use reading when a reading or denser text layout is requested; changing layout alone preserves the existing density.'}),content:z.optional(z.extend(patchSchema(TemplateContentSchema), {chart:z.optional(patchSchema(ChartSchema)).clone().register(z.globalRegistry,{description:'Patch only requested chart fields. Omitted values, labels, source and display settings stay unchanged in merge mode.'})})),contentMode:z.optional(z.enum(['merge','replace'])),notes:z.optional(z.string().check(z.maxLength(5000)))});
 export async function prepareTemplateUpdate(deck:Deck,input:z.infer<typeof TemplateUpdateSchema>){
  const slide=deck.slides.find(s=>s.id===input.slideId);if(!slide)throw new Error('Slide no longer exists.');
  if(input.notes!==undefined&&!input.layout&&!input.collection&&!input.density&&!input.content&&!input.contentMode)return {operations:[{op:'update_slide' as const,slideId:slide.id,patch:{notes:input.notes}}],retainedObjects:slide.elements.length,layout:slide.template?.prototype,collection:slide.template?.collection,preservation:'Only speaker notes change; every object stays intact.'};

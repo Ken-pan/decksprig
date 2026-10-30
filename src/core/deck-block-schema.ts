@@ -1,28 +1,28 @@
-import {z} from 'zod';
+import {z} from './schema';
 
 export const BLOCK_IDS = ['architecture','process','organization','agenda','timeline','roadmap','gantt','kanban','comparison','swot','metrics','funnel'] as const;
 export type BlockId = typeof BLOCK_IDS[number];
-export const BlockOptionsSchema=z.object({
-  title:z.string().max(160),
-  items:z.array(z.object({label:z.string().trim().min(1).max(200),detail:z.string().max(2000),meta:z.string().max(100),parent:z.number().int().min(-1).max(11).optional()}).strict()).min(1).max(12),
-  layout:z.enum(['auto','horizontal','vertical','grid']).default('auto'),
-  tone:z.enum(['plain','surface','outline','accent']).default('surface'),
-  density:z.enum(['comfortable','compact']).default('comfortable'),
-  showTitle:z.boolean().default(true),
-  showDetails:z.boolean().default(true),
-  showMeta:z.boolean().default(true),
-  numbered:z.boolean().default(true),
-  stagger:z.boolean().default(false),
-  periods:z.number().int().min(2).max(12).default(6),
-  periodLabels:z.array(z.string().max(30)).max(12).default([]),
-}).strict();
+export const BlockOptionsSchema=z.strictObject({
+  title:z.string().check(z.maxLength(160)),
+  items:z.array(z.strictObject({label:z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(200)),detail:z.string().check(z.maxLength(2000)),meta:z.string().check(z.maxLength(100)),parent:z.optional(z.number().check(z.int()).check(z.minimum(-1)).check(z.maximum(11)))})).check(z.minLength(1)).check(z.maxLength(12)),
+  layout:z._default(z.enum(['auto','horizontal','vertical','grid']), 'auto'),
+  tone:z._default(z.enum(['plain','surface','outline','accent']), 'surface'),
+  density:z._default(z.enum(['comfortable','compact']), 'comfortable'),
+  showTitle:z._default(z.boolean(), true),
+  showDetails:z._default(z.boolean(), true),
+  showMeta:z._default(z.boolean(), true),
+  numbered:z._default(z.boolean(), true),
+  stagger:z._default(z.boolean(), false),
+  periods:z._default(z.number().check(z.int()).check(z.minimum(2)).check(z.maximum(12)), 6),
+  periodLabels:z._default(z.array(z.string().check(z.maxLength(30))).check(z.maxLength(12)), []),
+});
 export type BlockOptions=z.infer<typeof BlockOptionsSchema>;
 export type BlockInput=z.input<typeof BlockOptionsSchema>;
-export const BlockRecipeSchema=z.object({kind:z.enum(BLOCK_IDS),options:BlockOptionsSchema,fingerprint:z.string().max(64),sizing:z.enum(['scaled','presentation']).optional()}).strict();
+export const BlockRecipeSchema=z.strictObject({kind:z.enum(BLOCK_IDS),options:BlockOptionsSchema,fingerprint:z.string().check(z.maxLength(64)),sizing:z.optional(z.enum(['scaled','presentation']))});
 
 /** Keep validation useful in the editor instead of exposing serialized schema errors. */
 export function blockErrorMessage(error:unknown):string {
-  if(!(error instanceof z.ZodError))return error instanceof Error?error.message:'Check the block content.';
+  if(!(error instanceof z.core.$ZodError))return error instanceof Error?error.message:'Check the block content.';
   const issue=error.issues[0],path=issue?.path??[];
   if(path[0]==='items'&&typeof path[1]==='number'){
     const field=path[2],name=field==='label'?'label':field==='detail'?'description':'date or value';

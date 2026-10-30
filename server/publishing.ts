@@ -2,10 +2,10 @@ import {mkdir,readFile,writeFile,rename,readdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import JSZip from 'jszip';
-import {z} from 'zod';
+import {z} from '../src/core/schema';
 import {DATA,readDeck} from './store';
-const id=z.string().uuid();
-const metadata=z.object({id,deckId:z.string(),revision:z.number().int(),title:z.string(),sha256:z.string(),bytes:z.number(),createdAt:z.string(),state:z.enum(['prepared','creating','uploading','processing','published','failed','unknown']),siteId:z.string().optional(),deployId:z.string().optional(),url:z.string().url().optional(),error:z.string().optional()});
+const id=z.string().check(z.guid());
+const metadata=z.object({id,deckId:z.string(),revision:z.number().check(z.int()),title:z.string(),sha256:z.string(),bytes:z.number(),createdAt:z.string(),state:z.enum(['prepared','creating','uploading','processing','published','failed','unknown']),siteId:z.optional(z.string()),deployId:z.optional(z.string()),url:z.optional(z.string().check(z.url())),error:z.optional(z.string())});
 export type PublishDraft=z.infer<typeof metadata>;
 export class NetlifyPublisher {
  private token='';private verified=false;private runs=new Map<string,Promise<PublishDraft>>();

@@ -1,17 +1,17 @@
-import {z} from 'zod';
+import {z} from '../src/core/schema';
 import type {Story,CreationBrief} from '../src/core/ai-story';
 import {structuredResult,type StructuredOptions} from './ai-structured';
 
-const finding=z.object({
+const finding=z.strictObject({
  verdict:z.enum(['confirmed','uncertain']),
  kind:z.enum(['contradiction','unsupported','instruction','relationship']),
- authoredQuote:z.string().min(1).max(700),
- authoredMeaning:z.string().min(1).max(600).describe('What this passage actually asserts in context, including negation, hypothetical status and whether it proposes future work.'),
- sourceQuote:z.string().min(1).max(900),
- sourceMeaning:z.string().min(1).max(600).describe('What the complete original material establishes or explicitly requires.'),
- problem:z.string().min(1).max(700).describe('The specific changed fact or breached requirement. Wording preferences are not errors.'),
-}).strict();
-const schema=z.object({issues:z.array(finding).max(4)}).strict();
+ authoredQuote:z.string().check(z.minLength(1)).check(z.maxLength(700)),
+ authoredMeaning:z.string().check(z.minLength(1)).check(z.maxLength(600)).clone().register(z.globalRegistry,{description:'What this passage actually asserts in context, including negation, hypothetical status and whether it proposes future work.'}),
+ sourceQuote:z.string().check(z.minLength(1)).check(z.maxLength(900)),
+ sourceMeaning:z.string().check(z.minLength(1)).check(z.maxLength(600)).clone().register(z.globalRegistry,{description:'What the complete original material establishes or explicitly requires.'}),
+ problem:z.string().check(z.minLength(1)).check(z.maxLength(700)).clone().register(z.globalRegistry,{description:'The specific changed fact or breached requirement. Wording preferences are not errors.'}),
+});
+const schema=z.strictObject({issues:z.array(finding).check(z.maxLength(4))});
 const normalize=(s:string)=>s.normalize('NFKC').replace(/\s+/g,' ').trim().toLocaleLowerCase();
 const strings=(value:unknown):string[]=>typeof value==='string'?[value]:value&&typeof value==='object'?Object.values(value).flatMap(strings):[];
 type ReviewFinding={slide:number;evidence:string;problem:string};

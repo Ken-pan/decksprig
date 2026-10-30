@@ -1,4 +1,4 @@
-import {z} from 'zod';
+import {z} from './schema';
 export const StoryCollectionSchema=z.enum(['portfolio','review','proposal','pitch','report','minimal']);
-export const CreationBriefSchema=z.object({brief:z.string().trim().min(1).max(10000),audience:z.string().max(300).default(''),goal:z.string().max(500).optional(),delivery:z.enum(['presentation','reading']).optional(),slideCount:z.number().int().min(2).max(12),collection:StoryCollectionSchema,templateMode:z.enum(['auto','fixed']).optional(),materials:z.string().max(20000).default('')}).strict();
+export const CreationBriefSchema=z.strictObject({brief:z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(10000)),audience:z._default(z.string().check(z.maxLength(300)), ''),goal:z.optional(z.string().check(z.maxLength(500))),delivery:z.optional(z.enum(['presentation','reading'])),slideCount:z.number().check(z.int()).check(z.minimum(2)).check(z.maximum(12)),collection:StoryCollectionSchema,templateMode:z.optional(z.enum(['auto','fixed'])),materials:z._default(z.string().check(z.maxLength(20000)), '')});
 export type CreationBrief=z.infer<typeof CreationBriefSchema>;

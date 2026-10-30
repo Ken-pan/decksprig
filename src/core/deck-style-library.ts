@@ -1,12 +1,12 @@
 import {COLLECTIONS} from './template-collections';
-import { z } from 'zod';
+import {z} from './schema';
 import { DesignSystemSchema, TEXT_ROLES, type DesignSystem } from './design-system-schema';
 import { cloneDocumentData, sameDocumentData } from './document-data';
 import { contrastRatio, DESIGN_PRESETS } from './deck-design-system';
 
 export type PresetScope = 'all' | 'colors' | 'fonts';
 export const DOCUMENT_STYLE_PRESETS=[...COLLECTIONS.map(c=>c.system),...DESIGN_PRESETS.filter(system=>!COLLECTIONS.some(c=>c.system.name===system.name))];
-const LibrarySchema=z.array(z.object({id:z.string().min(1).max(100),system:DesignSystemSchema}).strict()).max(24);
+const LibrarySchema=z.array(z.strictObject({id:z.string().check(z.minLength(1)).check(z.maxLength(100)),system:DesignSystemSchema})).check(z.maxLength(24));
 export type SavedDeckStyle=z.infer<typeof LibrarySchema>[number];
 export const DECK_STYLE_LIBRARY_KEY='deck-studio-style-library-v1';
 type Storage=Pick<globalThis.Storage,'getItem'|'setItem'>;

@@ -1,37 +1,37 @@
-import { z } from 'zod';
+import {z} from './schema';
 import { recolorAccentPixels } from '../../public/resources/accent-engine.js';
 
-const key = z.string().regex(/^[a-z][a-z0-9-]{0,99}$/);
-const hex = z.string().regex(/^#[\da-f]{6}$/i).transform(value => value.toLowerCase());
-const sha = z.string().regex(/^[\da-f]{64}$/);
-const assetPath = z.string().regex(/^(png|masks)\/[a-z][a-z0-9-]*\.png$/);
+const key = z.string().check(z.regex(/^[a-z][a-z0-9-]{0,99}$/));
+const hex = z.pipe(z.string().check(z.regex(/^#[\da-f]{6}$/i)), z.transform(value => value.toLowerCase()));
+const sha = z.string().check(z.regex(/^[\da-f]{64}$/));
+const assetPath = z.string().check(z.regex(/^(png|masks)\/[a-z][a-z0-9-]*\.png$/));
 export const REGION_NAMES = ['skin', 'clothes', 'hair'] as const;
 export const ATTRIBUTE_NAMES = ['expression', 'outfit', 'accessory'] as const;
 export type CharacterAttribute = typeof ATTRIBUTE_NAMES[number];
 import {CharacterRecipeSchema,type CharacterRecipe} from './character-recipe-schema';
 export {CharacterRecipeSchema};
 export type {CharacterRecipe};
-export const CharacterPaletteSchema = z.object({skin: hex, clothes: hex, hair: hex, accent: z.literal('#2f5bff')}).strict();
+export const CharacterPaletteSchema = z.strictObject({skin: hex, clothes: hex, hair: hex, accent: z.literal('#2f5bff')});
 export const DEFAULT_CHARACTER_PALETTE = {skin:'#ffffff', clothes:'#2f5bff', hair:'#161616', accent:'#2f5bff'} as const;
-const regionPaths = z.object({skin: assetPath, clothes: assetPath, hair: assetPath}).strict();
-const regionHashes = z.object({skin: sha, clothes: sha, hair: sha}).strict();
-const RegionPaletteSchema=z.object({skin:hex,clothes:hex,hair:hex}).strict();
-export const CharacterVariantSchema = z.object({
+const regionPaths = z.strictObject({skin: assetPath, clothes: assetPath, hair: assetPath});
+const regionHashes = z.strictObject({skin: sha, clothes: sha, hair: sha});
+const RegionPaletteSchema=z.strictObject({skin:hex,clothes:hex,hair:hex});
+export const CharacterVariantSchema = z.strictObject({
   id: key, characterId: key, sceneId: key, expression: key, outfit: key, accessory: key,
-  file: assetPath, sha256: sha, width: z.number().int().min(1).max(8192), height: z.number().int().min(1).max(8192),
-  masks: regionPaths, maskSha256: regionHashes.optional(), palette: CharacterPaletteSchema.optional(), calibration:RegionPaletteSchema.optional(), approved: z.boolean(),
-}).strict().refine(v => v.width * v.height <= 20_000_000, 'The character image exceeds the pixel limit.');
+  file: assetPath, sha256: sha, width: z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(8192)), height: z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(8192)),
+  masks: regionPaths, maskSha256: z.optional(regionHashes), palette: z.optional(CharacterPaletteSchema), calibration:z.optional(RegionPaletteSchema), approved: z.boolean(),
+}).check(z.refine(v => v.width * v.height <= 20_000_000, 'The character image exceeds the pixel limit.'));
 export type CharacterVariant = z.infer<typeof CharacterVariantSchema>;
-const CharacterDefinitionSchema = z.object({
-  id: key, label: z.string().min(1).max(120), identity: z.string().min(1).max(2000), originalId: key,
-  masterVariantId: key, identityRevision: z.number().int().positive().optional(),
-}).strict();
+const CharacterDefinitionSchema = z.strictObject({
+  id: key, label: z.string().check(z.minLength(1)).check(z.maxLength(120)), identity: z.string().check(z.minLength(1)).check(z.maxLength(2000)), originalId: key,
+  masterVariantId: key, identityRevision: z.optional(z.number().check(z.int()).check(z.gt(0))),
+});
 export type CharacterDefinition = z.infer<typeof CharacterDefinitionSchema>;
-export const CharacterManifestSchema = z.object({
-  schema: z.literal('deck-studio/characters/1'), characters: z.array(CharacterDefinitionSchema).min(1).max(1000),
-  scenes: z.array(z.object({id:key, label:z.string().min(1).max(120)}).strict()).min(1).max(1000),
-  variants: z.array(CharacterVariantSchema).min(1).max(10000),
-}).strict().superRefine((value, context) => {
+export const CharacterManifestSchema = z.strictObject({
+  schema: z.literal('deck-studio/characters/1'), characters: z.array(CharacterDefinitionSchema).check(z.minLength(1)).check(z.maxLength(1000)),
+  scenes: z.array(z.strictObject({id:key, label:z.string().check(z.minLength(1)).check(z.maxLength(120))})).check(z.minLength(1)).check(z.maxLength(1000)),
+  variants: z.array(CharacterVariantSchema).check(z.minLength(1)).check(z.maxLength(10000)),
+}).check(z.superRefine((value, context) => {
   for (const field of ['characters', 'scenes', 'variants'] as const) {
     const ids = new Set<string>();
     value[field].forEach((entry, index) => {
@@ -47,41 +47,41 @@ export const CharacterManifestSchema = z.object({
     if (!value.variants.some(v => v.id === person.masterVariantId && v.characterId === person.id))
       context.addIssue({code:'custom',path:['characters',index,'masterVariantId'],message:'The identity reference version does not exist.'});
   });
-});
+}));
 export type CharacterManifest = z.infer<typeof CharacterManifestSchema>;
-const coordinate=z.number().min(0).max(1);
-export const CharacterLibrarySourceSchema = z.object({
+const coordinate=z.number().check(z.minimum(0)).check(z.maximum(1));
+export const CharacterLibrarySourceSchema = z.strictObject({
   schema:z.literal('deck-studio/character-authoring/1'), characters:z.array(CharacterDefinitionSchema),
-  scenes:z.array(z.object({id:key,label:z.string().min(1)}).strict()),
+  scenes:z.array(z.strictObject({id:key,label:z.string().check(z.minLength(1))})),
   palette:CharacterPaletteSchema,
-  autoMasks:z.record(key,z.object({headRect:z.tuple([coordinate,coordinate,coordinate,coordinate]),defaultAccessory:key.default('none'),handSeeds:z.record(key,z.array(z.tuple([coordinate,coordinate])).min(1)),
-    clothesBounds:z.object({maxX:coordinate,minY:coordinate,maxY:coordinate}).strict()}).strict()),
-  variants:z.record(key,z.object({maskMode:z.literal('authored'),masks:regionPaths,palette:CharacterPaletteSchema.optional()}).strict()).default({}),
-}).strict();
-export const CharacterReviewSchema=z.object({
-  schema:z.literal('deck-studio/character-reviews/1'), variants:z.record(key,z.object({
+  autoMasks:z.record(key,z.strictObject({headRect:z.tuple([coordinate,coordinate,coordinate,coordinate]),defaultAccessory:z._default(key, 'none'),handSeeds:z.record(key,z.array(z.tuple([coordinate,coordinate])).check(z.minLength(1))),
+    clothesBounds:z.strictObject({maxX:coordinate,minY:coordinate,maxY:coordinate})})),
+  variants:z._default(z.record(key,z.strictObject({maskMode:z.literal('authored'),masks:regionPaths,palette:z.optional(CharacterPaletteSchema)})), {}),
+});
+export const CharacterReviewSchema=z.strictObject({
+  schema:z.literal('deck-studio/character-reviews/1'), variants:z.record(key,z.strictObject({
     decision:z.enum(['approved','rejected']), sourceSha256:sha, maskSha256:regionHashes,
-    reviewer:z.string().trim().min(1).max(120), reviewedAt:z.string().datetime(), evidence:z.string().min(1),
-    checks:z.object({identity:z.boolean(),anatomy:z.boolean(),alpha:z.boolean(),regions:z.boolean()}).strict(),
-  }).strict()),
-}).strict();
+    reviewer:z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(120)), reviewedAt:z.string().check(z.iso.datetime()), evidence:z.string().check(z.minLength(1)),
+    checks:z.strictObject({identity:z.boolean(),anatomy:z.boolean(),alpha:z.boolean(),regions:z.boolean()}),
+  })),
+});
 export function characterReviewApproved(review:z.infer<typeof CharacterReviewSchema>['variants'][string]|undefined,variant:Pick<CharacterVariant,'sha256'|'maskSha256'>){
   return Boolean(review && review.decision==='approved' && review.sourceSha256===variant.sha256 && Object.values(review.checks).every(Boolean) && REGION_NAMES.every(region=>review.maskSha256[region]===variant.maskSha256?.[region]));
 }
-export const SavedCharacterVariantSchema = z.object({
-  id:z.string().uuid(), name:z.string().trim().min(1).max(120), recipe:CharacterRecipeSchema,
-  originalSha256:sha, createdAt:z.string().datetime(), imageSha256:sha.optional(),
-  width:z.number().int().positive().optional(), height:z.number().int().positive().optional(),
-  characterLabel:z.string().optional(), sceneLabel:z.string().optional(),
-}).strict();
+export const SavedCharacterVariantSchema = z.strictObject({
+  id:z.string().check(z.guid()), name:z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(120)), recipe:CharacterRecipeSchema,
+  originalSha256:sha, createdAt:z.string().check(z.iso.datetime()), imageSha256:z.optional(sha),
+  width:z.optional(z.number().check(z.int()).check(z.gt(0))), height:z.optional(z.number().check(z.int()).check(z.gt(0))),
+  characterLabel:z.optional(z.string()), sceneLabel:z.optional(z.string()),
+});
 export type SavedCharacterVariant = z.infer<typeof SavedCharacterVariantSchema>;
-export const CharacterRequestInputSchema = z.object({
-  recipe:CharacterRecipeSchema, expression:key, outfit:key, accessory:key, details:z.string().trim().max(1000).default(''),
-}).strict();
-export const CharacterGenerationRequestSchema = CharacterRequestInputSchema.extend({
-  id:z.string().uuid(), status:z.literal('pending-generation'), createdAt:z.string().datetime(), prompt:z.string(),
-  reference:z.object({variantId:key,sourceSha256:sha,identityRevision:z.number().int().positive(),masterVariantId:key,masterSha256:sha}).strict().optional(),
-}).strict();
+export const CharacterRequestInputSchema = z.strictObject({
+  recipe:CharacterRecipeSchema, expression:key, outfit:key, accessory:key, details:z._default(z.string().check(z.trim()).check(z.maxLength(1000)), ''),
+});
+export const CharacterGenerationRequestSchema = z.strictObject(z.extend(CharacterRequestInputSchema, {
+  id:z.string().check(z.guid()), status:z.literal('pending-generation'), createdAt:z.string().check(z.iso.datetime()), prompt:z.string(),
+  reference:z.optional(z.strictObject({variantId:key,sourceSha256:sha,identityRevision:z.number().check(z.int()).check(z.gt(0)),masterVariantId:key,masterSha256:sha})),
+}).shape);
 export type CharacterGenerationRequest = z.infer<typeof CharacterGenerationRequestSchema>;
 export type CharacterCatalog = CharacterManifest & {saved:SavedCharacterVariant[]; requests?:CharacterGenerationRequest[]; warnings?:string[]};
 export const EXPRESSION_OPTIONS = [{id:'confused',label:'Confused'},{id:'focused',label:'Focused'},{id:'fatigued',label:'Tired'},{id:'satisfied',label:'Satisfied'}];

@@ -2,7 +2,7 @@ import { characterDisplayLabel, sceneDisplayLabel } from '../src/core/library-co
 import {readFile,writeFile,mkdir,readdir,rename,stat,rm} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
-import {z} from 'zod';
+import {z} from '../src/core/schema';
 import {PNG} from 'pngjs';
 import {DATA} from './store';
 import {CharacterRecipeSchema,CharacterManifestSchema,CharacterReviewSchema,characterReviewApproved,SavedCharacterVariantSchema,CharacterRequestInputSchema,CharacterGenerationRequestSchema,REGION_NAMES,DEFAULT_CHARACTER_PALETTE,characterVariant,customizeCharacterPixels,measureCharacterAccent,generationPrompt,defaultCharacterRecipe,type CharacterRecipe,type CharacterVariant,type CharacterManifest,type SavedCharacterVariant} from '../src/core/characters';
@@ -12,14 +12,14 @@ import type {ResourceAttribution} from '../src/core/model';
 const root=resolve('public/resources/characters-v1');
 const hash=(data:Buffer)=>createHash('sha256').update(data).digest('hex');
 const savedRoot=resolve(DATA,'character-variants'), requestsRoot=resolve(DATA,'character-requests');
-const uuid=(value:string)=>z.string().uuid().parse(value);
+const uuid=(value:string)=>z.string().check(z.guid()).parse(value);
 const file=(path:string)=>{if(!/^(png|masks)\/[a-z][a-z0-9-]*\.png$/.test(path))throw new Error('Invalid character asset path.');return resolve(root,path);};
 export async function characterManifest():Promise<CharacterManifest>{
   const manifest=CharacterManifestSchema.parse(JSON.parse(await readFile(resolve(root,'manifest.json'),'utf8')));
   const reviews=CharacterReviewSchema.parse(JSON.parse(await readFile(resolve(root,'reviews.json'),'utf8')));
   return {...manifest, characters: manifest.characters.map(c=>({...c,label:characterDisplayLabel(c.id,c.label)})), scenes: manifest.scenes.map(s=>({...s,label:sceneDisplayLabel(s.id,s.label)})), variants:manifest.variants.map(v=>({...v,approved:v.approved&&characterReviewApproved(reviews.variants[v.id],v)}))};
 }
-async function records<T>(directory:string,schema:z.ZodType<T,any,any>){
+async function records<T>(directory:string,schema:z.ZodMiniType<T>){
   await mkdir(directory,{recursive:true});const items:T[]=[],warnings:string[]=[];
   for(const name of(await readdir(directory)).filter(n=>n.endsWith('.json')).sort()){
     try{uuid(name.slice(0,-5));items.push(schema.parse(JSON.parse(await readFile(resolve(directory,name),'utf8'))));}
@@ -114,7 +114,7 @@ export async function renderCharacter(raw:unknown,preview=false){
 }
 export async function characterEmbedded(recipe:unknown):Promise<EmbeddedResource & {width:number;height:number}>{const data=await renderCharacter(recipe);return {src:`data:image/png;base64,${data.bytes.toString('base64')}`,resource:data.resource,width:data.width,height:data.height};}
 export async function saveCharacterVariant(raw:unknown){
-  const input=z.object({name:z.string().trim().min(1).max(120),recipe:CharacterRecipeSchema,baseSha256:z.string().regex(/^[\da-f]{64}$/)}).strict().parse(raw);
+  const input=z.strictObject({name:z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(120)),recipe:CharacterRecipeSchema,baseSha256:z.string().check(z.regex(/^[\da-f]{64}$/))}).parse(raw);
   const rendered=await renderCharacter(input.recipe);if(rendered.resource.originalSha256!==input.baseSha256)throw new Error('The original character image has changed. Save it again.');
   const manifest=await characterManifest();
   await mkdir(savedRoot,{recursive:true});const id=randomUUID();

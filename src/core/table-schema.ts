@@ -1,20 +1,20 @@
-import {z} from 'zod';
-const color=z.string().regex(/^(#[\da-fA-F]{6}|transparent)$/);
+import {z} from './schema';
+const color=z.string().check(z.regex(/^(#[\da-fA-F]{6}|transparent)$/));
 export const TABLE_PRESETS=['editorial','banded','grid','contrast'] as const;
-const address={row:z.number().int().min(0).max(99),column:z.number().int().min(0).max(19)};
-export const TableMergeSchema=z.object({...address,rowSpan:z.number().int().min(1).max(100),columnSpan:z.number().int().min(1).max(20)}).strict().refine(m=>m.rowSpan*m.columnSpan>1,'Merge at least two cells.');
-export const TableCellStyleSchema=z.object({...address,fill:color.optional(),color:color.optional(),fontWeight:z.number().int().min(100).max(900).optional(),italic:z.boolean().optional(),align:z.enum(['left','center','right']).optional(),verticalAlign:z.enum(['top','middle','bottom']).optional()}).strict();
+const address={row:z.number().check(z.int()).check(z.minimum(0)).check(z.maximum(99)),column:z.number().check(z.int()).check(z.minimum(0)).check(z.maximum(19))};
+export const TableMergeSchema=z.strictObject({...address,rowSpan:z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(100)),columnSpan:z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(20))}).check(z.refine(m=>m.rowSpan*m.columnSpan>1, 'Merge at least two cells.'));
+export const TableCellStyleSchema=z.strictObject({...address,fill:z.optional(color),color:z.optional(color),fontWeight:z.optional(z.number().check(z.int()).check(z.minimum(100)).check(z.maximum(900))),italic:z.optional(z.boolean()),align:z.optional(z.enum(['left','center','right'])),verticalAlign:z.optional(z.enum(['top','middle','bottom']))});
 export type TableMerge=z.infer<typeof TableMergeSchema>;
 export type TableCellStyle=z.infer<typeof TableCellStyleSchema>;
-export const TableStyleSchema=z.object({
-  preset:z.enum(TABLE_PRESETS).optional(),headerRow:z.boolean().optional(),banded:z.boolean().optional(),
-  borders:z.enum(['rows','grid','none']).optional(),padding:z.number().min(0).max(1000).optional(),borderWidth:z.number().min(0).max(100).optional(),
-  numericAlign:z.boolean().optional(),verticalAlign:z.enum(['top','middle','bottom']).optional(),
-  headerFill:color.optional(),headerText:color.optional(),bodyFill:color.optional(),stripeFill:color.optional(),lineColor:color.optional(),
-  columnAlign:z.array(z.enum(['auto','left','center','right'])).max(20).optional(),columnWidths:z.array(z.number().positive().max(20000)).min(1).max(20).optional(),
-  rowHeights:z.array(z.number().positive().max(20000)).min(1).max(100).optional(),
-  merges:z.array(TableMergeSchema).max(1000).optional(),cellStyles:z.array(TableCellStyleSchema).max(2000).optional(),
-}).strict();
+export const TableStyleSchema=z.strictObject({
+  preset:z.optional(z.enum(TABLE_PRESETS)),headerRow:z.optional(z.boolean()),banded:z.optional(z.boolean()),
+  borders:z.optional(z.enum(['rows','grid','none'])),padding:z.optional(z.number().check(z.minimum(0)).check(z.maximum(1000))),borderWidth:z.optional(z.number().check(z.minimum(0)).check(z.maximum(100))),
+  numericAlign:z.optional(z.boolean()),verticalAlign:z.optional(z.enum(['top','middle','bottom'])),
+  headerFill:z.optional(color),headerText:z.optional(color),bodyFill:z.optional(color),stripeFill:z.optional(color),lineColor:z.optional(color),
+  columnAlign:z.optional(z.array(z.enum(['auto','left','center','right'])).check(z.maxLength(20))),columnWidths:z.optional(z.array(z.number().check(z.gt(0)).check(z.maximum(20000))).check(z.minLength(1)).check(z.maxLength(20))),
+  rowHeights:z.optional(z.array(z.number().check(z.gt(0)).check(z.maximum(20000))).check(z.minLength(1)).check(z.maxLength(100))),
+  merges:z.optional(z.array(TableMergeSchema).check(z.maxLength(1000))),cellStyles:z.optional(z.array(TableCellStyleSchema).check(z.maxLength(2000))),
+});
 export type TableStyle=z.infer<typeof TableStyleSchema>;
 
 export function validateTableStyle(cells:string[][],style:TableStyle|undefined){

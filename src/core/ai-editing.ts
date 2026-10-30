@@ -1,14 +1,14 @@
-import {zodToJsonSchema} from 'zod-to-json-schema';
+import {z} from './schema';
 import {OperationSchema, ProposalSchema, applyOperations, type Proposal} from './operations';
 import {descendants} from './container-tree';
 import type {Deck} from './model';
 
 export type EditScope = {slideIds: string[]; elementIds: string[]};
-export const EDIT_OPERATIONS = OperationSchema.options.map(schema => schema.shape.op.value);
+export const EDIT_OPERATIONS = OperationSchema.def.options.map(schema => schema.shape.op.def.values[0]);
 export function editSchema(operation?: string) {
-  const schema = operation ? OperationSchema.options.find(s => s.shape.op.value === operation) : ProposalSchema;
+  const schema = operation ? OperationSchema.def.options.find(s => s.shape.op.def.values[0] === operation) : ProposalSchema;
   if (!schema) throw new Error(`Unknown operation: ${operation}. Read get_capabilities for supported operations.`);
-  const json = zodToJsonSchema(schema, {$refStrategy:'none'});
+  const json = z.toJSONSchema(schema,{target:'draft-7',io:'input',reused:'inline',cycles:'throw'});
   delete json.$schema;
   return json;
 }

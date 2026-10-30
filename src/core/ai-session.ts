@@ -1,5 +1,5 @@
-import {z} from 'zod';
-export const AIHistorySchema=z.array(z.object({prompt:z.string().max(2000),summary:z.string().max(1200),status:z.enum(['applied','information','queued','discarded']),revision:z.number().int().min(0)}).strict()).max(8);
+import {z} from './schema';
+export const AIHistorySchema=z.array(z.strictObject({prompt:z.string().check(z.maxLength(2000)),summary:z.string().check(z.maxLength(1200)),status:z.enum(['applied','information','queued','discarded']),revision:z.number().check(z.int()).check(z.minimum(0))})).check(z.maxLength(8));
 export type AIHistory=z.infer<typeof AIHistorySchema>;
 export type AISession={prompt:string;scope:string;history:AIHistory};
 const prefix='deck-studio-ai-session:';const empty=():AISession=>({prompt:'',scope:'slide',history:[]});
