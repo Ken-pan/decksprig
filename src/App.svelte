@@ -1011,7 +1011,7 @@
           {:else if workspaceError}
             <EmptyState icon={AlertCircle} tone="error" role="alert" title="Workspace could not open" description={workspaceError}><Button variant="secondary" onclick={()=>workspaceRetry()}>Try again</Button><Button onclick={openLibrary}><BookOpen size={16}/>Open document library</Button></EmptyState>
           {:else}
-            <AsyncFeature feature="welcome" props={{ontemplates:collection=>{templateStart=collection;modal='templates';},onblank:()=>create(newDeck('Untitled document',[blankSlide()])),onimport:()=>modal='import',onlibrary:openLibrary,onai:()=>modal='ai-create',ondemo:openDemo,demoLoading}} />
+            <AsyncFeature feature="welcome" props={{ontemplates:collection=>{templateStart=collection;modal='templates';},onblank:()=>create(newDeck('Untitled document',[blankSlide()])),onimport:()=>modal='import',onlibrary:openLibrary,onai:()=>modal='ai-create',ondemo:openDemo,demoLoading,aiReady:Boolean(aiSettings.model.trim())&&(aiSettings.provider==='compatible'||Boolean(health?.ai?.configured)||Boolean(aiSettings.apiKey?.trim()))}} />
           {/if}
           {#if !editor.croppingId && !canvasCellsSelected && !editor.sourceMode && !proposalDeck && !insertTool && (insertingText || editor.selection.length || editor.additiveSelection)}
             <div class="selection-context ui-floating-toolbar" use:editorToolbar use:selectionToolbar={{ids: editor.selected, editingId: editor.editingId, revision: editor.deck?.revision, scale: currentScale, draft: insertingText, docked: shortWorkspace}} role="toolbar" aria-label="Selected object actions">
