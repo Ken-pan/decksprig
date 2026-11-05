@@ -18,7 +18,7 @@
       "sections": [
         {
           "title": "Open the sample as a new document",
-          "body": "<p>Choose <a href=\"/app?demo=1\">Open editable sample</a> on a desktop browser. Decksprig creates a new three-slide document and preserves existing documents. Read and close the import report. Rename the new document in the top bar so you can recognize your own copy.</p><p>This walkthrough uses the existing sample rather than requiring an AI provider or an account connection. Desktop is the primary editing surface.</p>"
+          "body": "<p>Choose <a href=\"/app?demo=1\">Open editable sample</a> on a desktop browser. Decksprig creates a new three-slide document and preserves existing documents. Read and close the import report. Rename the new document using the title beside the Decksprig logo so you can recognize your own copy.</p><p>This walkthrough uses the existing sample rather than requiring an AI provider or an account connection. Desktop is the primary editing surface.</p>"
         },
         {
           "title": "Give the three slides one clear purpose each",
@@ -49,7 +49,7 @@
       "sections": [
         {
           "title": "将示例打开为新文档",
-          "body": "<p>在桌面浏览器选择<a href=\"/app?demo=1\">打开可编辑示例</a>。Decksprig 会新建一份三页文档，并保留已有文档。阅读并关闭导入报告，在顶部栏为新文档命名，便于之后找到自己的版本。</p><p>这份教程直接使用现有示例，不需要配置 AI 服务或连接账号。桌面是主要编辑环境。</p>"
+          "body": "<p>在桌面浏览器选择<a href=\"/app?demo=1\">打开可编辑示例</a>。Decksprig 会新建一份三页文档，并保留已有文档。阅读并关闭导入报告，使用 Decksprig 标志旁的文稿标题为新文档命名，便于之后找到自己的版本。</p><p>这份教程直接使用现有示例，不需要配置 AI 服务或连接账号。桌面是主要编辑环境。</p>"
         },
         {
           "title": "让三页各自承担一个任务",

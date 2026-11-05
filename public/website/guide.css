@@ -6,3 +6,10 @@
 @media(prefers-color-scheme:dark){:root:not([data-theme]) .github-mark{background-image:url(assets/github-mark-white.svg)}}
 @media(hover:hover){.github-link:hover{text-decoration:underline;text-underline-offset:4px}}
 @media(forced-colors:active){.github-mark{background:CanvasText;mask:url(assets/github-mark-black.svg) center/contain no-repeat}}
+
+/* Public component roles; shared geometry lives in product-chrome.css. */
+.ktb-footer{--ktb-ink:var(--ink);--ktb-muted:var(--muted);--ktb-line:var(--line);--ktb-width:1200px;--ktb-gutter:20px}
+
+header.ktb-header{position:sticky;top:0;z-index:10;min-height:64px;padding-block:10px;background:var(--bg)}header.ktb-header nav a{text-decoration:none}header.ktb-header nav a:hover{text-decoration:underline}@media(max-width:520px){header.ktb-header nav{width:100%;justify-content:space-between;gap:8px}}
+
+@media(max-width:520px){header.ktb-header{flex-wrap:nowrap}header.ktb-header nav{width:auto;gap:12px;justify-content:flex-end}}

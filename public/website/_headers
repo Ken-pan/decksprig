@@ -10,3 +10,10 @@
 /demo*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'
   X-Robots-Tag: noindex
+
+# Only the public homepage can appear inside Ken's portfolio. The editor and
+# demo retain their own deny policies. Modern browsers use this CSP instead of XFO.
+/
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors https://kenpan.design https://www.kenpan.design http://127.0.0.1:3000; form-action 'none'
+/index.html
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors https://kenpan.design https://www.kenpan.design http://127.0.0.1:3000; form-action 'none'

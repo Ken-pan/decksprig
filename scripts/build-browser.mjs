@@ -1,4 +1,3 @@
-import {enhanceWebsiteSeo} from './website-seo.mjs';
 import {build} from 'vite';
 import {mkdir,cp,readFile,writeFile,rm,readdir,stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -7,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {build as bundle} from 'esbuild';
 import {copyRuntimeFonts} from './public-assets.mjs';
 import {publicOrigin} from './public-origin.mjs';
+import {enhanceWebsiteSeo} from './website-seo.mjs';
 
 const root=resolve(import.meta.dirname,'..');
 const staging=process.env.DECK_STUDIO_WEB_OUTPUT?resolve(process.env.DECK_STUDIO_WEB_OUTPUT):undefined;
@@ -31,7 +31,6 @@ for(const name of ['favicon.svg','favicon.ico'])await cp(resolve(root,'public',n
 await cp(resolve(root,'public/speaker.html'),resolve(out,'speaker.html'));
 await cp(resolve(root,'public/publication-preview.html'),resolve(out,'publication-preview.html'));
 for(const name of ['privacy.html','licenses.html','legal.css','licenses'])await cp(resolve(root,'public',name),resolve(out,name),{recursive:true});
-await enhanceWebsiteSeo(out,publicOrigin());
 await mkdir(resolve(out,'examples'),{recursive:true});
 for(const name of ['decksprig-demo.deck.json','deckleaf-demo.deck.json'])await cp(resolve(root,'public/examples',name),resolve(out,'examples',name));
 // Only project-owned template artwork is public; imported examples stay excluded.
@@ -55,6 +54,7 @@ await writeFile(resolve(out,'_headers'),editorHeaders+`\n/app*\n  Content-Securi
 await writeFile(resolve(out,'_headers'),(await readFile(resolve(out,'_headers'),'utf8'))+`\n/publication-preview.html\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; img-src 'self' data: blob: https:; connect-src 'self' data: blob: https:; frame-src 'self' https:; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'; sandbox allow-scripts\n  X-Frame-Options: SAMEORIGIN\n  X-Robots-Tag: noindex\n`);
 const functions=staging?resolve(staging,'functions'):resolve(root,'output/web-editor/functions');await mkdir(functions,{recursive:true});
 await bundle({entryPoints:[resolve(root,'netlify/functions/open-resources.ts')],outdir:functions,bundle:true,platform:'node',target:'node22',format:'cjs',define:{'import.meta.url':'__filename'},minify:true});
+await enhanceWebsiteSeo(out,origin);
 const files={};
 async function inspect(dir,prefix=''){for(const entry of await readdir(dir,{withFileTypes:true})){const path=resolve(dir,entry.name),key=prefix+entry.name;if(entry.isDirectory())await inspect(path,key+'/');else{const bytes=await readFile(path);if(/\.(js|html|json|txt)$/.test(key)&&/\/Users\/kenpan|DECK_AI_KEY=|\.data\/decks/.test(bytes.toString()))throw new Error(`Private local path found in publication: ${key}`);files[key]={bytes:(await stat(path)).size,sha256:createHash('sha256').update(bytes).digest('hex')};}}}
 await inspect(out);for(const path of ['app.html','publication-preview.html','examples/decksprig-demo.deck.json','examples/deckleaf-demo.deck.json'])if(!files[path])throw new Error(`Missing public workflow asset: ${path}`);await writeFile(staging?resolve(staging,'build-manifest.json'):resolve(root,'output/web-editor/build-manifest.json'),JSON.stringify({origin,runtime:'browser',storage:'IndexedDB',files},null,2));

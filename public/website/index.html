@@ -5,24 +5,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Decksprig — Give your ideas a clearer story</title>
   <meta name="description" content="A browser slide editor for portfolios, project reviews and design proposals. Shape your story, review AI changes, and present with confidence.">
-  <meta name="theme-color" content="#faf9f5">
-  <script src="appearance.js?v=20261014-visual"></script>
+  <meta name="theme-color" content="#0b0c0f">
+  <script src="appearance.js?v=20261105-graphite"></script>
   <link rel="canonical" href="https://decksprig.kens-toolbox.com/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Decksprig — Give your ideas a clearer story">
-  <meta property="og:description" content="A considered space for your next portfolio, project review or design proposal.">
+  <meta property="og:description" content="A browser slide editor for portfolios, project reviews and design proposals. Start without an account; export an editable deck when you’re ready.">
   <meta property="og:url" content="https://decksprig.kens-toolbox.com/">
-  <meta property="og:image" content="https://decksprig.kens-toolbox.com/assets/social.jpg?v=20261015-latest">
+  <meta property="og:image" content="https://decksprig.kens-toolbox.com/assets/social.jpg?v=20261105-graphite">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="preload" as="font" type="font/ttf" href="assets/manrope.ttf" crossorigin>
-  <link rel="preload" as="font" type="font/ttf" href="assets/inter.ttf" crossorigin>
-  <link rel="stylesheet" href="site.css?v=20261014-visual">
-  <script src="site.js?v=20261014-visual" defer></script>
-</head>
+  <link rel="preload" as="font" type="font/woff2" href="assets/manrope-latin-web.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="assets/inter-latin-web.woff2" crossorigin>
+  <link rel="stylesheet" href="site.css?v=20261105-graphite">
+  <link rel="preload" as="script" href="navigation.js">
+  <script src="site.js?v=20261105-graphite" defer></script>
+<link rel="stylesheet" href="/product-chrome.css">
+<link rel="stylesheet" href="/header-controls.css"><script defer src="/header-controls.js"></script></head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
+  <a class="ktb-skip skip" href="#main">Skip to content</a>
   <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
     <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
     <symbol id="github-outline" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5c.08-1.25-.27-2.48-1-3.5c.28-1.15.28-2.35 0-3.5c0 0-1 0-3 1.5c-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5c-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></g></symbol>
@@ -35,84 +37,66 @@
     <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
   </svg>
-  <header class="nav">
+  <header class="nav ktb-header" data-tone="hero">
     <div class="nav-inner">
       <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Decksprig</a>
       <nav id="navigation" aria-label="Main navigation">
-        <a href="#workflow">Features</a><a href="#templates">Templates</a><a href="guide.html">Guide</a><a href="#faq">FAQ</a>
+        <a href="#workspace">Product</a><a href="#templates">Templates</a><a href="guide.html">Guide</a><a href="#faq">FAQ</a><a class="nav-mobile-only" href="/app" target="_blank" rel="noopener noreferrer">Open editor</a><a class="nav-mobile-only" href="https://github.com/Ken-pan/decksprig">GitHub ↗</a><a class="nav-mobile-only nav-family" href="https://kens-toolbox.com/">Ken’s Toolbox</a>
       </nav>
       <div class="nav-actions">
-        <div class="nav-editor-slot" inert aria-hidden="true"><a class="button small primary nav-editor" href="/app" aria-label="Open editor"><span class="editor-label-full">Open editor</span><span class="editor-label-short" aria-hidden="true">Open</span><svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a></div>
-        <button class="icon-button theme-toggle" aria-label="Switch to dark appearance" aria-pressed="false"><svg class="ic"><use href="#moon"/></svg></button>
-        <a class="icon-button nav-github" href="https://github.com/Ken-pan/decksprig" aria-label="GitHub repository" title="GitHub"><svg class="ic" aria-hidden="true"><use href="#github-outline"/></svg></a>
-        <button class="icon-button menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="navigation"><svg class="ic"><use href="#menu"/></svg></button>
+        <div class="nav-editor-slot" inert aria-hidden="true"><a class="button small primary nav-editor" href="/app" aria-label="Open editor" data-chrome-action target="_blank" rel="noopener noreferrer"><span class="editor-label-full">Open editor</span><span class="editor-label-short" aria-hidden="true">Open</span><svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a></div>
+        <details class="header-preference" data-header-preference data-appearance-control><summary class="header-pref-trigger" aria-label="Appearance"><span data-theme-icon><svg viewBox="0 0 24 24" aria-hidden="true" data-lucide="sun-moon"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m2.837 12.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4m7-3l-1.256 1.256M20 12h2"/></svg></span></summary><div class="header-pref-menu"><span class="header-pref-label">Appearance</span><div role="group" aria-label="Appearance"><button type="button" data-appearance-choice="light" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" data-lucide="sun"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></g></svg><span>Light</span></button><button type="button" data-appearance-choice="dark" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" data-lucide="moon"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg><span>Dark</span></button><button type="button" data-appearance-choice="system" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true" data-lucide="sun-moon"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m2.837 12.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4m7-3l-1.256 1.256M20 12h2"/></svg><span>System</span></button></div></div></details>
+        <a class="icon-button nav-github" href="https://github.com/Ken-pan/decksprig" aria-label="GitHub repository" title="GitHub" data-chrome-action><svg class="ic" aria-hidden="true"><use href="#github-outline"/></svg></a>
+        <button class="icon-button menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="navigation" data-chrome-action><svg class="ic"><use href="#menu"/></svg></button>
       </div>
     </div>
   </header>
-  <main id="main">
-    <section class="hero" id="top" aria-labelledby="hero-title">
+  <script src="navigation.js"></script>
+  <main id="main" tabindex="-1" class="ktb-main">
+    <section class="hero tone-graphite" id="top" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow entrance">A little space for your next big idea</p>
-        <h1 id="hero-title" class="entrance"><span class="brand-mark hero-logo" aria-hidden="true"></span><span class="hero-wordmark">Decksprig</span></h1>
-        <p class="hero-promise entrance">Give your ideas <span>a clearer story.</span></p>
-        <p class="lede entrance">A considered space for portfolios, project reviews and ideas worth sharing.</p>
+        <p class="eyebrow entrance">Your ideas. Your canvas.</p>
+        <h1 id="hero-title" class="entrance">Make slides that feel like yours.</h1>
+        <p class="lede entrance">A focused canvas to create, refine and present. Full control, no account required.</p>
         <div class="actions entrance">
-          <a class="button primary" href="/app">Open editor <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a>
-          <a class="button secondary github-link" href="https://github.com/Ken-pan/decksprig"><span class="github-mark" aria-hidden="true"></span>View on GitHub</a>
+          <a class="button primary" href="/app" data-chrome-action target="_blank" rel="noopener noreferrer">Start creating <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a>
+          <a class="button secondary" href="#templates" data-chrome-action>See templates</a>
         </div>
-        <p class="hero-note entrance">Open source · MIT · No account needed</p>
+        <ul class="hero-facts entrance" aria-label="At a glance"><li>Open source</li><li>No account</li><li>Editable export</li></ul>
       </div>
-      <div class="hero-folio entrance" aria-label="Real Decksprig starter decks">
-        <figure class="folio-paper folio-left" aria-hidden="true"><img src="assets/review.jpg?v=20261015-latest" width="1440" height="810" alt="" decoding="async"></figure>
-        <a class="folio-paper folio-main" href="#templates" aria-label="Explore the Editorial portfolio template"><img src="assets/portfolio.jpg?v=20261015-latest" width="1440" height="810" fetchpriority="high" alt="Current portfolio template with clear type and original paper artwork."></a>
-        <figure class="folio-paper folio-right" aria-hidden="true"><img src="assets/minimal.jpg?v=20261015-latest" width="1440" height="810" alt="" decoding="async"></figure>
-      </div>
-      <div class="folio-caption"><span>Six starting points. Endless possibilities.</span><a href="#templates">Find your starting point <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a></div>
+      <figure class="hero-stage entrance">
+        <div class="stage-window"><img src="assets/hero-editor.jpg?v=20261105-graphite" srcset="assets/hero-editor.jpg?v=20261105-graphite 1440w, assets/hero-editor-2x.jpg?v=20261105-graphite 2880w" sizes="(min-width: 1300px) 1200px, calc(100vw - 40px)" width="1440" height="900" fetchpriority="high" alt="The Decksprig editor with a cover slide selected. The canvas shows a contextual toolbar; the inspector shows auto layout, size and spacing controls."></div>
+      </figure>
     </section>
 
-    <section class="workspace-band" id="workspace" aria-labelledby="workspace-title">
-      <div class="section reveal">
-        <p class="eyebrow">01 / Your working canvas</p>
-        <div class="section-heading"><h2 id="workspace-title">Space for the story.<br><span>Control over the details.</span></h2><p>Write directly on the canvas. Arrange your evidence. Keep the next slide in view.</p></div>
-        <figure class="product-window">
-          <picture><source data-dark-shot media="(prefers-color-scheme: dark)" srcset="assets/editor-dark.jpg?v=20261015-latest"><img id="editor-shot" src="assets/editor-light.jpg?v=20261015-latest" width="1600" height="1000" loading="lazy" alt="The real Decksprig editor with editable slide content, page order and contextual design controls."></picture>
-        </figure>
-        <div class="stage-caption"><span>The actual editor. Ready when you are.</span><a href="/app">Open your workspace <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a></div>
-      </div>
-    </section>
-
-    <section class="intro section reveal" id="workflow" aria-labelledby="workflow-title">
-      <p class="eyebrow">02 / From first idea to final slide</p>
-      <div class="section-heading"><h2 id="workflow-title">Make the point.<br><span class="muted">Give it room to land.</span></h2><p>Start with a clear structure. Bring in the evidence. Refine the details without losing the thread.</p></div>
-      <div class="workflow-grid">
-        <article><span class="step-number">01</span><h3>Start with a story</h3><p>Choose a portfolio, review, minimalist deck, proposal, pitch or report — or start with a blank page. Each layout gives your story room to grow.</p></article>
-        <article><span class="step-number">02</span><h3>Compose your way</h3><p>Edit text directly, let grouped content reflow and change fonts or colors across your deck. Preview layout suggestions before applying them.</p></article>
-        <article><span class="step-number">03</span><h3>Bring it to life</h3><p>Add transitions, pace your reveals and present full screen. Export a standalone HTML presentation or PowerPoint file.</p></article>
+    <section class="section workspace reveal" id="workspace" aria-labelledby="workspace-title">
+      <div class="section-heading"><div><p class="eyebrow"><span>01</span>The workspace</p><h2 id="workspace-title">All the tools.<br><span class="muted">None of the noise.</span></h2></div><p>Edit directly. Shape your layouts. Keep every detail under your control.</p></div>
+      <figure class="product-window">
+        <picture><source data-dark-shot media="(prefers-color-scheme: dark)" srcset="assets/workspace-dark.jpg?v=20261105-graphite 1440w, assets/workspace-dark-2x.jpg?v=20261105-graphite 2880w" sizes="(min-width: 1300px) 1200px, calc(100vw - 40px)"><img id="editor-shot" src="assets/workspace-light.jpg?v=20261105-graphite" srcset="assets/workspace-light.jpg?v=20261105-graphite 1440w, assets/workspace-light-2x.jpg?v=20261105-graphite 2880w" sizes="(min-width: 1300px) 1200px, calc(100vw - 40px)" width="1440" height="900" loading="lazy" alt="A chart selected in the Decksprig editor, with layout, chart style, data and appearance controls in the inspector."></picture>
+      </figure>
+      <div class="capabilities">
+        <article><h3>Edit on the canvas</h3><p>Select, type and arrange in place. Tools appear for what you select, and stay out of the way otherwise.</p></article>
+        <article><h3>Layouts that hold</h3><p>Auto layout keeps spacing, alignment and text limits consistent as your content changes.</p></article>
+        <article><h3>Data that stays editable</h3><p>Charts and tables keep their values, labels and styles, all adjustable in one panel.</p></article>
+        <article><h3>Ready to present</h3><p>Pace your reveals, add transitions and present full screen, right from the browser.</p></article>
       </div>
     </section>
 
-    <section class="template-band" id="templates" aria-labelledby="templates-title">
-      <div class="section reveal">
-        <p class="eyebrow">03 / Find your starting point</p>
-        <div class="section-heading"><h2 id="templates-title">A template for<br><span class="muted">every kind of story.</span></h2><p>Six complete decks with editable text, charts and tables, responsive layouts and paced reveals.</p></div>
-        <div class="template-gallery"><div class="template-picker" role="tablist" aria-orientation="vertical" aria-label="Template collections">
-          <button role="tab" id="tab-portfolio" aria-controls="template-panel" aria-selected="true" data-template="portfolio">Portfolio<span>Editorial · 24 slides</span></button>
-          <button role="tab" id="tab-review" aria-controls="template-panel" aria-selected="false" tabindex="-1" data-template="review">Project review<span>Studio · 24 slides</span></button>
-          <button role="tab" id="tab-minimal" aria-controls="template-panel" aria-selected="false" tabindex="-1" data-template="minimal">Minimalist<span>Minimalist · 24 slides</span></button>
-          <button role="tab" id="tab-proposal" aria-controls="template-panel" aria-selected="false" tabindex="-1" data-template="proposal">Design proposal<span>Monograph · 24 slides</span></button>
-          <button role="tab" id="tab-pitch" aria-controls="template-panel" aria-selected="false" tabindex="-1" data-template="pitch">Product pitch<span>Signal · 24 slides</span></button>
-          <button role="tab" id="tab-report" aria-controls="template-panel" aria-selected="false" tabindex="-1" data-template="report">Data report<span>Ledger · 24 slides</span></button>
-        </div>
-        <div id="template-panel" role="tabpanel" aria-labelledby="tab-portfolio" tabindex="0">
-          <figure class="template-preview"><img id="template-image" src="assets/portfolio.jpg?v=20261015-latest" width="1440" height="810" loading="lazy" alt="Current Editorial portfolio cover with original paper artwork and clear editable typography."></figure>
-          <div class="template-details"><div><h3 id="template-title">Portfolio / Editorial</h3><p id="template-description">24 slides · Context, research, craft and reflection.</p></div><a class="text-link" id="template-download" href="assets/editorial.deck.json?v=20261015-latest" download>Get the starter deck <svg class="ic" aria-hidden="true"><use href="#download"/></svg></a></div>
-        </div>
-        </div><p class="caption">144 editable slides across six collections. Artwork is original AI-generated material you can replace.</p>
-      </div>
+    <section class="section templates reveal" id="templates" aria-labelledby="templates-title">
+      <div class="section-heading"><div><p class="eyebrow"><span>02</span>Templates</p><h2 id="templates-title">Six complete decks.<br><span class="muted">Start from any of them.</span></h2></div><p>Each has 24 slides, with text, charts, tables and layouts you can change.</p></div>
+      <ul class="template-grid">
+        <li class="template-card"><figure><img src="assets/portfolio.jpg?v=20261105-graphite" width="1044" height="588" loading="lazy" alt="Portfolio cover: “Selected work.” beside a paper sculpture photograph."></figure><div class="template-meta"><div><h3>Portfolio</h3><p>Editorial · Context, research, craft and reflection</p></div><a class="template-download" href="assets/editorial.deck.json?v=20261105-graphite" download aria-label="Download the Portfolio starter deck"><svg class="ic" aria-hidden="true"><use href="#download"/></svg><span>Starter deck</span></a></div></li>
+        <li class="template-card"><figure><img src="assets/review.jpg?v=20261105-graphite" width="1044" height="588" loading="lazy" alt="Project review cover with a line illustration of two people reviewing work."></figure><div class="template-meta"><div><h3>Project review</h3><p>Studio · Evidence, options and decisions</p></div><a class="template-download" href="assets/studio.deck.json?v=20261105-graphite" download aria-label="Download the Project review starter deck"><svg class="ic" aria-hidden="true"><use href="#download"/></svg><span>Starter deck</span></a></div></li>
+        <li class="template-card"><figure><img src="assets/minimal.jpg?v=20261105-graphite" width="1044" height="588" loading="lazy" alt="Minimalist cover: “A clear idea.” with a black ring sculpture."></figure><div class="template-meta"><div><h3>Minimalist</h3><p>Minimalist · Space, structure and only what matters</p></div><a class="template-download" href="assets/minimalist.deck.json?v=20261105-graphite" download aria-label="Download the Minimalist starter deck"><svg class="ic" aria-hidden="true"><use href="#download"/></svg><span>Starter deck</span></a></div></li>
+        <li class="template-card"><figure><img src="assets/proposal.jpg?v=20261105-graphite" width="1044" height="588" loading="lazy" alt="Design proposal cover: “A clear point of view.” with a material study photograph."></figure><div class="template-meta"><div><h3>Design proposal</h3><p>Monograph · Direction, scope, rationale and delivery</p></div><a class="template-download" href="assets/monograph.deck.json?v=20261105-graphite" download aria-label="Download the Design proposal starter deck"><svg class="ic" aria-hidden="true"><use href="#download"/></svg><span>Starter deck</span></a></div></li>
+        <li class="template-card"><figure><img src="assets/pitch.jpg?v=20261105-graphite" width="1044" height="588" loading="lazy" alt="Product pitch cover on a dark canvas with cobalt glass artwork."></figure><div class="template-meta"><div><h3>Product pitch</h3><p>Signal · Problem, product, traction and the ask</p></div><a class="template-download" href="assets/signal.deck.json?v=20261105-graphite" download aria-label="Download the Product pitch starter deck"><svg class="ic" aria-hidden="true"><use href="#download"/></svg><span>Starter deck</span></a></div></li>
+        <li class="template-card"><figure><img src="assets/report.jpg?v=20261105-graphite" width="1044" height="588" loading="lazy" alt="Data report cover: “Quarterly report.” with an open notebook photograph."></figure><div class="template-meta"><div><h3>Data report</h3><p>Ledger · Results, comparisons and priorities</p></div><a class="template-download" href="assets/ledger.deck.json?v=20261105-graphite" download aria-label="Download the Data report starter deck"><svg class="ic" aria-hidden="true"><use href="#download"/></svg><span>Starter deck</span></a></div></li>
+      </ul>
+      <p class="caption">To use a starter deck, open the editor’s document menu and choose Import. Artwork is original AI-generated material you can replace.</p>
     </section>
 
     <section class="section ai-section reveal" id="ai" aria-labelledby="ai-title">
-      <div class="ai-copy"><p class="eyebrow">04 / A thoughtful editing partner</p><h2 id="ai-title">Ask for a change.<br><span class="muted">Keep the final say.</span></h2><p class="section-lede">AI works alongside your tools. See a proposal, review the result, then choose what to apply.</p><ul class="plain-list"><li>Scope a request to one slide or the whole deck</li><li>Compare the proposal before it changes your work</li><li>Undo an applied change in one step</li></ul><p class="caption">AI is optional. Connect your own HTTPS service with a session API key; browser access and provider fees may apply.</p></div>
+      <div class="ai-copy"><p class="eyebrow"><span>03</span>AI editing</p><h2 id="ai-title">Ask for a change.<br><span class="muted">Keep the final say.</span></h2><p class="section-lede">AI works alongside your tools. See a proposal, review the result, then choose what to apply.</p><ul class="plain-list"><li>Scope a request to one slide or the whole deck</li><li>Compare the proposal before it changes your work</li><li>Undo an applied change in one step</li></ul><p class="caption">AI is optional. Connect your own HTTPS service with a session API key; browser access and provider fees may apply.</p></div>
       <div class="ai-illustration" aria-label="Illustration of a layout proposal">
         <p class="illustration-label">A layout example</p>
         <div class="request-line"><span class="prompt-mark" aria-hidden="true">↗</span><p>“Give this slide more breathing room.”</p></div>
@@ -125,12 +109,12 @@
       </div>
     </section>
 
-    <section class="ownership-band" id="ownership" aria-labelledby="ownership-title">
-      <div class="section reveal"><p class="eyebrow">05 / Your work stays yours</p><div class="section-heading"><h2 id="ownership-title">Keep your originals.<br><span class="muted">Keep your options open.</span></h2><p>Your browser documents, source references and editable slides stay distinct. Take a copy with you when it is time to share.</p></div><div class="export-formats" aria-label="Portable export formats"><span>Deck JSON</span><span>PowerPoint</span><span>HTML</span></div><div class="ownership-grid"><article><h3>Saved in your browser</h3><p>Open and edit without an account. Export a Deck JSON backup before clearing site data or switching browsers.</p></article><article><h3>Sources preserved</h3><p>Supported imported objects and source references travel with your Deck file. Review conversion warnings before sharing.</p></article><article><h3>Ready to leave the editor</h3><p>Export Deck JSON, PowerPoint or standalone HTML. Keep a portable copy of the story.</p></article></div><details class="conversion-note"><summary>About importing from other tools <svg class="ic" aria-hidden="true"><use href="#chevron"/></svg></summary><p>Import PowerPoint, PDF or Deck JSON directly. Keynote conversion needs the local Mac edition; Figma and Google imports need your own token and browser access. Complex typography, shapes and effects may need review after conversion. A source render provides a visual reference; it does not guarantee that every element converts into an identical editable object.</p></details></div>
+    <section class="section ownership reveal" id="ownership" aria-labelledby="ownership-title">
+      <p class="eyebrow"><span>04</span>Ownership</p><div class="section-heading"><h2 id="ownership-title">Keep your originals.<br><span class="muted">Keep your options open.</span></h2><p>Your browser documents, source references and editable slides stay distinct. Take a copy with you when it is time to share.</p></div><div class="export-formats" aria-label="Portable export formats"><span>Deck JSON</span><span>PowerPoint</span><span>HTML</span></div><div class="ownership-grid"><article><h3>Saved in your browser</h3><p>Open and edit without an account. Export a Deck JSON backup before clearing site data or switching browsers.</p></article><article><h3>Sources preserved</h3><p>Supported imported objects and source references travel with your Deck file. Review conversion warnings before sharing.</p></article><article><h3>Ready to leave the editor</h3><p>Export Deck JSON, PowerPoint or standalone HTML. Keep a portable copy of the story.</p></article></div><details class="conversion-note"><summary>About importing from other tools <svg class="ic" aria-hidden="true"><use href="#chevron"/></svg></summary><p>Import PowerPoint, PDF or Deck JSON directly. Keynote conversion requires running Decksprig locally on a Mac with Keynote installed; Figma and Google imports need your own token and browser access. Complex typography, shapes and effects may need review after conversion. A source render provides a visual reference; it does not guarantee that every element converts into an identical editable object.</p></details>
     </section>
 
     <section class="section faq-section reveal" id="faq" aria-labelledby="faq-title">
-      <div><p class="eyebrow">06 / Before you begin</p><h2 id="faq-title">Before you start.</h2></div>
+      <div><p class="eyebrow"><span>05</span>Questions</p><h2 id="faq-title">Before you start.</h2></div>
       <div class="questions">
         <details><summary>Can I use Decksprig on this website? <svg class="ic" aria-hidden="true"><use href="#chevron"/></svg></summary><p>Yes. Open Decksprig to create, edit and present immediately. Documents and history stay in this browser, with import and export for portable backups. No account is required.</p></details>
         <details><summary>Who is it for? <svg class="ic" aria-hidden="true"><use href="#chevron"/></svg></summary><p>Designers preparing portfolios, teams reviewing projects, and anyone shaping a design proposal. Desktop is the primary editing surface. Smaller screens support reading and direct content edits.</p></details>
@@ -141,9 +125,8 @@
       </div>
     </section>
 
-    <section class="closing" aria-labelledby="closing-title"><div class="closing-inner reveal"><span class="closing-mark" aria-hidden="true"></span><p class="eyebrow">Your next chapter</p><h2 id="closing-title">Make something<br>worth sharing.</h2><p>Open the editor. Make it your own.</p><div class="actions"><a class="button inverse" href="/app">Open editor <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a><a class="button on-dark" href="#templates">Browse templates</a></div><p class="closing-note"><a class="github-link" href="https://github.com/Ken-pan/decksprig"><span class="github-mark" aria-hidden="true"></span>MIT source on GitHub</a> · No account needed</p></div></section>
+    <section class="closing tone-graphite" aria-labelledby="closing-title"><div class="closing-inner reveal"><span class="closing-mark" aria-hidden="true"></span><h2 id="closing-title">Make something<br>worth presenting.</h2><p>Open the editor. No account, no setup.</p><div class="actions"><a class="button primary" href="/app" data-chrome-action target="_blank" rel="noopener noreferrer">Open editor <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a><a class="button secondary" href="#templates" data-chrome-action>See templates</a></div><p class="closing-note"><a class="github-link" href="https://github.com/Ken-pan/decksprig"><span class="github-mark" aria-hidden="true"></span>MIT source on GitHub</a> · No account needed</p></div></section>
   </main>
-  <footer class="footer"><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Decksprig</a><p class="footer-credit">Made by <a href="https://www.kenpan.design/">Ken Pan</a>.</p><nav aria-label="Related sites"><a class="github-link" href="https://github.com/Ken-pan/decksprig"><span class="github-mark" aria-hidden="true"></span>GitHub</a><a href="https://github.com/Ken-pan/decksprig/archive/refs/heads/main.zip">Downloads <svg class="ic" aria-hidden="true"><use href="#download"/></svg></a><a href="https://broadser.kens-toolbox.com/">Broadser <svg class="ic" aria-hidden="true"><use href="#arrow"/></svg></a><a href="guide.zh-CN.html">中文指南</a></nav><nav aria-label="Legal"><a href="/privacy.html">Privacy</a><a href="/licenses.html">Licenses</a></nav></footer>
-  <noscript><p class="noscript-note">Starter decks: <a href="assets/editorial.deck.json?v=20261015-latest" download>Editorial</a> · <a href="assets/studio.deck.json?v=20261015-latest" download>Studio</a> · <a href="assets/minimalist.deck.json?v=20261015-latest" download>Minimalist</a> · <a href="assets/monograph.deck.json?v=20261015-latest" download>Monograph</a> · <a href="assets/signal.deck.json?v=20261015-latest" download>Signal</a> · <a href="assets/ledger.deck.json?v=20261015-latest" download>Ledger</a></p></noscript>
+  <footer class="ktb-footer"><div class="ktb-footer__inner"><div class="ktb-footer__top"><div class="ktb-footer__identity"><a class="ktb-footer__brand" href="/">Decksprig</a><p class="ktb-footer__credit">Made by <a href="https://www.kenpan.design/">Ken Pan</a>.</p></div><nav class="ktb-footer__links" aria-label="Footer" ><a href="/guide.html" >Guide</a><a href="https://github.com/Ken-pan/decksprig/issues" >Support</a><a href="/privacy.html" >Privacy</a><a href="/licenses.html" >Licenses</a><a href="https://github.com/Ken-pan/decksprig" >GitHub</a><a href="https://github.com/Ken-pan/decksprig/releases/latest" >Downloads</a></nav></div><div class="ktb-footer__bottom"><a class="ktb-footer__family" data-footer-toolbox href="https://kens-toolbox.com/" >Ken’s Toolbox</a><p class="ktb-footer__note">MIT code · Artwork and fonts retain their own licenses.</p></div></div></footer>
 </body>
 </html>
