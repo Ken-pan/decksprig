@@ -11,6 +11,13 @@ export function workspaceEntryId(search: string, previousId: string | null): str
   return ['blue-black', 'characters', 'deck-graphics'].includes(params.get('library') || '') ? previousId : null;
 }
 
+// A template link creates a new document; an explicit document link wins.
+export function workspaceTemplateId(search: string, templates: readonly string[]): string | null {
+  const params = new URLSearchParams(search);
+  const id = params.get('template');
+  return id && !params.has('document') && templates.includes(id) ? id : null;
+}
+
 export function workspaceDocumentURL(href: string, id: string): string {
   const url = new URL(href);
   url.searchParams.set('document', id);

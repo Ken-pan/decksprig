@@ -4,7 +4,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const escape=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export async function enhanceWebsiteSeo(out,origin,{preserveTaskPages=false}={}){
-  const pages=[['index.html','/','en','Decksprig | Browser slide editor for portfolios & presentations'],['guide.html','/guide','en','Decksprig guide | Edit, present, back up & export slides'],['guide.zh-CN.html','/guide.zh-cn','zh-CN','Decksprig 中文指南 | 编辑、演示、备份与导出幻灯片'],['privacy.html','/privacy','en','Decksprig privacy policy'],['licenses.html','/licenses','en','Decksprig licenses & artwork attribution']];
+  const pages=[['index.html','/','en','Decksprig | Make slides that feel like yours — browser slide editor'],['guide.html','/guide','en','Decksprig guide | Edit, present, back up & export slides'],['guide.zh-CN.html','/guide.zh-cn','zh-CN','Decksprig 中文指南 | 编辑、演示、备份与导出幻灯片'],['privacy.html','/privacy','en','Decksprig privacy policy'],['licenses.html','/licenses','en','Decksprig licenses & artwork attribution']];
   const socialVersion=createHash('sha256').update(await readFile(resolve(out,'assets/social.jpg'))).digest('hex').slice(0,12);
   for(const [file,path,lang,title] of pages){
     let html=await readFile(resolve(out,file),'utf8');

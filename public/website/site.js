@@ -2,9 +2,7 @@
 (() => {
   const root = document.documentElement;
   function syncAppearance() {
-    const dark = root.dataset.theme === 'dark';
     root.classList.add('theme-changing');
-    for (const source of document.querySelectorAll('[data-dark-shot]')) source.media = dark ? 'all' : 'not all';
     requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-changing')));
   }
   syncAppearance();

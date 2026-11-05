@@ -27,7 +27,7 @@
   import AsyncFeature from './components/LazyFeature.svelte';
   import SlideVisibilityNotice from './components/SlideVisibilityNotice.svelte';
   import { releaseLibraryPreviews, type LibraryDocument } from './core/document-library-view';
-  import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL } from './core/workspace-startup';
+  import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL,workspaceTemplateId } from './core/workspace-startup';
   import { flip } from 'svelte/animate';
   import { uiPresence, uiCollapse, uiChange, uiIndicator, uiCurrentSlide, uiFocus, reframeUI, reducedUI, setUIMotion, installUIMotion, type UIMotionPreference } from './ui-motion';
   import { ResourcesIcon, DocumentStylesIcon } from './components/icons/workspace-icons';
@@ -903,6 +903,20 @@
           const cleanURL = new URL(location.href); cleanURL.searchParams.delete('demo');
           history.replaceState(null, '', cleanURL.pathname + cleanURL.search + cleanURL.hash);
           if (!editor.deck && !disposed && !resourceLink.has('document')) await openDemo();
+        }
+        // Website template links create one new document through the same path as Templates.
+        if (resourceLink.has('template')) {
+          const linkSearch = '?' + resourceLink.toString();
+          const cleanURL = new URL(location.href); cleanURL.searchParams.delete('template');
+          history.replaceState(null, '', cleanURL.pathname + cleanURL.search + cleanURL.hash);
+          const {COLLECTIONS, templateDeck, embedTemplateArtwork} = await import('./core/templates');
+          const templateId = workspaceTemplateId(linkSearch, COLLECTIONS.map(c => c.id));
+          if (templateId && !editor.deck && !disposed) {
+            busy = 'Opening template…';
+            try { await create(await embedTemplateArtwork(templateDeck(templateId))); }
+            catch { error = 'The template could not open. Choose it from Templates.'; }
+            finally { busy = ''; }
+          }
         }
         if (!editor.deck || disposed || !['blue-black','characters','deck-graphics'].includes(linkedLibrary || '')) return;
         void tick().then(()=>resourcePanel?.show());

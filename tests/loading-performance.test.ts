@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { gzipSync } from 'node:zlib';
-import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL } from '../src/core/workspace-startup';
+import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL,workspaceTemplateId } from '../src/core/workspace-startup';
 import { slideFontFamilies } from '../src/core/font-loading';
 import { blankSlide, element, newDeck } from '../src/core/model';
 import { applyOperations } from '../src/core/operations';
@@ -19,6 +19,15 @@ test('default entry never restores a document, while document and resource links
   assert.equal(workspaceEntryId('?library=unknown', 'previous'), null);
   assert.equal(workspaceEntryId('?document=chosen&library=blue-black', 'previous'), 'chosen');
   assert.equal(workspaceDocumentURL('https://example.com/app?document=old&x=1#slide', 'doc:two'), '/app?document=doc%3Atwo&x=1#slide');
+});
+
+test('template links name a known collection and never replace an explicit document', () => {
+  const ids = ['portfolio', 'review'];
+  assert.equal(workspaceTemplateId('?template=review', ids), 'review');
+  assert.equal(workspaceTemplateId('?template=unknown', ids), null);
+  assert.equal(workspaceTemplateId('?template=', ids), null);
+  assert.equal(workspaceTemplateId('?template=review&document=chosen', ids), null);
+  assert.equal(workspaceTemplateId('', ids), null);
 });
 
 test('startup opens only an explicit document without listing the library', async () => {
