@@ -88,7 +88,8 @@
     "vite": "^8.3.4"
   },
   "overrides": {
-    "image-size": "^2.0.4"
+    "image-size": "^2.0.4",
+    "picomatch": "npm:@ryotsu/picomatch@4.0.7-a"
   },
   "license": "MIT",
   "author": "Ken Pan",

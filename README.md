@@ -103,6 +103,8 @@ The same build tools can prepare a directly extractable app with a smaller on-di
 
 ## Source package
 
+The lockfile temporarily uses [a pinned patched Picomatch fork](https://github.com/ryotsu-kankichi/secured-picomatch/tree/3ab5a7627d480259e3d9ca67fbc14c125d374f0e) for build tools. This applies the parser correction for [CVE-2026-112366](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) while upstream publishes a fix. Remove the override after upgrading to a reviewed upstream release that passes the existing full dependency audit.
+
 ```sh
 npm run package:source
 ```

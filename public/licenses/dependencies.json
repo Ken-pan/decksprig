@@ -931,6 +931,17 @@
     ]
   },
   {
+    "name": "@ryotsu/picomatch",
+    "version": "4.0.7-a",
+    "license": "MIT",
+    "dev": true,
+    "optional": false,
+    "repository": "ryotsu-kankichi/secured-picomatch",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "@streamparser/json",
     "version": "0.0.26",
     "license": "MIT",
@@ -2710,17 +2721,6 @@
     "dev": true,
     "optional": false,
     "repository": "alexeyraspopov/picocolors",
-    "noticeFiles": [
-      "LICENSE"
-    ]
-  },
-  {
-    "name": "picomatch",
-    "version": "4.0.7",
-    "license": "MIT",
-    "dev": true,
-    "optional": false,
-    "repository": "micromatch/picomatch",
     "noticeFiles": [
       "LICENSE"
     ]

@@ -12,7 +12,7 @@ const optionalNotices = JSON.parse(await readFile(resolve(root,'public/licenses/
 const exists = async path => readFile(path, 'utf8').catch(() => '');
 for (const [path, locked] of Object.entries(lock.packages)) {
   if (!path.startsWith('node_modules/')) continue;
-  const directory = resolve(root, path), name = path.split('node_modules/').at(-1);
+  const directory = resolve(root, path), name = locked.name ?? path.split('node_modules/').at(-1);
   const packageText = await exists(resolve(directory, 'package.json'));
   const pkg = packageText ? JSON.parse(packageText) : locked;
   let sources = await readdir(directory).catch(() => []);
