@@ -16,7 +16,7 @@
       <line x1={e.x} y1={e.flipY?e.y+e.h:e.y} x2={e.x+e.w} y2={e.flipY?e.y:e.y+e.h} stroke={e.stroke} stroke-width={e.strokeWidth} />
     {:else if e.type === 'text'}
       <foreignObject x={e.x} y={e.y} width={e.w} height={e.h}>
-        <div class="preview-text" style={textBoxStyle(e)} style:font-family={fontStack(e.fontFamily)} style:font-size="{e.fontSize}px" style:font-weight={e.fontWeight} style:font-style={e.italic?'italic':'normal'} style:text-decoration={e.underline?'underline':'none'} style:letter-spacing="{e.letterSpacing}px" style:line-height={e.lineHeight} style:color={e.fill} style:text-align={e.align}><div style={textFlowStyle(e)}>{#if e.paragraphs?.length}{#each e.paragraphs as p}<div style={paragraphStyle(p,e)}>{#each p.runs as run}<span style={runStyle(run)}>{run.text}</span>{/each}</div>{/each}{:else if e.runs?.length}{#each e.runs as run}<span style={runStyle(run)}>{run.text}</span>{/each}{:else}{e.text}{/if}</div></div>
+        <div class="preview-text" style={textBoxStyle(e)} style:font-family={fontStack(e.fontFamily)} style:font-size="{e.fontSize}px" style:font-weight={e.fontWeight} style:font-style={e.italic?'italic':'normal'} style:text-decoration="none" style:letter-spacing="{e.letterSpacing}px" style:line-height={e.lineHeight} style:color={e.fill} style:text-align={e.align}><div style={textFlowStyle(e)}>{#if e.paragraphs?.length}{#each e.paragraphs as p}<div style={paragraphStyle(p,e)}>{#each p.runs as run}<span style={runStyle(run,e)}>{run.text}</span>{/each}</div>{/each}{:else if e.runs?.length}{#each e.runs as run}<span style={runStyle(run,e)}>{run.text}</span>{/each}{:else}<span style={runStyle({text:e.text},e)}>{e.text}</span>{/if}</div></div>
       </foreignObject>
     {/if}
     </g>

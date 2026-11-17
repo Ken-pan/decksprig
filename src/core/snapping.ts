@@ -2,7 +2,7 @@ import type { Slide, SlideElement } from './model';
 import { selectionBounds, resizeFromCorner, resizeHandlePoint, type ResizeHandle, type Bounds, type Point } from './interactions';
 import {createContainerTree} from './container-tree';
 import {selectionFrame} from './selection-transform';
-import { contentBounds, columnBounds, type PageSize } from './page-layout';
+import { contentBounds, columnBounds, type PageSize } from './page-layout-geometry';
 import { SNAP_INCREMENT } from './numeric-increment';
 
 export type Axis = 'x' | 'y';

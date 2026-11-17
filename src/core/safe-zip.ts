@@ -93,8 +93,17 @@ export async function readZipXml(zip: JSZip, path: string, limit = 15_000_000) {
   return raw;
 }
 
+/** Release an inflated entry after consuming it; its expansion remains charged.
+ * Reading it again inflates and charges it again, so eviction cannot bypass limits. */
+export function releaseZipBytes(zip: JSZip, path: string) {
+  budgets.get(zip)?.cache.delete(path);
+}
+
 /** Check actual expansion of every entry before handing an upload to a native app. */
 export async function verifyArchive(input: ArrayBuffer | Uint8Array) {
   const zip = await loadBoundedZip(input);
-  for (const file of Object.values(zip.files)) if (!file.dir) await readZipBytes(zip, file.name);
+  for (const file of Object.values(zip.files)) if (!file.dir) {
+    await readZipBytes(zip, file.name);
+    releaseZipBytes(zip, file.name);
+  }
 }

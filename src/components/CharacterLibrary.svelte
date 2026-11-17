@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {BRAND_NAME} from '../brand-name.js';
   import ColorField from './ui/ColorField.svelte';
   import ResourceImage from './ResourceImage.svelte';
   import {isBrowserEdition} from '../core/runtime';
@@ -78,7 +79,7 @@
         {/if}
         </fieldset>
         <div class="character-control-section"><label class="field-label">Variant name<input aria-label="Variant name" bind:value={name} maxlength="120" placeholder="For example: Research participant · Project A" disabled={busy}/></label><button class="text-btn ghost full" disabled={busy||!variant||!name.trim()||!previewReady} onclick={save}><Save size={14}/>Save variant</button>{#if saved.length}<label class="field-label saved-label">My variants<select aria-label="Saved character variants" value={savedId} disabled={busy} onchange={e=>reopen(e.currentTarget.value)}><option value="">Choose variant</option>{#each saved as item}<option value={item.id}>{item.name}</option>{/each}</select></label>{/if}</div>
-        <div class="character-actions">{#if onuse}<button class="text-btn primary full" disabled={busy||!previewReady} onclick={use}><Plus size={15}/>{replace?'Apply to selected character':'Add to slide'}</button>{:else if standalone}<a class="text-btn primary full" href={editorLink}><Plus size={15}/>Use in Decksprig</a>{/if}<button class="text-btn ghost full" disabled={busy||!previewReady} onclick={png}><Download size={14}/>Download transparent PNG</button><button class="text-btn ghost full" aria-expanded={showRequest} disabled={busy||!variant} onclick={()=>{if(showRequest)showRequest=false;else beginRequest();}}><Sparkles size={14}/>Request a new version</button></div>
+        <div class="character-actions">{#if onuse}<button class="text-btn primary full" disabled={busy||!previewReady} onclick={use}><Plus size={15}/>{replace?'Apply to selected character':'Add to slide'}</button>{:else if standalone}<a class="text-btn primary full" href={editorLink}><Plus size={15}/>Use in {BRAND_NAME}</a>{/if}<button class="text-btn ghost full" disabled={busy||!previewReady} onclick={png}><Download size={14}/>Download transparent PNG</button><button class="text-btn ghost full" aria-expanded={showRequest} disabled={busy||!variant} onclick={()=>{if(showRequest)showRequest=false;else beginRequest();}}><Sparkles size={14}/>Request a new version</button></div>
         {#if notice}<p class="hint character-notice" in:uiPresence role="status">{notice}</p>{/if}
       </aside>
     </div>

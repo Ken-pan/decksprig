@@ -1,11 +1,11 @@
-# Decksprig patterns and accents
+# Deckleaf patterns and accents
 
 60 transparent SVG resources: 30 patterns, 6 textures, 24 accents.
 
 48 original assets were drawn with deterministic geometry in scripts/build-deck-graphics.mjs and dedicated to the public domain under CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
 
 12 adapted Hero Patterns by Steve Schoger are CC BY 4.0: https://heropatterns.com/ and https://creativecommons.org/licenses/by/4.0/
-Original source SVGs and SHA-256 hashes are preserved in originals/ and manifest.json. Historical Deck Studio names and loopback URLs inside the original SVG comments and manifest are preserved as provenance; the current gallery and editor use Decksprig and working source links. Adaptations repeat the tile on a transparent 1600 × 900 canvas, change the ink color, and reduce opacity. Include the author, source, license and adaptation notice when redistributing those assets.
+Original source SVGs and SHA-256 hashes are preserved in originals/ and manifest.json. Adaptations repeat the tile on a transparent 1600 × 900 canvas, change the ink color, and reduce opacity. Include the author, source, license and adaptation notice when redistributing those assets.
 
 All assets have transparent backgrounds. Families and use guidance are recorded in manifest.json. The editor supports strength adjustments, repeating-pattern size/angle, saved variants and customized SVG downloads. Default SVGs and original sources remain unchanged. Use Fill slide to place a locked image behind existing slide content; its opacity can be adjusted in the object inspector. Unlock to reposition or remove it. Replace image retains an existing image's dimensions and position. The pack uses SVG image objects, not individually editable vector paths.
 

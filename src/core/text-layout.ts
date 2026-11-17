@@ -1,7 +1,9 @@
+import {sameFontFamily} from './font-stack';
 import type { Deck, Slide, SlideElement } from './model';
 import { resolveGroupLayouts } from './object-layout';
 import { fontStack } from './font-stack';
 import { createTypography } from './typography';
+import {nativeTextSpans} from './native-text-render';
 
 export type TextSize = {w: number; h: number};
 export type TextSizeMeasure = (element: SlideElement, deck: Pick<Deck, 'onlineFonts'>) => TextSize | null;
@@ -24,28 +26,20 @@ export const textSizeEpoch=()=>sizeEpoch;
 export function clearTextSizeCache() { cache.clear(); cacheCharacters = 0; sizeEpoch++; }
 
 /** Measure the canvas paragraph/run flow in document pixels, without scaling. */
-export const browserTextSize: TextSizeMeasure = (e, deck) => {
+export function browserTextSize(e:SlideElement,deck:Pick<Deck,'onlineFonts'>):TextSize|null {
   if (typeof document === 'undefined' || e.type !== 'text' || !e.textSizing || e.textSizing === 'fixed') return null;
-  const stack = (family: string) => fontStack(family, deck.onlineFonts?.find(f => f.family === family)?.category);
-  const key = JSON.stringify([e.textSizing, e.textSizing === 'auto-height' ? e.w : null, e.text, e.fontFamily, e.fontSize, e.fontWeight, e.italic, e.lineHeight, e.letterSpacing, e.padding, e.runs, e.paragraphs, e.wrap, e.maxLines, stack(e.fontFamily)]);
+  const stack = (family: string) => fontStack(family, deck.onlineFonts?.find(f => sameFontFamily(f.family,family))?.category);
+  const typography=createTypography(stack),intrinsic=e.textSizing==='auto-width';
+  const boxStyle = `position:fixed;left:-100000px;top:0;visibility:hidden;pointer-events:none;box-sizing:border-box;height:auto;width:${intrinsic ? 'max-content' : e.w + 'px'};${typography.textBoxStyle(e)}justify-content:flex-start;font-family:${stack(e.fontFamily)};font-size:${e.fontSize}px;font-weight:${e.fontWeight};font-style:${e.italic ? 'italic' : 'normal'};line-height:${e.lineHeight};letter-spacing:${e.letterSpacing}px;overflow-wrap:break-word;`;
+  const flowStyle=typography.textFlowStyle(e)+(intrinsic?'width:max-content;':'');
+  const key=JSON.stringify([boxStyle,flowStyle,e.text,e.runs,e.paragraphs,e.paragraphSpacingAtEdges,deck.onlineFonts?.map(font=>[font.family,font.category])]);
   const cached = cache.get(key); if (cached) { cache.delete(key); cache.set(key, cached); return cached; }
   if (!host) {
     host = document.createElement('div'); host.setAttribute('aria-hidden', 'true');
     document.fonts?.addEventListener('loadingdone', clearTextSizeCache);
   }
   if (!host.isConnected) document.body.append(host);
-  const {runStyle, paragraphStyle, textBoxStyle, textFlowStyle} = createTypography(stack);
-  const intrinsic = e.textSizing === 'auto-width';
-  host.style.cssText = `position:fixed;left:-100000px;top:0;visibility:hidden;pointer-events:none;box-sizing:border-box;height:auto;width:${intrinsic ? 'max-content' : e.w + 'px'};${textBoxStyle(e)}justify-content:flex-start;font-family:${stack(e.fontFamily)};font-size:${e.fontSize}px;font-weight:${e.fontWeight};font-style:${e.italic ? 'italic' : 'normal'};line-height:${e.lineHeight};letter-spacing:${e.letterSpacing}px;overflow-wrap:break-word;${intrinsic ? 'white-space:pre;' : ''}`;
-  const flow = document.createElement('div'); flow.style.cssText = textFlowStyle(e) + (intrinsic ? 'width:max-content;' : '');
-  const span = (run: NonNullable<SlideElement['runs']>[number]) => {const node = document.createElement('span'); node.textContent = run.text; node.style.cssText = runStyle(run); return node;};
-  if (e.paragraphs?.length) for (const p of e.paragraphs) {
-    const paragraph = document.createElement('div'); paragraph.className='text-paragraph'; paragraph.style.cssText = paragraphStyle(p, e);
-    if (p.bullet) {const bullet = document.createElement('span'); bullet.textContent = `${p.bullet} `; paragraph.append(bullet);}
-    paragraph.append(...p.runs.map(span)); flow.append(paragraph);
-  } else if (e.runs?.length) flow.append(...e.runs.map(span));
-  else flow.textContent = e.text || '\u200b';
-  host.replaceChildren(flow);
+  const flow=browserTextSize.render(host,e,typography,boxStyle,flowStyle);
   const rect = host.getBoundingClientRect();
   const bound = (n: number) => Math.min(20000, Math.max(1, Math.ceil(n * 10) / 10));
   // CJK and display glyphs can extend below a short line box. Include their
@@ -61,10 +55,26 @@ export const browserTextSize: TextSizeMeasure = (e, deck) => {
     }
   }
   return size;
+}
+
+// A complete synchronous fallback also serves callers before the canvas loads.
+browserTextSize.render=(host:HTMLDivElement,e:SlideElement,typography:ReturnType<typeof createTypography>,boxStyle:string,flowStyle:string)=>{
+  host.style.cssText=boxStyle;const {runStyle,paragraphStyle}=typography;
+  const flow = document.createElement('div'); flow.style.cssText = flowStyle;
+  const span = (run: NonNullable<SlideElement['runs']>[number]) => {const node = document.createElement('span'); node.textContent = run.text; node.style.cssText = runStyle(run,e); return node;};
+  if (e.paragraphs?.length) for (const p of e.paragraphs) {
+    const paragraph = document.createElement('div'); paragraph.className='text-paragraph'; paragraph.style.cssText = paragraphStyle(p, e);
+    if (p.bullet) {const bullet = document.createElement('span'); bullet.textContent = `${p.bullet} `; paragraph.append(bullet);}
+    paragraph.append(...p.runs.map(span)); flow.append(paragraph);
+  } else if (e.runs?.length) flow.append(...e.runs.map(span));
+  else flow.textContent = e.text || '\u200b';
+  host.replaceChildren(flow);
+  return flow;
 };
 
 export function resolveTextElement(e: SlideElement, deck: Pick<Deck, 'onlineFonts'>, measure: TextSizeMeasure = browserTextSize): SlideElement {
   if (e.type !== 'text' || !e.textSizing || e.textSizing === 'fixed') return e;
+  if(nativeTextSpans(e))return e;
   const size = measure(e, deck); if (!size) return e;
   const w = e.textSizing === 'auto-width' ? size.w : e.w, h = size.h;
   return e.w === w && e.h === h ? e : {...e, w, h};

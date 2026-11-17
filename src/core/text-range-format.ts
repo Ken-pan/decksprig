@@ -1,11 +1,11 @@
 import type { SlideElement, TextRun, TextParagraph } from './model';
 import { textStylePatch } from './text-style';
 
-export type TextFormatPatch = Pick<Partial<SlideElement>, 'fontFamily' | 'fontSize' | 'fontWeight' | 'italic' | 'underline' | 'fill' | 'align'>;
+export type TextFormatPatch = Pick<Partial<SlideElement>, 'fontFamily' | 'fontSize' | 'fontWeight' | 'italic' | 'underline' | 'strikethrough' | 'fill' | 'align' | 'letterSpacing'> & Pick<Partial<TextRun>,'baseline'>;
 export interface TextRange { start: number; end: number }
-export interface TextFormatState { element: SlideElement; range: TextRange }
+export interface TextFormatState { element: SlideElement; range: TextRange; capabilities?: {caret:boolean;characters:boolean} }
 
-function boundedRange(text: string, range: TextRange): TextRange {
+export function boundedTextRange(text: string, range: TextRange): TextRange {
   let start = Math.max(0, Math.min(text.length, Math.min(range.start, range.end)));
   let end = Math.max(start, Math.min(text.length, Math.max(range.start, range.end)));
   const dividesPair = (i: number) => i > 0 && i < text.length && /[\uD800-\uDBFF]/.test(text[i - 1]) && /[\uDC00-\uDFFF]/.test(text[i]);
@@ -22,7 +22,10 @@ function styledRun(run: TextRun, patch: TextFormatPatch): TextRun {
   if (patch.fontWeight !== undefined) { next.fontWeight = patch.fontWeight; delete next.bold; }
   if (patch.italic !== undefined) next.italic = patch.italic;
   if (patch.underline !== undefined) next.underline = patch.underline;
+  if (patch.strikethrough !== undefined) next.strikethrough = patch.strikethrough;
   if (patch.fill !== undefined) next.color = patch.fill;
+  if(patch.letterSpacing!==undefined)next.letterSpacing=patch.letterSpacing;
+  if(patch.baseline!==undefined)next.baseline=patch.baseline;
   return next;
 }
 function mergeRuns(runs: TextRun[]): TextRun[] {
@@ -40,8 +43,8 @@ function mergeRuns(runs: TextRun[]): TextRun[] {
 // whole-object operation using the same inheritance rules as the inspector.
 export function textRangeStylePatch(e: SlideElement, patch: TextFormatPatch, selection?: TextRange): Partial<SlideElement> {
   if (e.type !== 'text' || e.locked) return {};
-  if (!selection) return textStylePatch(e, patch);
-  const range = boundedRange(e.text, selection);
+  if(!selection){const {baseline,...fields}=patch,result=textStylePatch(e,fields);return baseline===undefined?result:{...result,...textRangeStylePatch({...e,...result},{baseline},{start:0,end:e.text.length})};}
+  const range = boundedTextRange(e.text, selection);
   if (range.start === range.end) return {};
   let offset = 0;
   const paragraphs = sourceParagraphs(e).map((p, index) => {
@@ -66,7 +69,7 @@ export function textRangeStylePatch(e: SlideElement, patch: TextFormatPatch, sel
 }
 
 export function textRangeTarget(e: SlideElement, selection: TextRange): SlideElement {
-  const range = boundedRange(e.text, selection);
+  const range = boundedTextRange(e.text, selection);
   const start = range.start === range.end ? Math.max(0, range.start - 1) : range.start;
   const end = range.start === range.end ? Math.min(e.text.length, start + 1) : range.end;
   let offset = 0;
@@ -85,5 +88,5 @@ export function textRangeTarget(e: SlideElement, selection: TextRange): SlideEle
 }
 
 export function textDraftPatch(e: SlideElement): Partial<SlideElement> {
-  return {text: e.text, runs: e.runs, paragraphs: e.paragraphs, fontFamily:e.fontFamily,fontSize: e.fontSize, fontWeight: e.fontWeight, italic: e.italic, underline: e.underline, fill: e.fill, align: e.align};
+  return {text: e.text, runs: e.runs, paragraphs: e.paragraphs, fontFamily:e.fontFamily,fontSize: e.fontSize, fontWeight: e.fontWeight, italic: e.italic, underline: e.underline, strikethrough:e.strikethrough, fill: e.fill, align: e.align};
 }

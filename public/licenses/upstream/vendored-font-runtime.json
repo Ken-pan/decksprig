@@ -1,0 +1,16 @@
+[
+  {
+    "name": "woff2-codec-wasm",
+    "version": "0.3.2",
+    "license": "MIT and bundled compiler runtime notices",
+    "file": "src/vendor/woff2-codec/codec.wasm",
+    "sha256": "722e8daff7f11f907f3e89bc656c17e7e56cbf1ecf75ea090d2a5b3ae13e63b9",
+    "repository": "https://github.com/jlarmstrongiv/web-font-codecs",
+    "notices": [
+      {
+        "file": "public/licenses/upstream/font-runtime-woff2-codec.txt",
+        "sha256": "a99a0986cd505f7967a7f6261fc2f28cdae3a677b349bcff04bdfd77658e1fef"
+      }
+    ]
+  }
+]

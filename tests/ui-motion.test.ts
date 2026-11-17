@@ -22,6 +22,11 @@ class ElementStub {
   getAttribute(key: string) { return this.attributes.get(key) ?? null; }
   setAttribute(key: string, value: string) { this.attributes.set(key, value); }
   removeAttribute(key: string) { this.attributes.delete(key); }
+  toggleAttribute(key: string, force = !this.attributes.has(key)) {
+    if (force) this.setAttribute(key, '');
+    else this.removeAttribute(key);
+    return force;
+  }
   querySelector() { return this.summary; }
   addEventListener(name: string, fn: (event: any) => void) { this.listeners.set(name, fn); }
   removeEventListener(name: string) { this.listeners.delete(name); }
@@ -100,6 +105,16 @@ test('switching to reduced motion settles a closing disclosure without canceling
 
 test('reduced UI presence has no duration and surfaces never scale their text', () => {
   const env = environment();
-  try { const node = new ElementStub(); env.root.dataset.uiMotion = 'reduced'; const transition = uiPresence(node as unknown as HTMLElement, {surface: true}, {direction: 'in'}) as {duration: number; css: (t: number) => string}; assert.equal(transition.duration, 0); assert.ok(!transition.css(.5).includes('scale:')); }
+  try {
+    const node = new ElementStub();
+    const presence = () => uiPresence(node as unknown as HTMLElement, {surface: true}, {direction: 'in'}) as {duration: number; css: (t: number) => string};
+    assert(presence().duration > 0);
+    assert.equal(node.getAttribute('data-ui-transition'), '');
+    env.root.dataset.uiMotion = 'reduced';
+    const transition = presence();
+    assert.equal(transition.duration, 0);
+    assert.equal(node.getAttribute('data-ui-transition'), null);
+    assert.ok(!transition.css(.5).includes('scale:'));
+  }
   finally { env.restore(); }
 });

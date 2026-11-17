@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newDeck, blankSlide } from '../src/core/model';
-import { draftRecord, resolveDraft } from '../src/core/drafts';
+import { draftRecord } from '../src/core/drafts';
+import {resolveDraft} from '../src/core/draft-resolution';
 
 test('unsaved recovery requires the exact base revision, even when the draft revision is higher', () => {
   const disk = newDeck('Other window', [blankSlide()]); disk.revision = 2;

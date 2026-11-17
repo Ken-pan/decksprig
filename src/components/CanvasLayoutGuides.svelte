@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Slide } from '../core/model';
-  import { contentBounds, columnBounds, type PageSize } from '../core/page-layout';
+  import { contentBounds, columnBounds, type PageSize } from '../core/page-layout-geometry';
   import {selectionBounds,type Bounds} from '../core/interactions';
   import type { SnapGuide, SnapMeasure } from '../core/snapping';
   let {page,slide,scale,showLayout,guides,moving,readout=''}:{page:PageSize;slide:Slide;scale:number;showLayout:boolean;guides:SnapGuide[];moving:Bounds|null;readout?:string}=$props();

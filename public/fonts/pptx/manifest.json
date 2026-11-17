@@ -662,5 +662,1101 @@
       "public/fonts/work-sans/work-sans-latin-ext-wght-normal.woff2": "2aa17fc7b072e46652e84bbe3dbba9ec57cdea320d89e8c951ed7cf3218c300b",
       "public/fonts/work-sans/work-sans-latin-wght-normal.woff2": "1dd49afc07fb2231b2ff686cbf007725fb2742271bb1f28ebd98f22a0d817343"
     }
+  },
+  {
+    "family": "Bodoni Moda",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/bodoni-moda-regular.fntdata",
+    "ttf": "/fonts/pptx/bodoni-moda-regular.ttf",
+    "license": "/fonts/pptx/bodoni-moda-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 428,
+    "sha256": "a0e288d8c9e7d8d841204c0c02158c4c2832c41126c00d04a35180efa24739e6",
+    "sourceHashes": {
+      "public/fonts/bodoni-moda.ttf": "550f5e34ee0a828d7941b1fe9bc58b34e5260d3f33a61532e6d0a0114e79a5cf"
+    }
+  },
+  {
+    "family": "Bodoni Moda",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/bodoni-moda-bold.fntdata",
+    "ttf": "/fonts/pptx/bodoni-moda-bold.ttf",
+    "license": "/fonts/pptx/bodoni-moda-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 428,
+    "sha256": "0d91c69bc0fec9d78bafe054f0ed9a333cdb461d03ffef06a0c30c172adeed22",
+    "sourceHashes": {
+      "public/fonts/bodoni-moda.ttf": "550f5e34ee0a828d7941b1fe9bc58b34e5260d3f33a61532e6d0a0114e79a5cf"
+    }
+  },
+  {
+    "family": "DM Sans",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/dm-sans-regular.fntdata",
+    "ttf": "/fonts/pptx/dm-sans-regular.ttf",
+    "license": "/fonts/pptx/dm-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 360,
+    "sha256": "640a9b5e9340e88017397f7511c41b42bb0bf72be18eb04a441388d381eec3ae",
+    "sourceHashes": {
+      "public/fonts/dm-sans/dm-sans-latin-ext-wght-normal.woff2": "a5d38fe99f930275684999b462c7123faa063d9e44e73b4b241723d884aa0f49",
+      "public/fonts/dm-sans/dm-sans-latin-wght-normal.woff2": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
+    }
+  },
+  {
+    "family": "DM Sans",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/dm-sans-bold.fntdata",
+    "ttf": "/fonts/pptx/dm-sans-bold.ttf",
+    "license": "/fonts/pptx/dm-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 360,
+    "sha256": "c54146edfba183cabc02e4589f1db1e10fb9d00144c16ecc09ed65a77fd17ec3",
+    "sourceHashes": {
+      "public/fonts/dm-sans/dm-sans-latin-ext-wght-normal.woff2": "a5d38fe99f930275684999b462c7123faa063d9e44e73b4b241723d884aa0f49",
+      "public/fonts/dm-sans/dm-sans-latin-wght-normal.woff2": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
+    }
+  },
+  {
+    "family": "DM Sans",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/dm-sans-italic.fntdata",
+    "ttf": "/fonts/pptx/dm-sans-italic.ttf",
+    "license": "/fonts/pptx/dm-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 360,
+    "sha256": "c48a8d96fde7fe5f74ad0b060f6c9ded3b290dc3b2a65453ec78bc4c11b48797",
+    "sourceHashes": {
+      "public/fonts/dm-sans/dm-sans-latin-ext-wght-italic.woff2": "6e646d2022808fb4532e77d38a9348e4dcf832796be2acc43a79052b60900db2",
+      "public/fonts/dm-sans/dm-sans-latin-wght-italic.woff2": "f1a235db5bcb8730707844188d35201ecdf63e56c5dcce97bab24a9c7066091d"
+    }
+  },
+  {
+    "family": "DM Sans",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/dm-sans-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/dm-sans-boldItalic.ttf",
+    "license": "/fonts/pptx/dm-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 360,
+    "sha256": "0ec38766a0fc765ba383aec24ac174f43050da45461fb59c3a460b3179b189c3",
+    "sourceHashes": {
+      "public/fonts/dm-sans/dm-sans-latin-ext-wght-italic.woff2": "6e646d2022808fb4532e77d38a9348e4dcf832796be2acc43a79052b60900db2",
+      "public/fonts/dm-sans/dm-sans-latin-wght-italic.woff2": "f1a235db5bcb8730707844188d35201ecdf63e56c5dcce97bab24a9c7066091d"
+    }
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/plus-jakarta-sans-italic.fntdata",
+    "ttf": "/fonts/pptx/plus-jakarta-sans-italic.ttf",
+    "license": "/fonts/pptx/plus-jakarta-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 523,
+    "sha256": "6a758161ea845257a7339b7a16a1e118b3ee946a7f0d5d2cfc988260ca8b831b",
+    "sourceHashes": {
+      "public/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-ext-wght-italic.woff2": "7524d4b5f829201192882f775b90d78dbd9f9b3014ea729cfb7a47f5261ec7cb",
+      "public/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-italic.woff2": "bb113d8f5be89636a9a31ffa0966762126546b98be171d6fa81115abb2cd5352"
+    }
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/plus-jakarta-sans-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/plus-jakarta-sans-boldItalic.ttf",
+    "license": "/fonts/pptx/plus-jakarta-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 523,
+    "sha256": "a09f13c30c101ca8fa8fd2377282151e54ddf633bcf0bfe74fe6fbbce536c8cf",
+    "sourceHashes": {
+      "public/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-ext-wght-italic.woff2": "7524d4b5f829201192882f775b90d78dbd9f9b3014ea729cfb7a47f5261ec7cb",
+      "public/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-italic.woff2": "bb113d8f5be89636a9a31ffa0966762126546b98be171d6fa81115abb2cd5352"
+    }
+  },
+  {
+    "family": "Montserrat",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/montserrat-regular.fntdata",
+    "ttf": "/fonts/pptx/montserrat-regular.ttf",
+    "license": "/fonts/pptx/montserrat-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 848,
+    "sha256": "273044fa6683e2db6cb86f33bae474237a4a240cb546795151a54b34bd2aa862",
+    "sourceHashes": {
+      "public/fonts/montserrat/montserrat-latin-ext-wght-normal.woff2": "54d9a78b7ff60b689ad9f3017ffac8547b5d871afec733f6c1c3ae36577ee504",
+      "public/fonts/montserrat/montserrat-latin-wght-normal.woff2": "06b16db7a969135d48d38c49183be7fb88d4452e2a3011957c7851941f4e4879"
+    }
+  },
+  {
+    "family": "Montserrat",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/montserrat-bold.fntdata",
+    "ttf": "/fonts/pptx/montserrat-bold.ttf",
+    "license": "/fonts/pptx/montserrat-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 848,
+    "sha256": "26edc069cd6eaac433a6fccc28bb349b32fe2387a3e417956509ce6d67ae2db5",
+    "sourceHashes": {
+      "public/fonts/montserrat/montserrat-latin-ext-wght-normal.woff2": "54d9a78b7ff60b689ad9f3017ffac8547b5d871afec733f6c1c3ae36577ee504",
+      "public/fonts/montserrat/montserrat-latin-wght-normal.woff2": "06b16db7a969135d48d38c49183be7fb88d4452e2a3011957c7851941f4e4879"
+    }
+  },
+  {
+    "family": "Montserrat",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/montserrat-italic.fntdata",
+    "ttf": "/fonts/pptx/montserrat-italic.ttf",
+    "license": "/fonts/pptx/montserrat-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 848,
+    "sha256": "5443514cc5e4d075ccf1a4e8753633ff24cebfd1bb83e245aece3342873f9d45",
+    "sourceHashes": {
+      "public/fonts/montserrat/montserrat-latin-ext-wght-italic.woff2": "9f7c3dc0c1fdbc8b09d53d1beb4aca048a5aff376ac5423878e03e83e89a7fe8",
+      "public/fonts/montserrat/montserrat-latin-wght-italic.woff2": "0eb22e3d769a66a92dbd82e3aefa5740e5bc21afa4485f62f92b22656d49182a"
+    }
+  },
+  {
+    "family": "Montserrat",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/montserrat-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/montserrat-boldItalic.ttf",
+    "license": "/fonts/pptx/montserrat-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 848,
+    "sha256": "c57e9657914797209a72fbe0e5fb41bde9b87574659694144a8bbebcb505d73c",
+    "sourceHashes": {
+      "public/fonts/montserrat/montserrat-latin-ext-wght-italic.woff2": "9f7c3dc0c1fdbc8b09d53d1beb4aca048a5aff376ac5423878e03e83e89a7fe8",
+      "public/fonts/montserrat/montserrat-latin-wght-italic.woff2": "0eb22e3d769a66a92dbd82e3aefa5740e5bc21afa4485f62f92b22656d49182a"
+    }
+  },
+  {
+    "family": "Lato",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/lato-regular.fntdata",
+    "ttf": "/fonts/pptx/lato-regular.ttf",
+    "license": "/fonts/pptx/lato-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 241,
+    "sha256": "5636335a98988a4ec7ce0e077497628c495397b583801af45d13ae5a4ddfb93d",
+    "sourceHashes": {
+      "public/fonts/lato/lato-latin-ext-400-normal.woff2": "8b9fc9737043f88c1a9a7195c27a239bd329cc33d928ffb67736c61ae7a1dbbd",
+      "public/fonts/lato/lato-latin-400-normal.woff2": "918b7dc3e2e2d015c16ce08b57bcb64d2253bafc1707658f361e72865498e537"
+    }
+  },
+  {
+    "family": "Lato",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/lato-bold.fntdata",
+    "ttf": "/fonts/pptx/lato-bold.ttf",
+    "license": "/fonts/pptx/lato-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 241,
+    "sha256": "5be7e1727c7df572f5656da713cabdeb87d1fa775c1059d627c3c1c611c9ca8d",
+    "sourceHashes": {
+      "public/fonts/lato/lato-latin-ext-700-normal.woff2": "3a5797f440bc67b59830cad81e59a71011e35cb45ed7f747b61a69b0a9b0d6ae",
+      "public/fonts/lato/lato-latin-700-normal.woff2": "c447dd7677b419db7b21dbdfc6277c7816a913ffda76fd2e52702df538de0e49"
+    }
+  },
+  {
+    "family": "Lato",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/lato-italic.fntdata",
+    "ttf": "/fonts/pptx/lato-italic.ttf",
+    "license": "/fonts/pptx/lato-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 241,
+    "sha256": "f0b94e960feced5bc2bba205f0a0d2b97e06389a3b482d5f5560cf7fc14dff46",
+    "sourceHashes": {
+      "public/fonts/lato/lato-latin-ext-400-italic.woff2": "077a69d5b698467f49de34980815c848fecb40e35f4b3969b42a703b8b916953",
+      "public/fonts/lato/lato-latin-400-italic.woff2": "bca1d88ada544d9c80872d4da27133fab6d347361fa26e932b47ec9559088fd0"
+    }
+  },
+  {
+    "family": "Lato",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/lato-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/lato-boldItalic.ttf",
+    "license": "/fonts/pptx/lato-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 241,
+    "sha256": "698987aca1fb8837992bb8d8c3438c36bdb6295ec72ac3c325989e06640ee666",
+    "sourceHashes": {
+      "public/fonts/lato/lato-latin-ext-700-italic.woff2": "72373c5fe499b7b978e186b6550ee6c4a8dc0c9b77fb46a4d76a572c1986466e",
+      "public/fonts/lato/lato-latin-700-italic.woff2": "6c84348296ebe2e2a0830c3962eb02156419d9bc76371c2eadaf7329d827d550"
+    }
+  },
+  {
+    "family": "Nunito Sans",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/nunito-sans-regular.fntdata",
+    "ttf": "/fonts/pptx/nunito-sans-regular.ttf",
+    "license": "/fonts/pptx/nunito-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 546,
+    "sha256": "c93857b87942bdff442c5b352b041af057441ac758655d06bd63bd422e8f713b",
+    "sourceHashes": {
+      "public/fonts/nunito-sans/nunito-sans-latin-ext-wght-normal.woff2": "c648ee5bfda70d44b9fb628f4114d1cc4f984d050cbb4881052237ede3638a2e",
+      "public/fonts/nunito-sans/nunito-sans-latin-wght-normal.woff2": "29e3890496844a9ea81975c52771c587c872b4eb317026422d1995b88d21b57d"
+    }
+  },
+  {
+    "family": "Nunito Sans",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/nunito-sans-bold.fntdata",
+    "ttf": "/fonts/pptx/nunito-sans-bold.ttf",
+    "license": "/fonts/pptx/nunito-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 546,
+    "sha256": "bd37352799773fe91666fd0fc605e1100b67f9bf3c95025742f58a02eba01d0d",
+    "sourceHashes": {
+      "public/fonts/nunito-sans/nunito-sans-latin-ext-wght-normal.woff2": "c648ee5bfda70d44b9fb628f4114d1cc4f984d050cbb4881052237ede3638a2e",
+      "public/fonts/nunito-sans/nunito-sans-latin-wght-normal.woff2": "29e3890496844a9ea81975c52771c587c872b4eb317026422d1995b88d21b57d"
+    }
+  },
+  {
+    "family": "Nunito Sans",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/nunito-sans-italic.fntdata",
+    "ttf": "/fonts/pptx/nunito-sans-italic.ttf",
+    "license": "/fonts/pptx/nunito-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 546,
+    "sha256": "46fd9124ed54368f1eb7328c49768cd9a494cac8bcad30c5a267bd39b13a8340",
+    "sourceHashes": {
+      "public/fonts/nunito-sans/nunito-sans-latin-ext-wght-italic.woff2": "f3093f72aabbc08b8f00f185aef1b9503519a227c3d75a057dc7a3c47d7c6151",
+      "public/fonts/nunito-sans/nunito-sans-latin-wght-italic.woff2": "8904d953726b43ded1a16bfd43398325d2382dd50780c10f18d048e0e73f84a8"
+    }
+  },
+  {
+    "family": "Nunito Sans",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/nunito-sans-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/nunito-sans-boldItalic.ttf",
+    "license": "/fonts/pptx/nunito-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 546,
+    "sha256": "62c9ef97a8b15a02318c48c5bff6af4346dcd190def628fb82e40eebbad78fad",
+    "sourceHashes": {
+      "public/fonts/nunito-sans/nunito-sans-latin-ext-wght-italic.woff2": "f3093f72aabbc08b8f00f185aef1b9503519a227c3d75a057dc7a3c47d7c6151",
+      "public/fonts/nunito-sans/nunito-sans-latin-wght-italic.woff2": "8904d953726b43ded1a16bfd43398325d2382dd50780c10f18d048e0e73f84a8"
+    }
+  },
+  {
+    "family": "Raleway",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/raleway-regular.fntdata",
+    "ttf": "/fonts/pptx/raleway-regular.ttf",
+    "license": "/fonts/pptx/raleway-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 535,
+    "sha256": "89d25581146c5febdd57c35b29807faf253aa7069898c899db7a7e34a0cd2e59",
+    "sourceHashes": {
+      "public/fonts/raleway/raleway-latin-ext-wght-normal.woff2": "2d603982caea60f15b741581c9e7bd88d1a7680fc52978137f9bc67c2dec61e0",
+      "public/fonts/raleway/raleway-latin-wght-normal.woff2": "b1bef1f03a77a36fc257c5525e32a1dd621bb6f935b743a419da7ed0b18dc8f5"
+    }
+  },
+  {
+    "family": "Raleway",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/raleway-bold.fntdata",
+    "ttf": "/fonts/pptx/raleway-bold.ttf",
+    "license": "/fonts/pptx/raleway-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 535,
+    "sha256": "8fea3c04e522206c7c584324d308450e0173c263967bb78fae9762121962239e",
+    "sourceHashes": {
+      "public/fonts/raleway/raleway-latin-ext-wght-normal.woff2": "2d603982caea60f15b741581c9e7bd88d1a7680fc52978137f9bc67c2dec61e0",
+      "public/fonts/raleway/raleway-latin-wght-normal.woff2": "b1bef1f03a77a36fc257c5525e32a1dd621bb6f935b743a419da7ed0b18dc8f5"
+    }
+  },
+  {
+    "family": "Raleway",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/raleway-italic.fntdata",
+    "ttf": "/fonts/pptx/raleway-italic.ttf",
+    "license": "/fonts/pptx/raleway-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 519,
+    "sha256": "27a2c1060d563b4a1a124e0634f3cfb8bbfb1492f81fd1cb14a60a72395c407f",
+    "sourceHashes": {
+      "public/fonts/raleway/raleway-latin-ext-wght-italic.woff2": "263c505d5216c4431265e258c83785ba7c96d9d31ba2759f2e761c45de08e42d",
+      "public/fonts/raleway/raleway-latin-wght-italic.woff2": "8c08eb8b1fdd16dcdd6270e42a8b24fcf7ddc7e63d4363a55c174d110f90005f"
+    }
+  },
+  {
+    "family": "Raleway",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/raleway-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/raleway-boldItalic.ttf",
+    "license": "/fonts/pptx/raleway-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 519,
+    "sha256": "42fee10fc535b3dda93e476f73866fb07c7085ff7c11be6f28e514614eafca3b",
+    "sourceHashes": {
+      "public/fonts/raleway/raleway-latin-ext-wght-italic.woff2": "263c505d5216c4431265e258c83785ba7c96d9d31ba2759f2e761c45de08e42d",
+      "public/fonts/raleway/raleway-latin-wght-italic.woff2": "8c08eb8b1fdd16dcdd6270e42a8b24fcf7ddc7e63d4363a55c174d110f90005f"
+    }
+  },
+  {
+    "family": "Work Sans",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/work-sans-italic.fntdata",
+    "ttf": "/fonts/pptx/work-sans-italic.ttf",
+    "license": "/fonts/pptx/work-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 535,
+    "sha256": "12de437676c3e2da7835d8176ed44200bdd5f8c1b82f09454799fe9d4a8a684a",
+    "sourceHashes": {
+      "public/fonts/work-sans/work-sans-latin-ext-wght-italic.woff2": "7ad4dd06ed7836bad7fef7c5cb75a93229d549c8db9671aff1aa798dc1682a70",
+      "public/fonts/work-sans/work-sans-latin-wght-italic.woff2": "73468c2b5cc7c31456ee0c297ac87b2bfb7eb626bc79688dc3a320151fddcd2f"
+    }
+  },
+  {
+    "family": "Work Sans",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/work-sans-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/work-sans-boldItalic.ttf",
+    "license": "/fonts/pptx/work-sans-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 535,
+    "sha256": "a18d56b2efce46e26d6a510e995cd7020d86ae7382eaf0ffba4fef6b93ac1e47",
+    "sourceHashes": {
+      "public/fonts/work-sans/work-sans-latin-ext-wght-italic.woff2": "7ad4dd06ed7836bad7fef7c5cb75a93229d549c8db9671aff1aa798dc1682a70",
+      "public/fonts/work-sans/work-sans-latin-wght-italic.woff2": "73468c2b5cc7c31456ee0c297ac87b2bfb7eb626bc79688dc3a320151fddcd2f"
+    }
+  },
+  {
+    "family": "Source Sans 3",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/source-sans-3-italic.fntdata",
+    "ttf": "/fonts/pptx/source-sans-3-italic.ttf",
+    "license": "/fonts/pptx/source-sans-3-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 781,
+    "sha256": "7091534f00e5ecd2d4f269c34abdc9d7c2ea91eeca61f00311f0c633aa9e8940",
+    "sourceHashes": {
+      "public/fonts/source-sans-3/source-sans-3-latin-ext-wght-italic.woff2": "6fe10a66ec416f77a26309b645471d032ad8175063bb605b886e9b7e57efaaa8",
+      "public/fonts/source-sans-3/source-sans-3-latin-wght-italic.woff2": "5fbc14d56cea35e60596c72ca969b349443c6a536f74e11748eed8b3a396e61d"
+    }
+  },
+  {
+    "family": "Source Sans 3",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/source-sans-3-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/source-sans-3-boldItalic.ttf",
+    "license": "/fonts/pptx/source-sans-3-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 781,
+    "sha256": "35e2ed945bd7f61abf1f28da2a24a17a8839b5f3fa02ce898ae66bf2cce2c863",
+    "sourceHashes": {
+      "public/fonts/source-sans-3/source-sans-3-latin-ext-wght-italic.woff2": "6fe10a66ec416f77a26309b645471d032ad8175063bb605b886e9b7e57efaaa8",
+      "public/fonts/source-sans-3/source-sans-3-latin-wght-italic.woff2": "5fbc14d56cea35e60596c72ca969b349443c6a536f74e11748eed8b3a396e61d"
+    }
+  },
+  {
+    "family": "Lora",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/lora-regular.fntdata",
+    "ttf": "/fonts/pptx/lora-regular.ttf",
+    "license": "/fonts/pptx/lora-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "6b275a7ac6244692aa04de330fc57bbd2e1047356a23f92f0eb2814a21099e92",
+    "sourceHashes": {
+      "public/fonts/lora/lora-latin-ext-wght-normal.woff2": "2a2d9c22c9863086a23f5013fede1428585321812b25f2662542c39d02967c5e",
+      "public/fonts/lora/lora-latin-wght-normal.woff2": "ddb8c66035104e233fc024669183aad3738b6daa16deee2ebb1241bd0f98ace1"
+    }
+  },
+  {
+    "family": "Lora",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/lora-bold.fntdata",
+    "ttf": "/fonts/pptx/lora-bold.ttf",
+    "license": "/fonts/pptx/lora-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "31e2fe140404d6e87d962ba3ceb685e386fb53839c3203708bbfa31b8999c1b0",
+    "sourceHashes": {
+      "public/fonts/lora/lora-latin-ext-wght-normal.woff2": "2a2d9c22c9863086a23f5013fede1428585321812b25f2662542c39d02967c5e",
+      "public/fonts/lora/lora-latin-wght-normal.woff2": "ddb8c66035104e233fc024669183aad3738b6daa16deee2ebb1241bd0f98ace1"
+    }
+  },
+  {
+    "family": "Lora",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/lora-italic.fntdata",
+    "ttf": "/fonts/pptx/lora-italic.ttf",
+    "license": "/fonts/pptx/lora-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "1c4bf7574ece3311fdb287793b24a46ec0243164bab51c60646cea4d1f97bb83",
+    "sourceHashes": {
+      "public/fonts/lora/lora-latin-ext-wght-italic.woff2": "45f989df83f3a9f40007d2ecdea98bff248c8767a1a0bbe60e94fb37b605ecee",
+      "public/fonts/lora/lora-latin-wght-italic.woff2": "d824d807d4d832d12c87932d0b8ec1314dcfd502157a56dee6bb04cf8a3768ae"
+    }
+  },
+  {
+    "family": "Lora",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/lora-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/lora-boldItalic.ttf",
+    "license": "/fonts/pptx/lora-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "65c78753064f416200691c2e9bd967b27adb25f12c41faeda4e3d03039e95c0a",
+    "sourceHashes": {
+      "public/fonts/lora/lora-latin-ext-wght-italic.woff2": "45f989df83f3a9f40007d2ecdea98bff248c8767a1a0bbe60e94fb37b605ecee",
+      "public/fonts/lora/lora-latin-wght-italic.woff2": "d824d807d4d832d12c87932d0b8ec1314dcfd502157a56dee6bb04cf8a3768ae"
+    }
+  },
+  {
+    "family": "Playfair Display",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/playfair-display-regular.fntdata",
+    "ttf": "/fonts/pptx/playfair-display-regular.ttf",
+    "license": "/fonts/pptx/playfair-display-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "5db13df6563416823fb69051796be4f82def18c1ea28febc02a1fd564df5a8ea",
+    "sourceHashes": {
+      "public/fonts/playfair-display/playfair-display-latin-ext-wght-normal.woff2": "42898ad49a6b23f32b109243e1df596edf831015ed685f429e4dafbb181d599d",
+      "public/fonts/playfair-display/playfair-display-latin-wght-normal.woff2": "e0c764a8e9e1cce92163c55bac4b2ad6cd4cf8c696ce2289ab5c41565e65b7e2"
+    }
+  },
+  {
+    "family": "Playfair Display",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/playfair-display-bold.fntdata",
+    "ttf": "/fonts/pptx/playfair-display-bold.ttf",
+    "license": "/fonts/pptx/playfair-display-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "ee736ec7313b87327c0de94380ffce98f25c6d28ed3def55c0b91bdb65fffb28",
+    "sourceHashes": {
+      "public/fonts/playfair-display/playfair-display-latin-ext-wght-normal.woff2": "42898ad49a6b23f32b109243e1df596edf831015ed685f429e4dafbb181d599d",
+      "public/fonts/playfair-display/playfair-display-latin-wght-normal.woff2": "e0c764a8e9e1cce92163c55bac4b2ad6cd4cf8c696ce2289ab5c41565e65b7e2"
+    }
+  },
+  {
+    "family": "Playfair Display",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/playfair-display-italic.fntdata",
+    "ttf": "/fonts/pptx/playfair-display-italic.ttf",
+    "license": "/fonts/pptx/playfair-display-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "523c113b02834df725527339f2920c3b8797181c5cc5d49776490fa2de9ebd31",
+    "sourceHashes": {
+      "public/fonts/playfair-display/playfair-display-latin-ext-wght-italic.woff2": "b9dff4aec6d8ef27af595330c808c455fcc3ff46881642aa6028ed4e27a96f89",
+      "public/fonts/playfair-display/playfair-display-latin-wght-italic.woff2": "54af24bd0f911f0fd7399d5445ea2023ff501d6a69f2d728f1213072f977ab14"
+    }
+  },
+  {
+    "family": "Playfair Display",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/playfair-display-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/playfair-display-boldItalic.ttf",
+    "license": "/fonts/pptx/playfair-display-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 404,
+    "sha256": "8bbaefbda10de17b74651ccdc3ca5b86d999cc4ac63bc47390bbf751517efeb2",
+    "sourceHashes": {
+      "public/fonts/playfair-display/playfair-display-latin-ext-wght-italic.woff2": "b9dff4aec6d8ef27af595330c808c455fcc3ff46881642aa6028ed4e27a96f89",
+      "public/fonts/playfair-display/playfair-display-latin-wght-italic.woff2": "54af24bd0f911f0fd7399d5445ea2023ff501d6a69f2d728f1213072f977ab14"
+    }
+  },
+  {
+    "family": "Cormorant Garamond",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/cormorant-garamond-regular.fntdata",
+    "ttf": "/fonts/pptx/cormorant-garamond-regular.ttf",
+    "license": "/fonts/pptx/cormorant-garamond-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 525,
+    "sha256": "cfffa8a3c251957c3f7da997fc7e3d68a93321e007539fb5d8f4a50975048bc3",
+    "sourceHashes": {
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-ext-wght-normal.woff2": "cfa9a397d86f66c5c51775a2500a712d5f632a04f0c5eca6930dfaf612d4566d",
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-wght-normal.woff2": "d80df8ff5aecd299a61549f9e29ab1ed0b9b05f4ea71d50fe978e07d5240b235"
+    }
+  },
+  {
+    "family": "Cormorant Garamond",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/cormorant-garamond-bold.fntdata",
+    "ttf": "/fonts/pptx/cormorant-garamond-bold.ttf",
+    "license": "/fonts/pptx/cormorant-garamond-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 525,
+    "sha256": "a5b885db5209d957dd6745410e30568a3531c36e9203563cba61c5d2b5f3d75e",
+    "sourceHashes": {
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-ext-wght-normal.woff2": "cfa9a397d86f66c5c51775a2500a712d5f632a04f0c5eca6930dfaf612d4566d",
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-wght-normal.woff2": "d80df8ff5aecd299a61549f9e29ab1ed0b9b05f4ea71d50fe978e07d5240b235"
+    }
+  },
+  {
+    "family": "Cormorant Garamond",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/cormorant-garamond-italic.fntdata",
+    "ttf": "/fonts/pptx/cormorant-garamond-italic.ttf",
+    "license": "/fonts/pptx/cormorant-garamond-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 524,
+    "sha256": "d41673b988de95bc413a9b6a81a7ce9ee78a4c67ae9e0ee92910f137ae63bce3",
+    "sourceHashes": {
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-ext-wght-italic.woff2": "cd5bf126b2c84ab41b254a6a9a1ffb5c326a0f9f82c22fb4704daa31c9aaa415",
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-wght-italic.woff2": "6f2f5c3b1abc3d0bb035a927f66a90ca873f94fc31c4966c8d024142c2036e55"
+    }
+  },
+  {
+    "family": "Cormorant Garamond",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/cormorant-garamond-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/cormorant-garamond-boldItalic.ttf",
+    "license": "/fonts/pptx/cormorant-garamond-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 524,
+    "sha256": "7f325ce591312c16407623c1dd80ddf2b2fbd9c73f68cf1738595669261cbf5d",
+    "sourceHashes": {
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-ext-wght-italic.woff2": "cd5bf126b2c84ab41b254a6a9a1ffb5c326a0f9f82c22fb4704daa31c9aaa415",
+      "public/fonts/cormorant-garamond/cormorant-garamond-latin-wght-italic.woff2": "6f2f5c3b1abc3d0bb035a927f66a90ca873f94fc31c4966c8d024142c2036e55"
+    }
+  },
+  {
+    "family": "Libre Baskerville",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/libre-baskerville-regular.fntdata",
+    "ttf": "/fonts/pptx/libre-baskerville-regular.ttf",
+    "license": "/fonts/pptx/libre-baskerville-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 705,
+    "sha256": "1bb2efdd36650a5365a65983a4ed0b7874eb3f03a3896f67dde33afbb17ebb6c",
+    "sourceHashes": {
+      "public/fonts/libre-baskerville/libre-baskerville-latin-ext-400-normal.woff2": "3fc071cd0f715bfcf79df9aa61fe6112278ac62f859b486d3956fe19b64a02fb",
+      "public/fonts/libre-baskerville/libre-baskerville-latin-400-normal.woff2": "3eb80fbca70498126925ce16ff5c20b2fa35e67ae7123ddb46302d2778dfbf0e"
+    }
+  },
+  {
+    "family": "Libre Baskerville",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/libre-baskerville-bold.fntdata",
+    "ttf": "/fonts/pptx/libre-baskerville-bold.ttf",
+    "license": "/fonts/pptx/libre-baskerville-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 705,
+    "sha256": "da5f727ca9c218dd56da066e898f7924dfbb19763488263593bfbcd74bc88b31",
+    "sourceHashes": {
+      "public/fonts/libre-baskerville/libre-baskerville-latin-ext-700-normal.woff2": "676ac40c0c9ed3a60897731cf2879f6006a17b294e423043d5a5505ae05cb9af",
+      "public/fonts/libre-baskerville/libre-baskerville-latin-700-normal.woff2": "96fa63376eed93029fa2514a02f5cb80276b016e239426858787de6e794d8619"
+    }
+  },
+  {
+    "family": "Libre Baskerville",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/libre-baskerville-italic.fntdata",
+    "ttf": "/fonts/pptx/libre-baskerville-italic.ttf",
+    "license": "/fonts/pptx/libre-baskerville-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 705,
+    "sha256": "ff66f3c60688b3204369caa1a8110fc2ab75bac2901639d001b625b2a7f265e9",
+    "sourceHashes": {
+      "public/fonts/libre-baskerville/libre-baskerville-latin-ext-400-italic.woff2": "3874c62309273fb7aea1b2cd50345557940b621b93af608538a3e6a7c6dcc31b",
+      "public/fonts/libre-baskerville/libre-baskerville-latin-400-italic.woff2": "efb7e5f4376a557314f5bb9f5197ef837d86c0ab38e1a50a0ff5c60c3400c629"
+    }
+  },
+  {
+    "family": "Libre Baskerville",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/libre-baskerville-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/libre-baskerville-boldItalic.ttf",
+    "license": "/fonts/pptx/libre-baskerville-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 705,
+    "sha256": "6657d9a0fa544cafc207a4ef2e1a6697ecfe4d940df79290ca1b6e613f7c8765",
+    "sourceHashes": {
+      "public/fonts/libre-baskerville/libre-baskerville-latin-ext-700-italic.woff2": "76232bbe0c34501524e58a6de833bf6d99bdd2481206113c27fa3a861657e74f",
+      "public/fonts/libre-baskerville/libre-baskerville-latin-700-italic.woff2": "41cee933f4b0f98abfdcee0f5188f96e885f40fff88c7fe771ba95c0e1309579"
+    }
+  },
+  {
+    "family": "DM Serif Display",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/dm-serif-display-italic.fntdata",
+    "ttf": "/fonts/pptx/dm-serif-display-italic.ttf",
+    "license": "/fonts/pptx/dm-serif-display-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 312,
+    "sha256": "638737abc0cd3cd8fe6ba56f046ce46237070c963e2c9584bc3c5f4ba8203e2d",
+    "sourceHashes": {
+      "public/fonts/dm-serif-display/dm-serif-display-latin-ext-400-italic.woff2": "e026521e59b7b3e5d3257cc76069916111683b97c24e75f0c7a9f07621aa9460",
+      "public/fonts/dm-serif-display/dm-serif-display-latin-400-italic.woff2": "ed8b291611e32fa2d2900488dd48fc95faf0957b2ef7ddf1527e8d21dd9cf2df"
+    }
+  },
+  {
+    "family": "Source Serif 4",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/source-serif-4-regular.fntdata",
+    "ttf": "/fonts/pptx/source-serif-4-regular.ttf",
+    "license": "/fonts/pptx/source-serif-4-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 494,
+    "sha256": "5a6145f34bad458ddab04203f7345ca7f039dbf67c9514e22b0657aaec9d0697",
+    "sourceHashes": {
+      "public/fonts/source-serif-4/source-serif-4-latin-ext-wght-normal.woff2": "d10ccbbd0dc4ebae2938958dc1f622a53460fe297e9c958564742dd684309c3f",
+      "public/fonts/source-serif-4/source-serif-4-latin-wght-normal.woff2": "382475f38242c52d42a3e5ff8dc69b5d73f10d0d21e4550b5fe232984688779a"
+    }
+  },
+  {
+    "family": "Source Serif 4",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/source-serif-4-bold.fntdata",
+    "ttf": "/fonts/pptx/source-serif-4-bold.ttf",
+    "license": "/fonts/pptx/source-serif-4-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 494,
+    "sha256": "d8944191a38be879b2b0d7205af4787fcf8b20f048009fe3fb27517dd1a2d940",
+    "sourceHashes": {
+      "public/fonts/source-serif-4/source-serif-4-latin-ext-wght-normal.woff2": "d10ccbbd0dc4ebae2938958dc1f622a53460fe297e9c958564742dd684309c3f",
+      "public/fonts/source-serif-4/source-serif-4-latin-wght-normal.woff2": "382475f38242c52d42a3e5ff8dc69b5d73f10d0d21e4550b5fe232984688779a"
+    }
+  },
+  {
+    "family": "Source Serif 4",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/source-serif-4-italic.fntdata",
+    "ttf": "/fonts/pptx/source-serif-4-italic.ttf",
+    "license": "/fonts/pptx/source-serif-4-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 494,
+    "sha256": "f0a1c8edaf335125620c82fa449e33a2ab9e8d720c66b755c7731df716bdde04",
+    "sourceHashes": {
+      "public/fonts/source-serif-4/source-serif-4-latin-ext-wght-italic.woff2": "14e38c2d6a4ea6effcddde38f0262c03af252cbf82dbc68037f2d6c9112f2097",
+      "public/fonts/source-serif-4/source-serif-4-latin-wght-italic.woff2": "b4f56ddc9873487f1c9a3ad5bbce31982fe89b951f57e4604f62b4c8a540fb19"
+    }
+  },
+  {
+    "family": "Source Serif 4",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/source-serif-4-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/source-serif-4-boldItalic.ttf",
+    "license": "/fonts/pptx/source-serif-4-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 494,
+    "sha256": "702de49647fb419f6fab8638e2990deb9705f7a7fb48ea125609f43aef1c4e62",
+    "sourceHashes": {
+      "public/fonts/source-serif-4/source-serif-4-latin-ext-wght-italic.woff2": "14e38c2d6a4ea6effcddde38f0262c03af252cbf82dbc68037f2d6c9112f2097",
+      "public/fonts/source-serif-4/source-serif-4-latin-wght-italic.woff2": "b4f56ddc9873487f1c9a3ad5bbce31982fe89b951f57e4604f62b4c8a540fb19"
+    }
+  },
+  {
+    "family": "Oswald",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/oswald-regular.fntdata",
+    "ttf": "/fonts/pptx/oswald-regular.ttf",
+    "license": "/fonts/pptx/oswald-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 484,
+    "sha256": "9bb190240e58a191aaa13e5149f2d9371ae9fb3085c04ea4df7c027b90e08505",
+    "sourceHashes": {
+      "public/fonts/oswald/oswald-latin-ext-wght-normal.woff2": "7989ccc7770f5aeffa67e088bcd3b294d42fae2f8b0eca3c3c51b953d1f735cc",
+      "public/fonts/oswald/oswald-latin-wght-normal.woff2": "bd73278ee0c50041b91b4c03d1229e35b501637f46b6409e7da2d3a758446ea5"
+    }
+  },
+  {
+    "family": "Oswald",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/oswald-bold.fntdata",
+    "ttf": "/fonts/pptx/oswald-bold.ttf",
+    "license": "/fonts/pptx/oswald-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 484,
+    "sha256": "89282b4310bbffd9a5f562267779735bed3a857891d4de4f84aa3dd2303171c3",
+    "sourceHashes": {
+      "public/fonts/oswald/oswald-latin-ext-wght-normal.woff2": "7989ccc7770f5aeffa67e088bcd3b294d42fae2f8b0eca3c3c51b953d1f735cc",
+      "public/fonts/oswald/oswald-latin-wght-normal.woff2": "bd73278ee0c50041b91b4c03d1229e35b501637f46b6409e7da2d3a758446ea5"
+    }
+  },
+  {
+    "family": "Bebas Neue",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/bebas-neue-regular.fntdata",
+    "ttf": "/fonts/pptx/bebas-neue-regular.ttf",
+    "license": "/fonts/pptx/bebas-neue-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 387,
+    "sha256": "d6560cef1473ff1d889a9ea35345504e4b04817814e7c8b01be16154fd801cc6",
+    "sourceHashes": {
+      "public/fonts/bebas-neue/bebas-neue-latin-ext-400-normal.woff2": "16c95ce45a2922f52551d38d565d14c92cf257b8f219c89613407d81fdd21a39",
+      "public/fonts/bebas-neue/bebas-neue-latin-400-normal.woff2": "a7c90c89240c134f7fdd33d40c000ec90b79d675ea53e8cc5a6d423c073de412"
+    }
+  },
+  {
+    "family": "JetBrains Mono",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/jetbrains-mono-regular.fntdata",
+    "ttf": "/fonts/pptx/jetbrains-mono-regular.ttf",
+    "license": "/fonts/pptx/jetbrains-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 405,
+    "sha256": "1335ac62480f1b6a0fe67028c1649f7f1bed361035c5bd98b0c99c7be62a9f09",
+    "sourceHashes": {
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-ext-wght-normal.woff2": "79bfdab9ba467e26eea4122e6f2567e188dd8a09a8c730d501fc487c4ab99c6e",
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
+    }
+  },
+  {
+    "family": "JetBrains Mono",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/jetbrains-mono-bold.fntdata",
+    "ttf": "/fonts/pptx/jetbrains-mono-bold.ttf",
+    "license": "/fonts/pptx/jetbrains-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 405,
+    "sha256": "430144d2080a74db8a5940f15a4f7a0f07dcff96035abf6d4b7d4fc0b2ec1895",
+    "sourceHashes": {
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-ext-wght-normal.woff2": "79bfdab9ba467e26eea4122e6f2567e188dd8a09a8c730d501fc487c4ab99c6e",
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
+    }
+  },
+  {
+    "family": "JetBrains Mono",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/jetbrains-mono-italic.fntdata",
+    "ttf": "/fonts/pptx/jetbrains-mono-italic.ttf",
+    "license": "/fonts/pptx/jetbrains-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 405,
+    "sha256": "7e517b850dc6a31ea0e86c189cff2e560388ee2f9a2e3de7dfc977210ef4c4c2",
+    "sourceHashes": {
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-ext-wght-italic.woff2": "60652c78382d7e5021ce4c3ed8985fc41d8f3d1b1a3bedcec2a44ed8979fe5eb",
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-wght-italic.woff2": "a8afa085e9ca5e53434e2ee918ba6b65c7dd4dda56509976b36591478c99d62e"
+    }
+  },
+  {
+    "family": "JetBrains Mono",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/jetbrains-mono-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/jetbrains-mono-boldItalic.ttf",
+    "license": "/fonts/pptx/jetbrains-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 405,
+    "sha256": "baca31d508e8517eb307a148f7decb6551be36f94be8f01ce75ace84647db18b",
+    "sourceHashes": {
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-ext-wght-italic.woff2": "60652c78382d7e5021ce4c3ed8985fc41d8f3d1b1a3bedcec2a44ed8979fe5eb",
+      "public/fonts/jetbrains-mono/jetbrains-mono-latin-wght-italic.woff2": "a8afa085e9ca5e53434e2ee918ba6b65c7dd4dda56509976b36591478c99d62e"
+    }
+  },
+  {
+    "family": "IBM Plex Mono",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/ibm-plex-mono-regular.fntdata",
+    "ttf": "/fonts/pptx/ibm-plex-mono-regular.ttf",
+    "license": "/fonts/pptx/ibm-plex-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 425,
+    "sha256": "32eaba74d2fa9b34ee9cdb5121f39099b6b93d07d4ff929ac93dd7d0a2f2efd7",
+    "sourceHashes": {
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-ext-400-normal.woff2": "6bc0f226a5b7884a8170e3f62c63d7675609d4631bdc5931b5cdab81821f00eb",
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7"
+    }
+  },
+  {
+    "family": "IBM Plex Mono",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/ibm-plex-mono-bold.fntdata",
+    "ttf": "/fonts/pptx/ibm-plex-mono-bold.ttf",
+    "license": "/fonts/pptx/ibm-plex-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 425,
+    "sha256": "751d8fcced2f7ac4190cb0707527df93a53a8e942219982a0438b221e0e27279",
+    "sourceHashes": {
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-ext-700-normal.woff2": "5b9b81f54dd69635c7adcaacd4c4545a73fe4809c528e22734b238a83a74135f",
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-700-normal.woff2": "4f84d86cfd060f4ded334358ff8a4c81d4db2ed5addd568359d693f44a87765a"
+    }
+  },
+  {
+    "family": "IBM Plex Mono",
+    "style": "italic",
+    "weight": 400,
+    "file": "/fonts/pptx/ibm-plex-mono-italic.fntdata",
+    "ttf": "/fonts/pptx/ibm-plex-mono-italic.ttf",
+    "license": "/fonts/pptx/ibm-plex-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 425,
+    "sha256": "ae0a388821a47ca8cca8dbf9dc2d6065dd8dc96396e532c526c08bce7cb07701",
+    "sourceHashes": {
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-ext-400-italic.woff2": "1b07eee6df7d26b31864581c2365131d384077605e0b63ae67c4a0a64363a6de",
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-400-italic.woff2": "0840095faae86403735a8c04014b72cb29e7923646b222b360b7e8252932e4e3"
+    }
+  },
+  {
+    "family": "IBM Plex Mono",
+    "style": "boldItalic",
+    "weight": 700,
+    "file": "/fonts/pptx/ibm-plex-mono-boldItalic.fntdata",
+    "ttf": "/fonts/pptx/ibm-plex-mono-boldItalic.ttf",
+    "license": "/fonts/pptx/ibm-plex-mono-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 425,
+    "sha256": "68b2bc3d440adeb9c5a4b02972de84747b67d99dba88d4386ec86b9af6947988",
+    "sourceHashes": {
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-ext-700-italic.woff2": "18c8dc28d75ecbda23c88fb11126852b2232916ec2e6d6dc0225def886a0cc98",
+      "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-700-italic.woff2": "2bb0d4c82652472446ed1a5a89a0553f2db1e4ea17cbda66a45e690899d83e91"
+    }
+  },
+  {
+    "family": "Caveat",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/caveat-regular.fntdata",
+    "ttf": "/fonts/pptx/caveat-regular.ttf",
+    "license": "/fonts/pptx/caveat-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 449,
+    "sha256": "67a516ba5d90ca78d33c67bbc6b8d0018c427ea4e18d2192477d079203434f49",
+    "sourceHashes": {
+      "public/fonts/caveat/caveat-latin-ext-wght-normal.woff2": "f626b95c1efa95cf6b7c9b043d3bbe8862b6abbe5f55a082102f33f7de2fd4f9",
+      "public/fonts/caveat/caveat-latin-wght-normal.woff2": "891951df5e8b5b0f0bc760d31375405e795c666b5add70437de12d4a6482b33f"
+    }
+  },
+  {
+    "family": "Caveat",
+    "style": "bold",
+    "weight": 700,
+    "file": "/fonts/pptx/caveat-bold.fntdata",
+    "ttf": "/fonts/pptx/caveat-bold.ttf",
+    "license": "/fonts/pptx/caveat-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 449,
+    "sha256": "096da786ff51579b28f95f0203ddfcd00c49801675803a4b6860ed461e7cbfdf",
+    "sourceHashes": {
+      "public/fonts/caveat/caveat-latin-ext-wght-normal.woff2": "f626b95c1efa95cf6b7c9b043d3bbe8862b6abbe5f55a082102f33f7de2fd4f9",
+      "public/fonts/caveat/caveat-latin-wght-normal.woff2": "891951df5e8b5b0f0bc760d31375405e795c666b5add70437de12d4a6482b33f"
+    }
+  },
+  {
+    "family": "Ma Shan Zheng",
+    "style": "regular",
+    "weight": 400,
+    "file": "/fonts/pptx/ma-shan-zheng-regular.fntdata",
+    "ttf": "/fonts/pptx/ma-shan-zheng-regular.ttf",
+    "license": "/fonts/pptx/ma-shan-zheng-OFL.txt",
+    "format": "EOT 0x20001; full sfnt, no glyph subsetting",
+    "fsType": 0,
+    "glyphs": 6982,
+    "sha256": "8af103ce6ffb07b9e162b8f03747fa760df9aa69ca6dd94b329dcf088dfd7573",
+    "sourceHashes": {
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-5-400-normal.woff2": "7e3eed116c7e6a376917d4d562294b5e166b6afd417347804acd4f08f49ba359",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-6-400-normal.woff2": "d80455a7c1a82e951eed0fec4a12045d4b893bf8ff7531376cf4b6b493c5ef5c",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-21-400-normal.woff2": "d9dd66bc3b83a11ac620978c30682703e74cdf138fcbe26e08899de5d5c150f4",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-22-400-normal.woff2": "d9c01b1320b9051d3dc5b4baeef0d0d454cfe10a25896131a0fac21c77ed3791",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-23-400-normal.woff2": "9fa0f0c546e215fa95d5f512e241bbe351745f146617e651852aeef41e11f1ab",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-24-400-normal.woff2": "265f4b95e1d2f3973947f721d40e76b5f045294688916142011cd78850a71b33",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-25-400-normal.woff2": "92655a594c35670f7239c7283adb8be2eaeaac1fcb69640886d09f15d6ec308a",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-26-400-normal.woff2": "71a49385236fd1aedc4c4b88d79e9718f8b0fba6a8bbc773a6e082459dbe5b43",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-27-400-normal.woff2": "5f7090c020ab86318e3a5b0935b7e78be81f9d13b4eab5522f5130c1f03d0c49",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-28-400-normal.woff2": "8457301da727d93eb6410a920a1280b8ce9263031232d3489353757372f1a53c",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-29-400-normal.woff2": "a91e606697968521654e66ab3d98b2e2e3f39b21e06ccc643e8eb65acca210cd",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-30-400-normal.woff2": "1e2558d6900976360c9b724bd03755f83b4325fc486058c8d86626ed52ab6614",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-31-400-normal.woff2": "156cf13e0b248dc5645f6dacb351fd372373a0af578c6e482960ce07978613e9",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-32-400-normal.woff2": "c732ae833edbab1dfc4e761d4f0e9fb88b08ce2d100d6f147449c52dffd3ac15",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-33-400-normal.woff2": "17f1142b78732a5dcb9e355b87647b81c8797eefbc2671cbeb8f013969bad5da",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-34-400-normal.woff2": "6954786a8a61c0bd8069b06d3123ccd6c09a902eba20c57202faa9799015fc28",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-35-400-normal.woff2": "8fba87077de93bf11a50fdfc4bc5f59b49af9fafaf612725016278740988c92a",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-36-400-normal.woff2": "95063dcabd0a70b63aa46fcf91e254c060a6f70796120d0c50deab99761945f2",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-37-400-normal.woff2": "b4b2308a8b89e350c92dd282ec35c6c4d3e1573672b05e016c0b02b1227f9481",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-38-400-normal.woff2": "da556de67322ede6ef000bd63914284116af64b865a059cf84c391ba67793165",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-39-400-normal.woff2": "ed07b71adb2919f24e55114f67897d285c25fa8641b77e4944be0749f86e77e9",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-40-400-normal.woff2": "f513a914ce935daff55f5e38cdbb55e6e239b9ab5e971b019fa2a1664edb26a5",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-41-400-normal.woff2": "778f99e76b9016a518e276f5cf62e5f33bd3d2b5116f05c2dfd66d7c26f544d7",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-42-400-normal.woff2": "b417aa94a70b81cbeac30a0b4d12434cfa68733f22b7a17967f7b2b2ea80d632",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-43-400-normal.woff2": "dfe9d3bd491f3ad6eb834f3957e463cb25f185f9b5c5393206256fbd269345c0",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-44-400-normal.woff2": "145064d9f9f3c4677730b2abc2bcb24e34e1d974381e6a481beee198a5f17334",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-45-400-normal.woff2": "1981943dcf3a93f5c9bf7eb8cada813cf57c7395ae56930c15be0afad8025934",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-46-400-normal.woff2": "d2bf030946842c4ff48bde50c379528b9f44991f7924691a1484d8ddbe2291ab",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-47-400-normal.woff2": "6500fe7547d6a90ddd8038dd756a26533a6122ac2477ef6f6d85450b4ab1998e",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-48-400-normal.woff2": "70a50e4a2112c698940580672ff25290f9fd1a9de6a90f17d6ae910f034ee964",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-49-400-normal.woff2": "57e6f3369a43a64fcea2efd048036ccd17906bfbf14195cb3c59074a94e830f8",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-50-400-normal.woff2": "a3f74dbad5d539776ff6ee3b9640f9635a74546a8b4f3eea2ecaf60efdd2918a",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-51-400-normal.woff2": "c8ac64661248923a0f8b14fc69d34329add1c71447d8a7778e561755b1883a9c",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-52-400-normal.woff2": "73e907869183cf98710f4a5915e7f0425341ee7164e17aa7d018e74235bd9d89",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-53-400-normal.woff2": "742af668dbdb20c98af11c8b27b136457fcad8b05a5361e8ea698b7e6e7d407b",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-54-400-normal.woff2": "0c79845573c2fc9266140d18ee2051a66a08136a744d0d4c4b93eccbd9eea534",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-55-400-normal.woff2": "2f287a10d3192226e310b84ada487380d7deaf9c65302ff5809a85fbf6086c39",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-56-400-normal.woff2": "c66adfb90c5639f1b3264ce698aaa856c6a19ba993bcfc85b8932962091ac843",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-57-400-normal.woff2": "85e6849636f5e3f24044d2c0fc1838c63e314b4049d8b9eefbdf5ce35641fd17",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-58-400-normal.woff2": "1d94b7065c3bc3ffcec237a40cbe40c75277e2ac1c26fabfd101d8d7b8b2e4df",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-59-400-normal.woff2": "cde2a254c8ff79cb2c7752e2ac8c29ddfa9af68fb51264e626e819500cf7399b",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-60-400-normal.woff2": "9cb4b7feb8b3c08cdd318dee7b11217e10d3544ac9e5b60d24542164541fe9ae",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-61-400-normal.woff2": "fdbff8010c5248aebe34be3f833246db7a8665a023cf51f2b4d3d718efc01b88",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-62-400-normal.woff2": "be693e7eccdd993f5a2d40747c6de228f2e0740a01dbb9ca23ea4d44a2afe8bc",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-63-400-normal.woff2": "bba78a8403a0bcb94db0168db8b2bcd78bdb56b2deb74a1ee6ee71bef0100d44",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-64-400-normal.woff2": "34a19a1d481e0178d1610d72721624a2424becd371acccb415f0f1d4b0623065",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-65-400-normal.woff2": "44435e8facfdb1d84e92a089a72576ba15b5aa784ac16cba44f3213a0bcbd0b4",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-66-400-normal.woff2": "47af03be2284c46767195470526a85798e8da5b8571a73906cda3e337942f653",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-67-400-normal.woff2": "f342d7249134c7c00b8075a7688693e20b1ea6678961c8e0949eb5272a564a16",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-68-400-normal.woff2": "6e9e7a3e1b92ba4ab97ea7e66f81bd00299070fcf8b4915e23a813c914854a23",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-69-400-normal.woff2": "2800abdcd2ce711957fab3ddb0ed4b8094133c6349946be265c6336c6294d873",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-70-400-normal.woff2": "9bc0dac6f5f64d799dd29e1f521531d86f5ba1303bd2b2b3d0050d8b5507d68f",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-71-400-normal.woff2": "387fb882541f8837d77567c007e922551ff81f50afb083100987a82fe193034f",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-72-400-normal.woff2": "1aaa3e7123f79a64b13e3e5c141d7f7b3665744a68903d17222d503485a2dda0",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-73-400-normal.woff2": "79e5001ad0b8f03b6a33961ba03ef4f273ea29ddbc8334eca05f2f126e940275",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-74-400-normal.woff2": "9898db8982babfaada37a1e9137cff8551711bc685ce9e928e4c44379e14e9bf",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-75-400-normal.woff2": "02fced85b30b8fb1932d64fb9c83dadf8f16c8a678303158483486fa75331de1",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-76-400-normal.woff2": "6e377b7fc59e6d0d5a4a5c8a1c25d7c747bfccc505d5051dc281fe2da0920194",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-77-400-normal.woff2": "626bb4f62dcee3c81c0aba35a4255b8095901a23bb25bdae3f64775b88d25678",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-78-400-normal.woff2": "be2c8d5bcea4dc1308b9c42196e2d8c1edef6a5796d56420ba509e1400edc25f",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-79-400-normal.woff2": "fafd60b2f91810b1994dec99333956a969b598c1da5b99634ff91b4c778761b5",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-80-400-normal.woff2": "e7a0a687edfcdf32e7ef54313f37fa23498cb0e9013ff6ec59408c0d33d974e2",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-81-400-normal.woff2": "0d4398bcb08961e26571da7211683e6edfafbed3696bbee7c519b5464cd88de9",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-82-400-normal.woff2": "dbb116960b575287c39ee8c88ebde0f08a785303295c79ddfd7017241cd0d2fd",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-83-400-normal.woff2": "5c062704c53006402e64b46669ce1c47f0faf5cd1f756d9fb782330ed33d9000",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-84-400-normal.woff2": "d3ac5b12f6220a038b030279d4289e09e9c219973144ca31eeb2a2695dc13242",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-85-400-normal.woff2": "013cba26cdfcc4075c3c212a927f26858dad490f4b21393d220cc49713f2e990",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-90-400-normal.woff2": "4da023ec09ba6850a91b234ea0857337ee68afb6b74fb7c850d6ff2aed0d50d9",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-91-400-normal.woff2": "ad26145f9409f1b5121409b6a11e8c154fe1ad499b560c5c5e63a16cdea31a71",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-97-400-normal.woff2": "5607066982c6c9b3ccb6167cd433a32e9133e6b7c85a6ce18da1048ea56a2464",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-99-400-normal.woff2": "f65fc22c1054a02900a6163732567e556b0bebe6ab76564d69dcbac411a82dc5",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-100-400-normal.woff2": "045e7d8333c92ed935ed8d19be761a8466ba75b4096a84bda1abd53f8b376969",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-101-400-normal.woff2": "baa28aeccdfbaa4cef666d44c5a42614cf58b7b968acaa4b17c218db387988b1",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-102-400-normal.woff2": "21e2b68c6309cdac670449b453c199c38b2c6c0e19cb95475a24be2ec2ef5797",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-103-400-normal.woff2": "b4ded7f7da96830feeb99cff977c064006e9c56e7799cf5e4c0c4b64b61f9234",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-104-400-normal.woff2": "52fb508cceab2c84a626c1385634727037b81692cc280da7e51f668047d1b4e9",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-105-400-normal.woff2": "718c8f192ee8cb8f3d6790ad724577e74e23f346321d15a66924e83d77195189",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-106-400-normal.woff2": "4fe09b290a6ea1f93c62eefb5883717effc9d653eff8e65321bc03d499ee2d98",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-107-400-normal.woff2": "c430afdfa4cf93e2283788198e5f2c540a9c0eccdeb7f3d51c8f9bc9618332eb",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-108-400-normal.woff2": "a0070782850d05e8e2b622c6a230c9e854923680f2df8ae80ee8204a5a5d87df",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-109-400-normal.woff2": "fb2affdf080dd7f860390b59bb20c2136486b6fea514f52198b4bfd4cad3634d",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-110-400-normal.woff2": "73e368033091390f2a9ff70e81a9bb50a778e44bf774246c8d095cd01b0ee816",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-111-400-normal.woff2": "a6c71ec8f3218498576f0ab51283ed7f2bf48bc866d8b4b5e7842794438211c0",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-112-400-normal.woff2": "3f26c4a9235b2ff620352a68ee9f11337b06ef819474c985e9c5f3aac8f563be",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-113-400-normal.woff2": "7c8419c661b6f6fc9ee0dfb68f64aa2676e3ea742d68f57a4440754200a5db5d",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-114-400-normal.woff2": "f48ff32a0228e90da54b3cc6478f945ae5b39b1adcb561b16441841b07a0b464",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-115-400-normal.woff2": "d7a6b36978f798a83d30e10af99b6d4dcea6f634ce30bb1db9b16fe48d6555ce",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-116-400-normal.woff2": "38a4241d2a1250af6848ecad11da7ce639c28dd666b586ada23bced9570082f2",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-117-400-normal.woff2": "dba4ba6b98df8deb81d9b3fb16fb48a4b4a0d8ad3d92934267216a064eba776f",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-118-400-normal.woff2": "0f82546911062a7358c5e5be5e180fe6c324dfdc0043322e458bc9be16c9cd46",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-119-400-normal.woff2": "701407edf05f2daae7898eef5163029edd0873982305a9df602678e16b3f1b95",
+      "public/fonts/ma-shan-zheng/ma-shan-zheng-latin-400-normal.woff2": "fed9224aed0aa80f6263ee2e36398b1d8e41c64970741f5670c914cd66b2cee7"
+    }
   }
 ]

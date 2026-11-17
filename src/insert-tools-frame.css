@@ -4,17 +4,13 @@
   .insert-error{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface-chrome);font-size:var(--ui-label)}
   .resource-tools{border-left:1px solid var(--border-subtle);padding-left:8px;margin-left:4px}
   .resource-tools.compact{display:none}
-  .insert-placeholder{display:block;flex:none;width:44px;height:44px;position:relative}
+  .insert-placeholder{display:block;flex:none;width:40px;height:40px;position:relative}
   .insert-placeholder::after{content:'';position:absolute;inset:12px;border-radius:var(--r-control);background:var(--fill-subtle)}
-  .insert-placeholder.split{width:56px}
+  .insert-placeholder.split{width:44px}
   @media(max-width:760px),(pointer:coarse){
-    .canvas-insert-dock .toolbar-group.insert-tools{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:4px}
-    .insert-primary{display:grid;grid-template-columns:repeat(2,minmax(44px,1fr)) repeat(3,56px);grid-column:1;grid-row:1}
-    .insert-secondary{grid-column:2;grid-row:1;min-width:0}
-    .resource-tools{display:grid;grid-template-columns:repeat(3,minmax(44px,1fr));grid-column:1 / -1;grid-row:2;border-left:0;border-top:1px solid var(--border-subtle);padding:4px 0 0;margin:0}
-  }
-  @media(max-width:380px){
-    .insert-primary{grid-column:1 / -1}
-    .insert-secondary{grid-row:2}
-    .resource-tools{grid-column:1;grid-row:2;border-top:0;padding-top:0}
+    .insert-placeholder{width:100%;height:44px}.insert-placeholder.split{width:56px}
+    .canvas-insert-dock .toolbar-group.insert-tools{display:grid;grid-template-columns:minmax(0,1fr) max(44px,4em);gap:4px;width:min(20rem,calc(var(--ui-viewport-width) - 40px))}
+    .insert-primary{display:grid;grid-template-columns:repeat(auto-fit,minmax(max(88px,calc(44px + 3.75*var(--ui-meta))),1fr));grid-column:1 / -1;grid-row:1}
+    .insert-secondary{grid-column:2;grid-row:2;min-width:0}
+    .resource-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(max(56px,4em),1fr));grid-column:1;grid-row:2;border-left:0;padding:0;margin:0}
   }

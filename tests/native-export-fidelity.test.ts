@@ -111,3 +111,17 @@ test('manual and AI wording edits keep source font leading while releasing old v
   const resized={...out,fontSize:32};assert.equal(renderedPptxText(resized),resized);
  }
 });
+
+
+test('editable auto-height PowerPoint text keeps full content visible while explicit crops remain',async()=>{
+ const slide=blankSlide(),base=element('text',{id:'growing-body',text:'Phone styled 中文🙂 next',fontFamily:'Arial',fontSize:32,h:40,textSizing:'auto-height',runs:[{text:'Phone ',fontWeight:700,color:'#663399'},{text:'styled',fontSize:18,color:'#0000ff'},{text:' 中文🙂 next'}]});
+ slide.elements=[base,{...base,id:'fixed-body',textSizing:'fixed'},{...base,id:'clipped-body',clipText:true},{...base,id:'limited-body',maxLines:1}];
+ const deck=newDeck('Text visibility',[slide]),snapshot=structuredClone(deck),zip=await JSZip.loadAsync(await buildPptx(deck)),xml=await zip.file('ppt/slides/slide1.xml')!.async('string'),shapes=new Map([...xml.matchAll(/<p:sp>[\s\S]*?<\/p:sp>/g)].map(match=>[match[0].match(/name="([^"]+)"/)?.[1],match[0]]));
+ assert.match(shapes.get('growing-body')!,/vertOverflow="overflow"/);assert.match(shapes.get('growing-body')!,/<a:spAutoFit\/>/);assert.match(shapes.get('growing-body')!,/Phone /);assert.match(shapes.get('growing-body')!,/sz="1350"/);assert.match(shapes.get('fixed-body')!,/vertOverflow="clip"/);assert.match(shapes.get('clipped-body')!,/vertOverflow="clip"/);assert.match(shapes.get('limited-body')!,/vertOverflow="ellipsis"/);assert.deepEqual(deck,snapshot);
+});
+
+
+test('legacy connector strokes use the same visible fallback as canvas and keep their endpoints',async()=>{
+ const slide=blankSlide(),line=element('line',{id:'legacy-connector',x:900,y:440,w:350,h:120,fill:'#252b29',stroke:'transparent',strokeWidth:0,text:'Connector label',fontFamily:'Arial'});slide.elements=[line];const deck=newDeck('Connector',[slide]),before=structuredClone(deck),zip=await JSZip.loadAsync(await buildPptx(deck)),xml=await zip.file('ppt/slides/slide1.xml')!.async('string'),shape=[...xml.matchAll(/<p:cxnSp>[\s\S]*?<\/p:cxnSp>/g)].map(m=>m[0]).find(s=>s.includes('name="legacy-connector"'))!;
+ assert.match(shape,/<a:ln w="19050" cap="rnd">/);assert.match(shape,/<a:srgbClr val="252b29"><a:alpha val="100000"/);assert.match(shape,/<a:off x="8572500" y="4191000"/);assert.match(shape,/<a:ext cx="3333750" cy="1143000"/);assert.match(xml,/Connector label/);assert.deepEqual(deck,before);
+});

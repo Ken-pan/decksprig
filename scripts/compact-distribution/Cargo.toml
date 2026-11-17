@@ -1,0 +1,19 @@
+[package]
+name = "decksprig-archive"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+publish = false
+
+[lib]
+name = "decksprig_thumbnail"
+crate-type = ["cdylib"]
+
+[dependencies]
+libwebp-sys = "=0.9.6"
+preflate-container = { git = "https://github.com/microsoft/preflate-rs", rev = "e97efb0031ff67e5c8f0154726422e31f6ed8424" }
+webp = { version = "=0.3.1", default-features = false }
+
+[profile.release]
+strip = true
+lto = "thin"

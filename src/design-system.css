@@ -30,13 +30,24 @@
   --state-selected-hover: light-dark(rgb(0 0 0 / 16%), rgb(255 255 255 / 20%));
   --state-selected-active: light-dark(rgb(0 0 0 / 20%), rgb(255 255 255 / 24%));
   --state-drop: var(--state-selected-active);
-  --action-solid-bg: light-dark(var(--a-9), var(--a-11));
-  --action-solid-bg-hover: light-dark(var(--a-10), color-mix(in oklab, var(--a-11) 88%, #ffffff));
-  --action-solid-bg-active: light-dark(color-mix(in oklab, var(--a-10) 88%, #000000), color-mix(in oklab, var(--a-11) 88%, #000000));
-  --action-solid-fg: light-dark(#ffffff, var(--n-1));
+  --action-solid-bg: var(--a-9);
+  --action-solid-bg-hover: oklch(calc(51% + var(--l-a)) calc(.196 * var(--chroma-a)) var(--hue-a));
+  --action-solid-bg-active: oklch(calc(47% + var(--l-a)) calc(.188 * var(--chroma-a)) var(--hue-a));
+  --action-solid-fg: #ffffff;
   --action-tonal-bg: var(--state-selected);
   --action-tonal-bg-hover: var(--state-selected-hover);
   --action-tonal-fg: var(--text-primary);
+}
+
+/* Match Boardser's monochrome palette without tinting the editing desk. */
+:root[data-palette='graphite'] {
+  --action-solid-bg-hover: light-dark(oklch(34% 0 0), oklch(84% 0 0));
+  --action-solid-bg-active: light-dark(oklch(40% 0 0), oklch(78% 0 0));
+  --action-solid-fg: light-dark(#ffffff, oklch(15% 0 0));
+}
+:root[data-palette='forest'] {
+  --action-solid-bg-hover: #103c2f;
+  --action-solid-bg-active: #082d23;
 }
 
 :root {
@@ -98,13 +109,37 @@
   --shadow-floating: var(--elev-2);
   --shadow-popover: var(--elev-3);
   --shadow-modal: var(--elev-5);
-  --surface-chrome: light-dark(var(--surface-white), oklch(22% calc(.007 * var(--chroma-n)) var(--hue-n)));
-  --surface-sunken: light-dark(color-mix(in oklab, var(--n-2) 55%, var(--n-3)), oklch(19% calc(.006 * var(--chroma-n)) var(--hue-n)));
+  /* Separate large planes by value before adding detail. The desk recedes;
+     panels and floating tools stay legible beside both light and dark slides. */
+  --surface-chrome: light-dark(#ffffff, #272727);
+  --surface-sunken: light-dark(#e5e5e5, #141414);
   --surface-navigation: var(--surface-chrome);
-  --field-surface: light-dark(color-mix(in oklab, var(--n-2) 65%, var(--surface-chrome)), var(--fill-subtle));
-  --field-border: color-mix(in oklab, var(--border-default) 65%, transparent);
-  --slide-shadow: 0 1px 3px color-mix(in oklab, var(--text-primary) 5%, transparent), 0 12px 36px color-mix(in oklab, var(--text-primary) 7%, transparent);
-  --canvas-edge: light-dark(color-mix(in oklab, var(--text-primary) 20%, transparent), color-mix(in oklab, var(--text-primary) 24%, transparent));
+  --surface-raised: light-dark(#ffffff, #303030);
+  --surface-overlay: light-dark(#ffffff, #343434);
+  --surface-top: light-dark(#ffffff, #383838);
+  --fill-subtle: light-dark(#f0f0f0, rgb(255 255 255 / 8%));
+  --fill-strong: light-dark(#e5e5e5, rgb(255 255 255 / 13%));
+  --field-surface: light-dark(#f3f3f3, var(--fill-subtle));
+  --field-surface-hover: light-dark(#ebebeb, rgb(255 255 255 / 11%));
+  /* Filled controls need no resting outline; retain the inset for stable geometry. */
+  --field-border: transparent;
+  --control-selected-surface: light-dark(#dedede, #5a5a5a);
+  --control-selected-hover: light-dark(#d3d3d3, #666666);
+  --control-selected-active: light-dark(#c8c8c8, #4a4a4a);
+  --control-selected-text: var(--text-primary);
+  --control-selected-border: light-dark(#7a7a7a, #8a8a8a);
+  --tooltip-surface: light-dark(#202020, #fafafa);
+  --tooltip-text: light-dark(#fafafa, #202020);
+  --tooltip-border: light-dark(rgb(255 255 255 / 12%), rgb(0 0 0 / 12%));
+  /* Boundaries stay quiet; selected controls carry contrast through their fill. */
+  --border-subtle: light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 10%));
+  --border-default: light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 14%));
+  --border-strong: light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%));
+  --text-secondary: light-dark(#5b5b5b, #bfbfbf);
+  --success-text: light-dark(#16673c, var(--g-11));
+  --warning-text: light-dark(#805300, var(--y-11));
+  /* Use shadow, rather than inverted text ink, to avoid a pale halo in dark UI. */
+  --slide-shadow: 0 2px 6px light-dark(rgb(0 0 0 / 10%), rgb(0 0 0 / 35%)), 0 12px 36px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
   /* Canvas feedback has fixed semantic colors, independent of the UI palette. */
   --canvas-selection: #0c8ce9;
   --canvas-snap: #e5484d;
@@ -128,43 +163,36 @@ input, textarea, select {
   font-size: var(--ui-text);
   padding: 8px 12px;
   line-height: var(--ui-line-body);
-  transition: background var(--dur-fast), border-color var(--dur-fast);
+  transition: border-color var(--dur-fast);
 }
 input:not([type='range']):not([type='color']):not([type='checkbox']), select { min-height: max(36px, calc(1lh + 16px)); }
 /* Native Safari menus need an explicit height to honor the control size. */
 select { height: max(36px, calc(1lh + 16px)); }
 @media (pointer: coarse) { select { height: max(44px, calc(1lh + 16px)); } }
-input:not(:disabled):hover, textarea:not(:disabled):hover, select:not(:disabled):hover { border-color: var(--border-strong); }
+input[aria-invalid='true'], textarea[aria-invalid='true'], select[aria-invalid='true'] { border-color: var(--danger-text); }
 input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: 1; }
 input[type='range'], input[type='checkbox'] { accent-color: var(--accent-line); }
 input[type='color'] { height: 32px; border-radius: var(--r-field); }
 :focus-visible { outline: 2px solid var(--accent-line); outline-offset: 3px; }
+@media (forced-colors: active) { :root { --field-border: ButtonBorder; } }
 .hint, .dialog-intro { font-size: var(--ui-label); line-height: var(--ui-line-reading); }
 .field-label { font-size: var(--ui-label); gap: 8px; margin-bottom: 16px; }
 .text-btn { font-size: var(--ui-text); }
-.icon-btn svg { width: 17px; height: 17px; }
-.icon-btn.small svg { width: 15px; height: 15px; }
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn.small svg { width: 14px; height: 14px; }
 .divider { background: var(--border-subtle); }
 .seg { padding: 4px; gap: 4px; }
 .seg button { height: 30px; font-size: var(--ui-label); padding: 0 12px; }
-.seg button[aria-pressed='true']:hover { background: var(--surface-raised); }
+.seg button[aria-pressed='true'] { background: var(--control-selected-surface); color:var(--control-selected-text); }
 
 /* The workspace uses three planes: quiet chrome, a recessed desk, the page. */
-.topbar { height: 56px; padding: 0 20px; border-color: var(--border-subtle); }
-.topbar-left { gap: 4px; }
-.topbar-right { gap: 12px; }
 .brand-button { font-size: var(--ui-body); letter-spacing: -.02em; }
 .brand-mark { width: 28px; height: 28px; }
-.save-state { margin-left: 12px; color: var(--text-secondary); }
-.workspace { grid-template-columns: 220px minmax(0, 1fr) 304px; }
-.workspace.left-hidden { grid-template-columns: minmax(0, 1fr) 304px; }
-.workspace.right-hidden { grid-template-columns: 220px minmax(0, 1fr); }
-.workspace.left-hidden.right-hidden { grid-template-columns: minmax(0, 1fr); }
-.slide-rail, .property-panel { border-color: var(--border-subtle); }
+/* Panel widths and visibility are owned by app-motion.css and responsive.css. */
+.slide-rail, .property-panel { border-color: transparent; }
 .rail-head { height: 52px; padding: 0 16px; font-size: var(--ui-label); }
 .rail-head small { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .slide-list { padding: 0 16px 12px; gap: 12px; }
-.slide-thumb { grid-template-columns: minmax(18px, max-content) minmax(0, 1fr); gap: 8px; padding: 2px; }
 .slide-thumb.slide-selected { background: var(--state-selected); border-radius: var(--r-small); }
 .slide-thumb.slide-selected .thumb-image { border-color: var(--border-strong); }
 .thumb-selection-mark { position: absolute; left: 28px; top: 8px; display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--border-strong); border-radius: var(--r-small); background: var(--surface-chrome); color: var(--text-primary); }
@@ -191,12 +219,12 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
 .canvas-stage { padding: 64px 40px; }
 .canvas-meta { top: 22px; left: 28px; right: 28px; font-size: var(--ui-label); }
 .canvas-meta button { font-size: var(--ui-label); }
-.canvas-hint, .source-caption { font-size: var(--ui-meta); bottom: 20px; }
 .stage-footer { height: 48px; padding: 0 20px; gap: 8px; border-top: 0; background: var(--surface-sunken); color: var(--text-secondary); }
 .stage-footer > .divider { height: 18px; margin: 0 4px; }
 .zoom-controls, .focus-page-controls { display: flex; align-items: center; gap: 2px; }
 .slide-count { font-size: var(--ui-meta); margin-left: 4px; }
-.notes-panel { padding: 16px 24px; border-color: var(--border-subtle); }
+/* Notes stay on the center desk so their surface cannot merge with the sidebars. */
+.notes-panel { padding: 16px 24px; border-color: var(--border-default); background: var(--surface-sunken); }
 .notes-panel label { font-size: var(--ui-label); }
 .notes-panel textarea { font-size: var(--ui-text); line-height: var(--ui-line-reading); }
 
@@ -216,27 +244,15 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
 .layer-name > svg { width: 14px; height: 14px; }
 .layer-row .icon-btn { opacity: 0; }
 .layer-row:focus-within .icon-btn, .layer-row:hover .icon-btn, .layer-row.chosen .icon-btn { opacity: 1; }
-.inspector-help { font-size: var(--ui-label); color: var(--text-secondary); }
-.inspector-help summary { cursor: pointer; padding: 4px 0; }
-.inspector-help p { margin-top: 8px; line-height: var(--ui-line-reading); }
-.inspector-guidance { padding-block: 12px; }
-.inspector-guidance summary { font-weight: var(--ui-weight-medium); }
-:root .font-trigger { font-size: var(--ui-text); min-height: 36px; background: var(--field-surface); border-color: var(--field-border); }
-.ai-intro p, .ai-compose textarea, .ai-summary, .change-row { font-size: var(--ui-text); line-height: var(--ui-line-reading); }
+:root .font-trigger { font-size: var(--ui-text); min-height: 36px; background: var(--field-surface); border-color: var(--field-border); } .ai-compose textarea,  .ai-summary,  .change-row{ font-size: var(--ui-text); line-height: var(--ui-line-reading); }
 .ai-suggestions { padding: 0 20px; gap: 0; }
 .ai-suggestions button { font-size: var(--ui-label); border: 0; border-bottom: 1px solid var(--border-subtle); border-radius: 0; background: none; padding: 16px 4px; }
 .ai-suggestions button:last-child { border-bottom: 0; }
-.ai-compose { padding: 20px; border-color: var(--border-subtle); }
-.ai-compose .hint, .compose-foot .text-btn { font-size: var(--ui-meta); }
-.motion-presets button, .motion-list strong { font-size: var(--ui-label); }
+.ai-compose { padding: 20px; border-color: var(--border-subtle); }.ai-compose .hint{ font-size: var(--ui-meta); } .motion-list strong{ font-size: var(--ui-label); }
 .motion-list span { font-size: var(--ui-meta); }
 
 /* Dialogs are opaque reading surfaces, with a shared title and content gutter. */
-.dialog-intro { margin-bottom: 24px; }
-.library-grid, .template-grid { gap: 24px 20px; }
-.library-item strong, .template-item strong { font-size: var(--ui-text); margin-top: 6px; }
-.library-item > span, .template-item > span { font-size: var(--ui-label); line-height: var(--ui-line-reading); }
-.library-item > .canvas-wrap, .template-item > .canvas-wrap { border-radius: var(--radius-sm); border-color: var(--border-subtle); }
+.dialog-intro { margin-bottom: 24px; } .template-item strong{ font-size: var(--ui-text); margin-top: 6px; } .template-item > span{ font-size: var(--ui-label); line-height: var(--ui-line-reading); } .template-item > .canvas-wrap{ border-radius: var(--radius-sm); border-color: var(--border-subtle); }
 .import-drop { padding: 40px 20px; gap: 16px; background: var(--field-surface); }
 .import-drop strong { font-size: 15px; font-weight: var(--ui-weight-medium); }
 .import-drop > span, .import-help p { font-size: var(--ui-label); }
@@ -260,8 +276,7 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
 .font-query input, .font-filters select, .font-filters button, .font-filter-toggle { font-size: var(--ui-text); }
 .font-detail-head h3 { font-size: 16px; }
 .font-detail-head > span, .font-row-meta small { font-size: var(--ui-meta); }
-.font-detail .font-preview { background: var(--field-surface); padding: 16px; border-radius: var(--r-field); }
-.font-options summary, .font-options .field-label, .font-options select, .font-size-control, .font-license, .font-samples .text-btn, .font-preview-status { font-size: var(--ui-label); }
+.font-detail .font-preview { background: var(--field-surface); padding: 16px; border-radius: var(--r-field); }.font-options summary,  .font-options .field-label,  .font-options select,  .font-size-control,  .font-license,  .font-samples .text-btn{ font-size: var(--ui-label); }
 .font-library-footer { bottom: -24px; padding: 16px 0 0; }
 .font-library-footer > .hint { font-size: var(--ui-label); }
 .font-dropdown-search { background: var(--field-surface); border-color: var(--field-border); }
@@ -275,16 +290,7 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
 .auto-layout-dialog .layout-suggestion strong, .auto-layout-dialog .layout-toggle, .auto-layout-dialog .option-label { font-size: var(--ui-label); }
 .auto-layout-dialog .layout-suggestion > small, .auto-layout-dialog .layout-toggle small, .auto-layout-dialog .layout-actions p small, .auto-layout-dialog .layout-preview-foot small { font-size: var(--ui-meta); line-height: var(--ui-line-reading); }
 
-@media (min-width: 1800px) {
-  .workspace { grid-template-columns: 240px minmax(0, 1fr) 320px; }
-  .workspace.left-hidden { grid-template-columns: minmax(0, 1fr) 320px; }
-  .workspace.right-hidden { grid-template-columns: 240px minmax(0, 1fr); }
-}
 @media (min-width: 761px) and (max-width: 1100px) {
-  .topbar { padding: 0 12px; }
-  .workspace { grid-template-columns: 180px minmax(0, 1fr) 280px; }
-  .workspace.left-hidden { grid-template-columns: minmax(0, 1fr) 280px; }
-  .workspace.right-hidden { grid-template-columns: 180px minmax(0, 1fr); }
   .canvas-stage { padding: 56px 24px; }
   .panel-section { padding: 16px; }
 }
@@ -293,10 +299,6 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
 }
 @media (max-width: 760px) {
   :root { --control-sm: 32px; }
-  .topbar { height: 54px; padding: 0 8px; gap: 4px; }
-  .topbar-left, .topbar-right { gap: 2px; }
-  .topbar-left { max-width: none; min-width: 0; flex: 1; }
-  .topbar-right { gap: 2px; }
   .brand-mark { width: 26px; height: 26px; }
   .workspace, .workspace.left-hidden, .workspace.right-hidden, .workspace.left-hidden.right-hidden { display: flex; }
   .slide-rail { height: 140px; }
@@ -308,7 +310,6 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
   .canvas-stage { padding: 44px 16px; }
   .canvas-meta { left: 16px; right: 16px; top: 16px; font-size: var(--ui-meta); }
   .canvas-meta button { font-size: var(--ui-meta); }
-  .canvas-hint, .source-caption { font-size: var(--ui-meta); bottom: 14px; }
   .stage-footer { height: 48px; padding: 0 8px; gap: 2px; }
   .stage-footer > .text-btn { font-size: var(--ui-label); padding: 0 6px; }
   .stage-footer .seg button { font-size: var(--ui-meta); padding: 0 8px; }
@@ -339,9 +340,7 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
   .resource-footer { padding-bottom: 0; }
   .resource-favorite, .icon-grid .resource-favorite { width: 32px; height: 32px; }
   .shortcuts-list kbd { font-size: var(--ui-meta); }
-  .library-grid, .template-grid { grid-template-columns: 1fr; }
   .layout-grid { gap: 20px 12px; }
-  .auto-layout-dialog .auto-layout-head { min-height: 56px; padding: 0 16px; }
   .auto-layout-dialog .layout-section { padding: 16px; }
   .auto-layout-dialog .layout-actions { padding: 12px; }
   .auto-layout-dialog .layout-actions p { font-size: var(--ui-meta); }
@@ -358,7 +357,3 @@ input[type='color'] { height: 32px; border-radius: var(--r-field); }
 
 @media(max-width:760px){.settings-layout nav button{white-space:normal;line-height:var(--ui-line-body)}}
 
-/* Text sizing: keep automatic dimensions beside the mode they belong to. */
-
-.text-spacing-settings>.field-grid{margin-top:8px}
-@media(pointer:coarse){}

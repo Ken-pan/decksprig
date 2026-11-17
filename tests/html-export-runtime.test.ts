@@ -28,3 +28,21 @@ test('portable HTML embeds repeated local evidence once without mutating source 
   assert(!json.includes('<'));const saved=JSON.parse(json);assert.equal(saved.slides[0].source.render,'data:image/png;base64,AQID');assert.equal(saved.slides[0].elements[0].src,saved.slides[0].source.render);assert.equal(saved.slides[0].elements[1].text,'</script> 中文');assert.equal(requests,1);assert.equal(JSON.stringify(deck),before);
  }finally{globalThis.fetch=originalFetch;globalThis.FileReader=originalReader;}
 });
+
+test('offline HTML factors large shared media and restores all references before playback',async()=>{
+ const {buildHtml}=await import('../src/core/export');const {newDeck,blankSlide}=await import('../src/core/model');
+ const src='data:image/png;base64,'+'AQID'.repeat(20000),slide=blankSlide();
+ slide.source={provider:'PDF',render:src,warnings:['Preserve source'],fidelity:'source-render'};
+ slide.elements=[element('image',{src,fontFamily:'Arial'}),element('prototype',{prototype:{url:'https://example.com',poster:src,scaling:'contain',responsive:true,chrome:true,deviceFrame:false},fontFamily:'Arial'}),element('text',{text:'</script> 中文',fontFamily:'Arial'})];
+ const deck=newDeck('Shared media',[slide]),before=JSON.stringify(deck),fetch=globalThis.fetch;
+ globalThis.fetch=async input=>new Response(await (await import('node:fs/promises')).readFile('public'+String(input)));
+ try {
+  const html=await (await buildHtml(deck)).text(),scripts=new Map([...html.matchAll(/<script type="application\/json" id="([^"]+)">([\s\S]*?)<\/script>/g)].map(m=>[m[1],m[2]]));
+  const data=JSON.parse(scripts.get('deck')!),media=JSON.parse(scripts.get('deck-media')!);
+  assert.equal(media.assets.length,1);assert.equal(media.references.length,3);assert.equal(html.split(src).length-1,1);assert(!scripts.get('deck')!.includes('<'));
+  const init=html.match(/const deck=JSON.parse[\s\S]*?(?=const original=)/)![0];
+  const restored=runInNewContext(init+';deck',{document:{getElementById:(id:string)=>({textContent:scripts.get(id)})},__name:(fn:Function)=>fn});
+  assert.equal(restored.slides[0].source.render,src);assert.equal(restored.slides[0].elements[0].src,src);assert.equal(restored.slides[0].elements[1].prototype.poster,src);assert.equal(restored.slides[0].elements[2].text,'</script> 中文');
+  assert.equal(data.slides[0].source.render,undefined);assert.equal(JSON.stringify(deck),before);
+ }finally{globalThis.fetch=fetch;}
+});

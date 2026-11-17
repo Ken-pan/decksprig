@@ -2,7 +2,7 @@
   import {onMount,onDestroy} from 'svelte';
   import type {SlideElement} from '../core/model';
   import type {DesignSystem} from '../core/design-system-schema';
-  import {tablePresentation} from '../core/table-appearance';
+  import {tablePresentation} from '../core/table-rendering';
   import {resizeTableColumns,resizeColumnWidths,tableColumnStyle} from '../core/table-columns';
   import type {TableStyle} from '../core/table-schema';
   import {editor} from '../core/editor.svelte';

@@ -18,15 +18,16 @@ test('imported native page units and point sizes survive export without widening
 });
 
 test('fixed text geometry and first/last paragraph spacing survive the production PPTX writer',async()=>{
- const s=blankSlide();const e=element('text',{x:40,y:70,w:450,h:220,verticalAlign:'middle',text:'A\nB',paragraphs:[
+ const s=blankSlide();const e=element('text',{x:40,y:70,w:450,h:220,verticalAlign:'middle',paragraphSpacingAtEdges:true,text:'A\nB',paragraphs:[
   {runs:[{text:'A',fontSize:24}],align:'left',indent:0,firstLineIndent:0,spaceBefore:12,spaceAfter:0},
   {runs:[{text:'B',fontSize:24}],align:'left',indent:0,firstLineIndent:0,spaceBefore:0,spaceAfter:30}
  ]});s.elements=[e];
  const bytes=await buildPptx(newDeck('Paragraphs',[s]));const z=await JSZip.loadAsync(bytes);const xml=await z.file('ppt/slides/slide1.xml')!.async('string');
- assert(xml.includes('spcFirstLastPara="1"'));assert(xml.includes('<a:normAutofit fontScale="100000" lnSpcReduction="0"/>'));
+ assert(xml.includes('spcFirstLastPara="0"'));assert(xml.includes('tIns="114300"'));assert(xml.includes('bIns="285750"'));assert(xml.includes('<a:normAutofit fontScale="100000" lnSpcReduction="0"/>'));
  const out=(await importPptx(bytes,'fixed.pptx')).slides[0].elements.find(v=>v.type==='text')!;
  assert.equal(out.y,e.y);assert.equal(out.h,e.h);assert.equal(out.paragraphSpacingAtEdges,true);assert.equal(out.paragraphs![1].spaceAfter,30);
- const legacy=await JSZip.loadAsync(bytes);legacy.file('ppt/slides/slide1.xml',xml.replace('spcFirstLastPara="1"','spcFirstLastPara="0"'));
+ e.paragraphSpacingAtEdges=false;
+ const legacy=await JSZip.loadAsync(await buildPptx(newDeck('Suppressed',[s])));legacy.remove('customXml/deck-studio-text.xml');
  const suppressed=(await importPptx(await legacy.generateAsync({type:'uint8array'}),'legacy.pptx')).slides[0].elements.find(v=>v.type==='text')!;
  assert.equal(suppressed.paragraphs![1].spaceAfter,30);assert(paragraphStyle(suppressed.paragraphs![0],suppressed).includes('padding-top:0px'));assert(paragraphStyle(suppressed.paragraphs![1],suppressed).includes('padding-bottom:0px'));
 });

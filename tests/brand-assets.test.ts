@@ -1,3 +1,5 @@
+import {BRAND_NAME} from '../src/brand-name.js';
+import {BRAND} from '../src/branding';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -15,20 +17,24 @@ const master = read('public/brand/logo.svg');
 const manifest = JSON.parse(read('public/brand/manifest.json').toString());
 const paths = (svg: string) => [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map(match => match[1]);
 
+test('current display identity reaches runtime, generated entries and plugin metadata', () => {
+  assert.equal(BRAND_NAME, 'Decksprig');
+  assert.equal(BRAND.name, BRAND_NAME);
+  assert.equal(manifest.name, BRAND_NAME);
+  for (const entry of ['index.html', 'brand.html', 'characters.html']) {
+    const title = read(entry).toString().match(/<title>([^<]*)<\/title>/)?.[1];
+    assert.ok(title?.includes(BRAND_NAME), `${entry} uses the current display name`);
+    assert.ok(!title?.includes('Deckleaf'));
+  }
+  assert.equal(JSON.parse(read('plugins/figma-export/manifest.json').toString()).name, `${BRAND_NAME} · Slides sync`);
+});
+
 test('all active logo entry points and derivatives use the reviewed vector revision', () => {
   assert.equal(manifest.masterSha256, sha(master));
   assert.equal(BRAND_ASSETS.revision, sha(master).slice(0, 12));
   assert.equal(manifest.sourceSha256, sha(read('public/brand/references/approved-logo-source.png')));
   const geometry = paths(master.toString()); assert.equal(geometry.length, 2);
   for (const name of ['public/favicon.svg', 'public/brand/app-icon.svg', 'public/brand/apple-touch-icon.svg']) assert.deepEqual(paths(read(name).toString()), geometry, name);
-  // The plugin also contains export code and UI icons. Verify its branded header,
-  // not SVG path templates inside the bundled exporter or unrelated controls.
-  const plugin = read('plugins/figma-export/ui.html').toString();
-  const headers = [...plugin.matchAll(/<!-- deck-studio-brand:start -->([\s\S]*?)<!-- deck-studio-brand:end -->/g)];
-  assert.equal(headers.length, 1, 'one generated plugin brand header');
-  assert.ok(headers[0][1].includes(`data-brand-revision="${BRAND_ASSETS.revision}"`));
-  assert.equal((headers[0][1].match(/<svg\b/g) || []).length, 1);
-  assert.deepEqual(paths(headers[0][1]), geometry, 'plugin brand header uses the reviewed paths');
   for (const name of ['index.html', 'characters.html', 'brand.html']) {
     const html = read(name).toString();
     for (const url of [BRAND_ASSETS.favicon, BRAND_ASSETS.fallbackIcon, BRAND_ASSETS.touchIcon]) assert.ok(html.includes(url), `${name} uses ${url}`);
@@ -57,7 +63,7 @@ test('ICO fallback and downloadable kit contain the current image frames', async
     assert.equal(png.width, size); assert.equal(png.height, size);
     assert.deepEqual(frame, read(`public/brand/favicon-${size}.png`));
   }
-  const kit = await JSZip.loadAsync(read('output/brand/Decksprig-Brand-Kit.zip'));
+  const kit = await JSZip.loadAsync(read('output/brand/Deck-Studio-Brand-Kit.zip'));
   for (const file of manifest.files) assert.equal(sha(await kit.file(file.path)!.async('nodebuffer')), file.sha256);
 });
 

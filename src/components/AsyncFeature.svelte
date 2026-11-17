@@ -28,7 +28,9 @@
 </script>
 
 {#snippet status(state:'loading'|'error')}
-  {#if feature==='insert-tools'}
+  {#if feature==='canvas-zoom'}
+    <Button variant="quiet" disabled={state==='loading'} aria-label={state==='loading'?'Loading zoom controls':'Refresh app to reload zoom controls'} onclick={()=>window.location.reload()}><span class="zoom-value">{state==='loading'?`${Math.round((props as FeatureProps['canvas-zoom']).scale*100)}%`:'Refresh app'}</span></Button>
+  {:else if feature==='insert-tools'}
     <InsertToolsFrame failed={state==='error'} compact={Boolean((props as FeatureProps['insert-tools']).compact)}/>
   {:else if toolbarFeature}
     <div class="feature-status feature-compact">
@@ -44,7 +46,7 @@
 
 {#await request}
   {#if modalTitle && onclose}<Dialog title={modalTitle} wide workspace={feature === 'layout' || feature === 'deck-styles'} {onclose}>{@render status('loading')}</Dialog>
-  {:else}{@render status('loading')}{/if}
+  {:else if !feature.startsWith('figma-sync')||(props as FeatureProps['figma-sync']).open}{@render status('loading')}{/if}
 {:then View}
   <View {...props} />
 {:catch}

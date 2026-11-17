@@ -1,6 +1,6 @@
 <script lang="ts">
   import {rememberPanelScroll} from '../panel-scroll.svelte';
-  import {tick,untrack,onDestroy,onMount} from 'svelte';
+  import {tick,untrack,onDestroy} from 'svelte';
   import {editor} from '../core/editor.svelte';
   import {elementLabel} from './element-labels';
   import {Eye,EyeOff,Lock,Unlock,Group,ChevronDown,ChevronRight,GripVertical,PanelTop,Layers,Search,X,Pencil,Ellipsis} from '@lucide/svelte';
@@ -13,8 +13,7 @@
   import {ActionMenu, EmptyState} from './ui';
   let {disabled=false,active=true}:{disabled?:boolean;active?:boolean}=$props();
   let root=$state<HTMLElement>(),list=$state<HTMLElement>();
-  let query=$state(''),compact=$state(false),helpOpen=$state(false);
-  onMount(()=>{const media=matchMedia('(max-width:760px)'),resize=()=>compact=media.matches;resize();media.addEventListener('change',resize);return()=>media.removeEventListener('change',resize);});
+  let query=$state(''),helpOpen=$state(false);
   let collapsedBySlide=$state<Record<string,string[]>>({});
   const foldScope=$derived(`${editor.deck?.id}:${editor.activeId}`);
   rememberPanelScroll(()=>active,()=>foldScope,()=>[root,list]);
@@ -64,7 +63,7 @@
   });
   const labels=$derived(new Map(contentElements.map(e=>[e.id,e.type==='text'?(e.text.slice(0,200).trim().replace(/\s+/g,' ')+(e.text.length>200?'…':'')||e.name):e.name])));
   function label(e:SlideElement){return labels.get(e.id)??e.name;}
-  const drag=new LayerDrag({root:()=>root,list:()=>compact?root:list,rows:()=>layers,collapsed:()=>collapsed,fold,disabled:()=>!active||disabled||Boolean(renaming)});
+  const drag=new LayerDrag({root:()=>root,list:()=>root&&getComputedStyle(root).overflowY==='auto'?root:list,rows:()=>layers,collapsed:()=>collapsed,fold,disabled:()=>!active||disabled||Boolean(renaming)});
   $effect(()=>{active;disabled;editor.sourceMode;editor.deck?.id;editor.deck?.revision;editor.activeId;untrack(()=>drag.check());});
   $effect(()=>{query;untrack(()=>drag.cancel());});
   onDestroy(()=>drag.cancel(false));
@@ -136,7 +135,7 @@
 {/if}</section>
 {#if drag.view&&!drag.view.keyboard}<div class="layer-drag-ghost" class:invalid={Boolean(drag.view.invalid)} style:left="{Math.max(12,Math.min(drag.x+12,(root?.ownerDocument.defaultView?.innerWidth??0)-172))}px" style:top="{Math.max(12,Math.min(drag.y+12,(root?.ownerDocument.defaultView?.innerHeight??0)-52))}px" aria-hidden="true"><GripVertical size={14}/><span>{drag.view.name}</span></div>{/if}
 <style>
-  .layer-browser{padding:12px;gap:12px}
+  .layer-browser{min-width:0;padding:12px;gap:12px}
   .layer-browser-header{flex:none}
   .layer-search-field{display:flex;align-items:center;gap:8px;border:1px solid var(--field-border);border-radius:var(--r-control);padding:0 8px;background:var(--field-surface);margin-bottom:8px}.layer-search-field:focus-within{outline:2px solid var(--accent-line);outline-offset:0}.layer-search-field :global(svg){flex:none;color:var(--text-secondary)}.layer-search{margin:0;min-width:0;flex:1;border:0;background:transparent;padding:8px 0}.layer-search:focus-visible{outline:0}.layer-search::-webkit-search-cancel-button{appearance:none}.layer-search-clear{display:grid;place-items:center;width:28px;min-height:28px;padding:0;flex:none;border-radius:var(--r-sm)}
   .layer-list-context{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--text-secondary);font-size:var(--ui-meta)}
@@ -158,5 +157,14 @@
   @media(hover:hover) and (pointer:fine){.layer-group:hover:not(.chosen){background:var(--state-hover)}}
   @media(max-width:760px){.layer-browser{overflow:auto;overscroll-behavior:contain}.layer-list{flex:none;overflow:visible}.layer-move-footer{max-height:none;overflow:visible}}
   @media(max-width:760px),(pointer:coarse){.layer-group>.icon-btn,.layer-group-name{min-height:44px}.layer-search,.layer-rename,.layer-search-clear{min-height:44px}.layer-search-clear{width:44px}.layer-grip{width:44px;min-height:44px}.layer-move-footer summary,.layer-root{min-height:44px}.layer-row .layer-name :global(svg){display:none}.layer-root{flex-wrap:wrap}.layer-root small{margin-left:0}.layer-group,.layer-row{margin-left:min(calc(var(--layer-depth)*8px),40px)}.layer-row>.layer-control{display:none}.layer-more{display:block;flex:none}.layer-more :global(.ui-action-menu-trigger>button){min-width:44px;min-height:44px}}
+  /* Keep a usable list when enlarged type or a short desktop pane leaves
+     too little space for independently fixed search and help regions. */
+  @media(min-width:761px) and (pointer:fine){
+    @container layer-area (max-height:22rem){
+      .layer-browser{overflow:auto;overscroll-behavior:contain}
+      .layer-list{flex:none;overflow:visible}
+      .layer-move-footer{max-height:none;overflow:visible}
+    }
+  }
   @media(forced-colors:active){[data-layer-drop=before]::before,[data-layer-drop=after]::after{background:Highlight}.layer-browser [data-layer-drop=inside],.layer-root.drop-inside{outline-color:Highlight}.layer-moving{opacity:1}}
 </style>

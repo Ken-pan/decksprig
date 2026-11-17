@@ -12,9 +12,10 @@
   import PhotoCredits from './PhotoCredits.svelte';
   import { editor } from '../core/editor.svelte';
   import type { Deck, Slide } from '../core/model';
-  import { clickOrders } from '../core/motion';
+  import {clickOrders,objectCueDuration} from '../core/motion';
   import { adjacentVisibleSlide, presentationStartIndex, visibleSlideIndices } from '../core/slide-visibility';
   import { runPageTransition, resolvePageTransition, type PageTransitionRun } from '../core/transitions';
+  import {nativeSlideTransition,createNativeAdvance} from '../core/figma-transitions';
   import { createPlaybackGestures } from '../core/player-gestures';
   import { matchSmartLayers } from '../core/smart-motion';
   import { createPresentationClock, formatPresentationTime, presentationSlideNumber, navigatePresentationCue, type SpeakerSession } from '../core/presentation-session';
@@ -45,6 +46,8 @@
   let searchInput = $state<HTMLInputElement>(), panelNode = $state<HTMLElement>();
   let pointer = $state<'none' | 'laser' | 'spotlight'>('none'), point = $state<{x: number; y: number} | null>(null);
   let autoplay = $state(false), interval = $state(10), loop = $state(false);
+  let nativeTiming=$derived(nativeSlideTransition(slide.transition??{effect:'none',duration:100,easing:'linear'})?.timing);
+  const nativeAdvance=createNativeAdvance();
   let elapsed = $state('00:00'), timerRunning = $state(true), speakerWindowOpen = $state(false);
   let pageRun: PageTransitionRun | undefined, epoch = 0, ownedFullscreen = false;
   let hideTimer: ReturnType<typeof setTimeout>, numberTimer: ReturnType<typeof setTimeout>;
@@ -69,7 +72,7 @@
   const gestures = createPlaybackGestures(n => go(n), target => target.focus({preventScroll:true}));
   async function transition() {
     const id = ++epoch; pageRun?.cancel(); entering = true;
-    await tick(); if (id !== epoch) return;
+    await tick();await import('../core/motion-runtime').catch(()=>{});await tick();if(id!==epoch)return;
     const t = resolvePageTransition(outgoing,slide,direction);
     if (reduced || quiet || t.effect === 'none' || !incomingNode) { outgoing = null; entering = false; return; }
     pageRun = runPageTransition(incomingNode, outgoingNode ?? null, t, direction, {paused: paused || prototypeActive || background || blackout || Boolean(panel), lightweight: matchMedia('(max-width:760px)').matches, from:outgoing ?? undefined, to:slide, fromStep:outgoingStep, toStep:step});
@@ -89,7 +92,7 @@
     jump(next.index, next.step);
   }
   function restart() { autoplay = false; settlePage(); step = 0; restored = false; replay++; paused = false; void transition(); }
-  function pause() { if (!reduced && !quiet) paused = !paused; }
+  function pause() { if ((!reduced && !quiet)||nativeTiming?.type==='AFTER_DELAY') paused = !paused; }
   function toggleClock() { clock?.toggle(); timerRunning = Boolean(clock?.running); }
   function resetClock() { clock?.reset(); elapsed = '00:00'; }
   function reveal() {
@@ -216,12 +219,16 @@
   $effect(() => { const hold=paused || prototypeActive || background || blackout || Boolean(panel);pageRun?.setPaused(hold); });
   $effect(() => { if (quiet || reduced) { settlePage(); paused = false; } });
   $effect(() => {
+    nativeAdvance.update(`${slide.id}:${step}:${replay}`,!autoplay&&nextIndex!==null&&step===orders.length&&nativeTiming?.type==='AFTER_DELAY'?(nativeTiming.delay??0)+((reduced||quiet)?0:objectCueDuration(slide,step)):undefined,paused||prototypeActive||background||blackout||Boolean(panel)||entering,()=>go(1,true));
+  });
+  onMount(()=>()=>nativeAdvance.destroy());
+  $effect(() => {
     index; step; replay; interval; loop;
     if (!autoplay || paused || prototypeActive || background || blackout || panel || entering) return;
     const timer = setTimeout(() => {
       if (lastCue) { if (loop) { jump(visibleIndices[0]); if (visibleIndices.length === 1) { replay++; restored = false; void transition(); } } else { autoplay = false; status = 'Autoplay finished'; reveal(); } }
       else go(1,true);
-    },interval * 1000);
+    },Math.max(interval*1000,(reduced||quiet)?0:objectCueDuration(slide,step)));
     return () => clearTimeout(timer);
   });
   onMount(() => {
@@ -293,7 +300,7 @@
           <div class="player-tools-grid">
             <button class="player-tool" onclick={() => openPanel('overview')}><Grid2X2 size={18}/><span>All slides</span><kbd>G</kbd></button>
             <button class="player-tool" onclick={restart}><RotateCcw size={18}/><span>Replay this slide</span><kbd>R</kbd></button>
-            <button class="player-tool" onclick={pause} disabled={reduced || quiet} aria-pressed={paused}>{#if paused}<Play size={18}/>{:else}<Pause size={18}/>{/if}<span>{paused ? 'Resume motion' : 'Pause motion'}</span><kbd>P</kbd></button>
+            <button class="player-tool" onclick={pause} disabled={(reduced || quiet)&&nativeTiming?.type!=='AFTER_DELAY'} aria-pressed={paused}>{#if paused}<Play size={18}/>{:else}<Pause size={18}/>{/if}<span>{paused ? 'Resume motion' : 'Pause motion'}</span><kbd>P</kbd></button>
             <button class="player-tool" onclick={() => { toggleBlackout(); closePanel(); }} aria-pressed={blackout}><span class="player-black-icon"></span><span>{blackout ? 'Show presentation' : 'Black screen'}</span><kbd>B</kbd></button>
           </div>
           <label class="player-setting"><span>Pointer</span><select bind:value={pointer} onchange={() => { point = null; }} aria-label="Pointer mode"><option value="none">Off</option><option value="laser">Laser pointer</option><option value="spotlight">Spotlight</option></select></label>

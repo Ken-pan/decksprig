@@ -2,7 +2,7 @@ import {validateChart,type Chart} from './chart-schema';
 import type {ChartPoint} from './chart-points';
 export type ChartDragGeometry={kind:'axis';horizontal:boolean;min:number;max:number;pixelMin:number;pixelMax:number}|{kind:'radial';cx:number;cy:number;radius:number;total:number};
 export type PlotPoint={x:number;y:number};
-export function chartValueStep(chart:Chart){const values=chart.series.flatMap(s=>s.values);const decimals=chart.numberFormat?.decimals??Math.min(6,Math.max(...values.map(n=>{const s=String(n),[m,exponent='0']=s.split('e');return Math.max(0,(m.split('.')[1]?.length??0)-Number(exponent));})));return 10**-decimals;}
+export function chartValueStep(chart:Chart){const values=chart.series.flatMap(s=>s.values);const decimals=chart.numberFormat?.decimals??Math.min(6,Math.max(...values.map(n=>{const s=String(n),[m,exponent='0']=s.split('e');return Math.max(0,(m.split('.')[1]?.length??0)-Number(exponent));})));return chart.numberFormat?.percent?10**-(chart.numberFormat.decimals??2)/100:10**-decimals;}
 export function chartWithPointValue(chart:Chart,point:ChartPoint,value:number){return validateChart({...chart,series:chart.series.map((s,j)=>j===point.series?{...s,values:s.values.map((v,i)=>i===point.category?value:v)}:s)});}
 /** Freeze the original scale through a drag; the committed chart keeps its authored range. */
 export function draggedChartValue(chart:Chart,point:ChartPoint,geometry:ChartDragGeometry,from:PlotPoint,to:PlotPoint,fine=false){

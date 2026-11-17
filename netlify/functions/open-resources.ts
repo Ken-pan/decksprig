@@ -8,7 +8,7 @@ const headers = {'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options
 const fail = (statusCode: number, error: string) => ({statusCode, headers: {...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store'}, body: JSON.stringify({error})});
 export const handler = async (event: {httpMethod: string; queryStringParameters: Record<string, string> | null}) => {
   if (event.httpMethod !== 'GET') return {...fail(405, 'Use GET for photo requests.'), headers: {...headers, Allow: 'GET'}};
-  if ((process.env.DECKSPRIG_PHOTO_SEARCH_ENABLED ?? process.env.DECKLEAF_PHOTO_SEARCH_ENABLED) !== 'true') return fail(503, 'Online photos are temporarily disabled. Upload a photo from your device.');
+  if (process.env.DECKLEAF_PHOTO_SEARCH_ENABLED !== 'true') return fail(503, 'Online photos are temporarily disabled. Upload a photo from your device.');
   const params = new URLSearchParams(event.queryStringParameters || {}), action = params.get('action');
   if ([...params].length > 12 || [...params].some(([key, value]) => key.length > 30 || value.length > 200 || /[\u0000-\u001f]/.test(value))) return fail(400, 'Photo search parameters are too long.');
   if (action && (!['preview', 'import'].includes(action) || !/^openverse:[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/.test(params.get('id') || ''))) return fail(400, 'Invalid photo request.');

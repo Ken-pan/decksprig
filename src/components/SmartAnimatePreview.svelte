@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../motion-preview.css';
   import { onMount, tick, untrack } from 'svelte';
   import { Play, Pause, RotateCcw } from '@lucide/svelte';
   import { Button, IconButton } from './ui';

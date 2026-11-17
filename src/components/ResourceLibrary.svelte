@@ -623,6 +623,11 @@
 </div>
 
 <style>
+  @media(max-width:760px){
+    :global(:root .resource-browse-tools){flex-wrap:wrap;gap:8px}
+    :global(.resource-browse-tools > .resource-shelves){flex:1 1 100%;flex-wrap:wrap}
+    :global(.resource-browse-tools > :last-child){margin-left:auto}
+  }
 
   .resource-library.compact :global(.resource-quick-controls){flex-wrap:wrap;gap:4px}
   .resource-library.compact :global(.resource-quick-actions){margin-left:auto}

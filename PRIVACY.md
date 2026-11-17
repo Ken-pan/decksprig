@@ -1,6 +1,6 @@
 # Data and privacy
 
-Decksprig is a personal open-source project maintained by Ken Pan. This describes version 0.1.0, released on 14 October 2026. Ken Pan operates the official demonstration at https://decksprig.kens-toolbox.com, hosted by Netlify. For a privacy question, use https://github.com/Ken-pan/decksprig/issues without personal data; request a private contact route before sharing sensitive details. Other hosts must identify their own operator and practices.
+Deckleaf is a personal open-source project maintained by Ken Pan. This describes the source release dated 14 October 2026; a public host must separately identify its operator, contact route and logging practices.
 
 Local editing requires no account. The Node edition stores documents, history and imported originals in `.data` on your computer. The browser edition stores documents and history in IndexedDB; settings, recovery drafts and preferences also use browser storage. Export a Deck JSON backup before clearing site data. Use the document library to delete documents; deleting a working document does not erase separately retained imported originals or your exported backups. Remove the corresponding local copies yourself when you no longer need them.
 
@@ -13,7 +13,7 @@ Local editing requires no account. The Node edition stores documents, history an
 | Figma or Google source import/export | The selected source identifiers, tokens and requested files to the respective service; cloud changes require an explicit export/publish action |
 | Prototype, remote image or presentation sharing | Requests to the referenced host; remote embeds may use their own cookies and collect viewer information |
 
-There is no project analytics SDK or automatic document upload in this source release. The official demo has no document backend and its optional photo-search proxy is disabled. Netlify/CDN access logs can still include IP addresses and request paths. Hosting processing is subject to [Netlify’s privacy policy](https://www.netlify.com/privacy/). This project has no application access-log database and cannot independently verify or promise Netlify’s log retention. A self-hosting operator controls their retention and deletion, and must document these before offering a public service. The repository cannot delete a third-party provider's logs or independently verify its retention.
+There is no project analytics SDK or automatic document upload in this source release. Hosting/CDN access logs can still include IP addresses and request paths. A self-hosting operator controls their retention and deletion, and must document these before offering a public service. The repository cannot delete a third-party provider's logs or independently verify its retention.
 
 AI credentials stay in session memory or server environment configuration, not in documents or Git. Some OAuth/API workflows use local user configuration outside the repository. Don't publish those files. Before sharing a Deck file, review source URLs, speaker notes, hidden slides, image metadata, embedded fonts and reference renders: they can contain personal or confidential material.
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {searchResources, loadResource} from '../server/resources';
 import {illustrationTypeOf, matchesIllustrationView} from '../src/core/resource-taxonomy';
 import {blueBlackLibrary} from '../server/blue-black';
-import type {ResourceItem} from '../src/core/resources';
+import {ICON_SETS,type ResourceItem} from '../src/core/resources';
 
 async function browse(extra: Record<string, string> = {}): Promise<ResourceItem[]> {
   const params = new URLSearchParams({kind: 'illustration', ...extra});
@@ -62,7 +62,7 @@ test('accent browsing preserves legacy imports and limits graphic family facets 
 
 test('browser and local searches share category boundaries, pagination and source intersections', async () => {
   const items = await browse(), nativeFetch = globalThis.fetch;
-  globalThis.fetch = async (input, init) => String(input) === '/resources/catalog.json' ? Response.json({items, catalog: {}, icons: {}}) : nativeFetch(input, init);
+  globalThis.fetch = async (input, init) => String(input) === '/resources/catalog.json' ? Response.json({items:items.map((item,index)=>({...item,file:`/resources/qa-taxonomy/${index}.svg`})), catalog:{iconCount:0,illustrationCount:items.length,collections:[]},icons:Object.fromEntries(ICON_SETS.map(({id})=>[id,{author:'QA fixture',license:'MIT',licenseUrl:'https://example.invalid/license',notice:'Synthetic taxonomy fixture notice'}]))}) : nativeFetch(input, init);
   try {
     const {browserResourceJson} = await import('../src/core/web/resources');
     const cases: Record<string, string>[] = [

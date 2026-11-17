@@ -1,5 +1,5 @@
 import type {SlideElement} from './model';
-import {tablePresentation} from './table-appearance';
+import {tablePresentation,tableCellStyle,tableCellBox,tableCellRuns} from './table-rendering';
 import {inlineTextWidth} from './inline-text-width';
 import type {TableStyle} from './table-schema';
 import type {DesignSystem} from './design-system-schema';
@@ -29,8 +29,12 @@ export function contentTableColumns(element:SlideElement):number[]{
   if(count===1)return [element.w];
   const minimum=Math.min(element.w/count,Math.max(48,p.padding*2+element.fontSize*2));
   const preferred=p.widths.map((_,column)=>{
-    const measured=(element.cells??[]).reduce((width,row)=>(row[column]??'').split('\n').reduce((max,text)=>Math.max(max,text?inlineTextWidth(text,element.fontSize,element.fontFamily):0),width),0);
-    return Math.max(minimum,Math.min(element.w*.65,measured+p.padding*2+2));
+    const measured=(element.cells??[]).reduce((width,row,index)=>{
+      const style=tableCellStyle(p,index,column),box=tableCellBox(p,index,column),inset=box.insets.left+box.insets.right+box.edges.left.width+box.edges.right.width;let line=0,largest=0;
+      for(const run of tableCellRuns(p,index,column,row[column]??'')){const parts=run.text.split('\n');for(const [i,text] of parts.entries()){if(i){largest=Math.max(largest,line);line=0;}line+=inlineTextWidth(text,run.fontSize??parseFloat(style.fontSize),run.fontFamily??style.fontFamily)+(run.letterSpacing??0)*text.length;}}
+      return Math.max(width,Math.max(largest,line)+inset);
+    },0);
+    return Math.max(minimum,Math.min(element.w*.65,measured+2));
   });
   const total=preferred.reduce((a,b)=>a+b,0);
   if(total<=element.w)return preferred.map(width=>width*element.w/total);

@@ -46,7 +46,8 @@ test('switching a table preset keeps merges, row heights, column widths and sele
 });
 test('merged measurement uses combined column width and distributes spanning height; continuations retain local styles',()=>{
   const e=table(),merged={...e,...mergeTableRange(e,range)},widths:number[]=[];tableRowHeights(merged,20,(v)=>{widths.push(v.w);return {w:v.w,h:20};});
-  assert.ok(widths.includes(720*.75-28-1.2));assert.equal(widths.length,6);
+  // Row-only rules have no left/right stroke consuming the content width.
+  assert.ok(widths.includes(720*.75-28));assert.equal(widths.length,6);
   const slide=blankSlide();slide.elements=[{...merged,h:100,tableFit:{minimumFontSize:20,padding:14}}];assert.throws(()=>continueTable(slide,merged.id,()=>({w:1,h:80})),/Split merged rows/);
 });
 test('HTML and native PowerPoint retain merged dimensions and selected-cell styles',async()=>{

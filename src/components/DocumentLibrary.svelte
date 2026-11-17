@@ -4,15 +4,17 @@
   import { Button, ActionMenu, SegmentedControl , EmptyState} from './ui';
   import BrandLockup from './BrandLockup.svelte';
   import LibraryPreview from './LibraryPreview.svelte';
+  import LibraryDocumentFiles from './LibraryDocumentFiles.svelte';
   import {LibraryPreviewQueue} from '../core/library-preview-queue';
   const previewQueue = new LibraryPreviewQueue();
   import { isBrowserEdition } from '../core/runtime';
   import { countLabel } from '../core/ui-copy';
   import { libraryDocuments, libraryDate, type LibraryDocument, type LibrarySort } from '../core/document-library-view';
 
-  let { documents, currentId, onopen, onrename, onduplicate, onimport, oncreate }: {
+  let { documents, currentId, busy='', onopen, onrename, onduplicate, onimport, oncreate }: {
     documents: LibraryDocument[];
     currentId?: string;
+    busy?: string;
     onopen: (id: string) => void;
     onrename: (id: string, title: string) => void;
     onduplicate: (id: string) => void;
@@ -49,14 +51,14 @@
 
   <div class="doc-library-section">
     <h3>{query.trim() ? 'Search results' : 'Your documents'}</h3>
-    <span role="status">{query.trim() ? `${visible.length} of ${countLabel(documents.length, 'document')}` : countLabel(documents.length, 'document')}</span>
+    <span role="status">{busy || (query.trim() ? `${visible.length} of ${countLabel(documents.length, 'document')}` : countLabel(documents.length, 'document'))}</span>
   </div>{/if}
 
   {#if visible.length}
-    <div class="doc-library-files" data-view={view}>
-      {#each visible as document (document.id)}
-        <div class="doc-library-file" data-deck-id={document.id} data-current={currentId === document.id}>
-          <button class="doc-library-open" title={document.title} onclick={() => onopen(document.id)}>
+    <LibraryDocumentFiles documents={visible} {view}>
+      {#snippet card(document:LibraryDocument,index:number,tabIndex:number)}
+        <div class="doc-library-file" data-deck-id={document.id} data-current={currentId === document.id} role="listitem" aria-posinset={index+1} aria-setsize={visible.length}>
+          <button class="doc-library-open" tabindex={tabIndex} title={document.title} onclick={() => onopen(document.id)}>
             <LibraryPreview {document} queue={previewQueue} />
             <span class="sr-only">Open document: </span><span class="doc-library-info">
               <strong>{document.title}</strong>
@@ -64,12 +66,12 @@
             </span>
           </button>
           <ActionMenu label={`Document actions: ${document.title}`} iconOnly items={[
-            {label:'Rename', onselect:() => onrename(document.id, document.title)},
-            {label:'Duplicate document', icon:Copy, onselect:() => onduplicate(document.id)},
+            {label:'Rename', disabled:Boolean(busy), onselect:() => onrename(document.id, document.title)},
+            {label:'Duplicate document', icon:Copy, disabled:Boolean(busy), onselect:() => onduplicate(document.id)},
           ]}><Ellipsis size={16} /></ActionMenu>
         </div>
-      {/each}
-    </div>
+      {/snippet}
+    </LibraryDocumentFiles>
   {:else}
     {#if query.trim()}
       <EmptyState icon={Search} title="No matching documents" description="Try another title or clear your search."><Button variant="secondary" onclick={() => {query = ''; searchInput?.focus();}}>Clear search</Button></EmptyState>

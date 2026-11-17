@@ -44,7 +44,7 @@ a > .lucide-icon { vertical-align: -2px; margin-inline-start: 4px; }
   min-height: var(--control-md);
   border-radius: var(--r-control);
   font-size: var(--ui-text);
-  font-weight: var(--ui-weight-medium);
+  font-weight: var(--ui-weight-normal);
   line-height: var(--ui-line-body);
   gap: var(--control-gap);
   flex-shrink: 0;
@@ -57,15 +57,15 @@ a > .lucide-icon { vertical-align: -2px; margin-inline-start: 4px; }
 .ui-button.icon-btn[data-size='sm'] { width: var(--control-sm); }
 .ui-button.icon-btn[data-size='lg'] { width: var(--control-lg); }
 .text-btn.ghost { border: 1px solid var(--field-border); background: var(--field-surface); }
-.text-btn.ghost:not(:disabled):hover { border-color: var(--border-strong); background: var(--state-hover); }
+.text-btn.ghost:not(:disabled):hover { background: var(--field-surface-hover); }
 .text-btn.primary { border: 1px solid transparent; background: var(--action-solid-bg); color: var(--action-solid-fg); }
 .text-btn.primary:not(:disabled):hover { background: var(--action-solid-bg-hover); }
 .text-btn.primary:not(:disabled):active { background: var(--action-solid-bg-active); }
 .ui-button[aria-busy='true'] { cursor: progress; opacity: 1; }
 .ui-button[aria-busy='true'] .spinner { width: 14px; height: 14px; border-color: color-mix(in oklab, currentColor 28%, transparent); border-top-color: currentColor; }
-.ui-button.ui-filter-chip { flex: none; min-height: 32px; height: auto; padding: 4px 6px; border: 1px solid var(--border-default); border-radius: 999px; font-size: var(--ui-label); line-height: var(--ui-line-body); font-weight: var(--ui-weight-normal); color: var(--text-secondary); background: transparent; }
-.ui-button.ui-filter-chip:not(:disabled):hover { background: var(--state-hover); border-color: var(--border-strong); color: var(--text-primary); }
-.ui-button.ui-filter-chip[aria-pressed='true'] { background: var(--state-selected); border-color: var(--accent-line); color: var(--text-link); font-weight: var(--ui-weight-medium); }
+.ui-button.ui-filter-chip { flex: none; min-height: 32px; height: auto; padding: 4px 6px; border: 1px solid var(--field-border); border-radius: 999px; font-size: var(--ui-label); line-height: var(--ui-line-body); font-weight: var(--ui-weight-normal); color: var(--text-secondary); background: var(--field-surface); }
+.ui-button.ui-filter-chip:not(:disabled):hover { background: var(--field-surface-hover); color: var(--text-primary); }
+.ui-button.ui-filter-chip[aria-pressed='true'] { background: var(--state-selected); color: var(--text-link); font-weight: var(--ui-weight-medium); }
 .ui-button.ui-filter-chip[aria-pressed='true']:hover { background: var(--state-selected); }
 @media (hover: none) { .ui-button.ui-filter-chip { min-height: 36px; } }
 .text-btn:focus-visible, .icon-btn:focus-visible, .ui-search-field:focus-within { outline: 2px solid var(--accent-line); outline-offset: 3px; }
@@ -88,8 +88,8 @@ a > .lucide-icon { vertical-align: -2px; margin-inline-start: 4px; }
 .color-property .color-field input.color-hex { flex: 1; min-width: 0; width: 100%; height: auto; min-height: 24px; padding: 0; border: 0; background: transparent; box-shadow: none; font: inherit; font-size: var(--ui-label); color: var(--text-primary); }
 .color-property .color-hex:focus-visible { outline: 0; }
 .color-property .color-field:has(.color-hex:focus-visible), .color-picker:focus-visible, .color-clear:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 0; }
-.color-clear { display: grid; place-items: center; flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: color-mix(in oklab,var(--text-secondary) 55%,var(--surface-chrome)); cursor: pointer; }
-.color-property .color-field.has-error { border-color: var(--danger); }
+.color-clear { display: grid; place-items: center; flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.color-property .color-field.has-error { border-color: var(--danger-text); }
 @media (max-width: 760px), (pointer: coarse) {
   .color-picker, .color-picker.framed, .color-clear { width: 44px; height: 44px; min-height: 44px; }
   .color-property .color-field input.color-hex { min-height: 44px; }
@@ -117,8 +117,8 @@ a > .lucide-icon { vertical-align: -2px; margin-inline-start: 4px; }
 
 /* Native top-layer menus share fields, type and focus with the dialog family. */
 .ui-action-menu-trigger { display: inline-flex; flex: none; }
-.ui-action-menu { position: fixed; inset: auto; margin: 0; width: max(232px,14.5rem); max-width: calc(100vw - 24px); overflow: auto; overscroll-behavior: contain; padding: 4px; border: 1px solid var(--dialog-border); border-radius: var(--r-popover); background: var(--dialog-surface); color: var(--text-primary); box-shadow: var(--shadow-popover); }
-.ui-action-menu:popover-open { display: flex; flex-direction: column; }
+.ui-action-menu { position: fixed; inset: auto; margin: 0; width: max(232px,14.5rem); max-width: calc(100vw - 24px); flex-direction: column; overflow: auto; overscroll-behavior: contain; padding: 4px; border: 1px solid var(--dialog-border); border-radius: var(--r-popover); background: var(--dialog-surface); color: var(--text-primary); box-shadow: var(--shadow-popover); }
+.ui-action-menu:popover-open { display: flex; }
 .ui-action-menu button { display: flex; align-items: center; gap: 8px; min-height: 36px; width: 100%; padding: 8px 12px; border-radius: var(--r-control); text-align: left; font-size: var(--ui-text); }
 .ui-action-menu button > svg { color: var(--text-secondary); flex: none; width: 16px; height: 16px; }
 .ui-action-menu button > span ~ svg { width: 14px; height: 14px; }
@@ -277,6 +277,11 @@ a > .lucide-icon { vertical-align: -2px; margin-inline-start: 4px; }
 .dialog-subtitle { font-size: var(--ui-label); line-height: var(--ui-line-reading); color: var(--text-secondary); }
 .modal .modal-body { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain;  padding: var(--dialog-gutter); scroll-padding-block: var(--dialog-gutter); }
 .modal .dialog-workspace-body { display: flex; flex: 1; padding: 0; overflow: hidden; }
+.modal .dialog-workspace-body:has(> .notification-feedback:not(:empty), > .notification-fallback) { display:block; overflow:auto; }
+.modal .dialog-workspace-body > :is(.notification-feedback, .notification-fallback) { margin:var(--dialog-gutter) var(--dialog-gutter) 0; max-height:none; overflow:visible; }
+/* Critical fallback feedback stays in the body. Routine fallback messages
+   remain queued until the modal closes instead of occupying a second slot. */
+.modal > .notification-fallback { display:none; }
 .dialog-workspace-body > .auto-layout-workspace { width: 100%; }
 
 .dialog-footer {

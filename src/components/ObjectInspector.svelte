@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TextLinkField from './TextLinkField.svelte';
   import './ui/linked-dimensions.css';
   import DrawingProperties from './DrawingProperties.svelte';
   import {drawingSelection} from '../core/drawing-properties';
@@ -6,6 +7,7 @@
   import {DEFAULT_LINE,type LineStyle} from '../core/lines';
   import {canAddAutoLayout} from '../core/group-commands';
   import {setContext,tick} from 'svelte';
+  import InspectorTypography from './InspectorTypography.svelte';
   import ImagePositionControls from './ImagePositionControls.svelte';
   import RestoreImageRatio from './RestoreImageRatio.svelte';
   import InspectorSection from './InspectorSection.svelte';
@@ -17,7 +19,7 @@
   import {groupExitActions} from '../group-exit-actions';
   import { objectAction } from '../editor-focus';
   import {objectClipboardActions} from '../clipboard-actions';
-  import { textProperties, textPropertyState, textToggleState, type TextProperty } from '../core/text-properties';
+  import { textProperties, textSelectionState, type TextProperty } from '../core/text-properties';
   import { editor } from '../core/editor.svelte';
   import { uiDisclosure } from '../ui-motion';
   import {selectionMembers,selectionFrame,scaleSelection,resizeSelectionFrame} from '../core/selection-transform';
@@ -29,7 +31,8 @@
   import {shapeKind, SHAPE_TOOLS, SHAPE_LABELS, type ShapeInsertTool} from '../core/shapes';
   import ObjectAutoLayout from './ObjectAutoLayout.svelte';
   import {selectedLayout} from '../core/object-layout';
-  import { fontWeights, textStylePatch, WEIGHT_LABELS } from '../core/fonts';
+  import { textStylePatch, WEIGHT_LABELS } from '../core/fonts';
+  import {textWeightOptions} from '../core/text-weight-options';
   import { selectionBounds, keepsAspectRatio, resizedDimensions } from '../core/interactions';
   import { elementLabel } from './element-labels';
   import AlignmentControls from './AlignmentControls.svelte';
@@ -53,18 +56,19 @@
   import SendBackward from './icons/SendBackward.svelte';
   import {textAlignmentIcons, textSizingIcons} from './icons/text-icons';
   import {Ellipsis, Layers, Type, Image, PenLine, Move, Blend, WrapText, SquareDashed, ChevronDown, FileText, Replace, Info, AppWindow, Play, Settings2, Table2, ChartColumn, AlignHorizontalJustifyCenter, Paintbrush, Ruler, Shapes, Plus} from '@lucide/svelte';
-  import { Link2, Unlink2, RotateCw, Scan, Crop, Expand, FlipHorizontal2, FlipVertical2, AlignLeft, AlignCenter, AlignRight, Copy, Trash2, Lock, Unlock, Group, Ungroup, Bold, Italic, Underline } from '@lucide/svelte';
+  import { Link2, Unlink2, RotateCw, Scan, Crop, Expand, FlipHorizontal2, FlipVertical2, AlignLeft, AlignCenter, AlignRight, Copy, Trash2, Lock, Unlock, Group, Ungroup, Bold, Italic, Underline, Strikethrough } from '@lucide/svelte';
   const inspectorId=$props.id();
   const selection=$derived(editor.selection);
   const editable=$derived(selection.filter(v=>!v.locked));
   const propertyItems=$derived(editable.length?editable:selection);
   const capabilities=$derived(inspectorCapabilities(propertyItems));
   const drawings=$derived(drawingSelection(propertyItems));
-  const textStates=$derived(Object.fromEntries(textProperties.map(key=>[key,textPropertyState(propertyItems.map(item=>isTextShape(item)?shapeTextElement(item):item),key)])) as {[K in TextProperty]:{value:SlideElement[K]|undefined;mixed:boolean}});
+  const textSummary=$derived(textSelectionState(propertyItems.map(item=>isTextShape(item)?shapeTextElement(item):item)));
+  const textStates=$derived(textSummary.properties);
   setContext('property-edit-scope',()=>`${editor.deck?.id}:${editor.activeId}:${editor.selected.join(',')}:${editor.selectedContainer}`);
   let e = $derived(propertyItems[0]);
   const scope=$derived(`${editor.deck?.id}:${editor.activeId}:${editor.selected.join(',')}:${editor.selectedContainer}:${e?.type}`);
-  const sections=$state({text:true,image:true,drawing:true,prototype:true,chart:true,table:true,shape:true,appearance:true,transform:false,crop:false,provenance:false,display:false,textOptions:false,poster:false,colorStyles:false,layout:false});
+  const sections=$state({image:true,drawing:true,prototype:true,chart:true,table:true,shape:true,appearance:true,transform:false,crop:false,provenance:false,display:false,textOptions:false,poster:false,colorStyles:false,layout:false});
   let layoutPanels=$state({limits:false,group:false,order:false,help:false,individualPadding:false});
   let containerPanels=$state({scale:false,hierarchy:false});
   let sameType=$derived(capabilities.sameType);
@@ -73,10 +77,10 @@
   let positionBounds=$derived(editor.slide?selectionFrame(editor.slide,editor.selected,editor.selectionScope):null);
   function mixed(key:keyof SlideElement){if(sameType&&canEditText(e)&&(e?.type==='text'||key!=='fill')&&textProperties.includes(key as TextProperty))return textStates[key as TextProperty].mixed;const items=propertyItems;if(key==='verticalAlign'&&isTextShape(e))return items.some(v=>shapeTextElement(v).verticalAlign!==shapeTextElement(items[0]).verticalAlign);return items.some(v=>v[key]!==items[0]?.[key]);}
   function textValue<K extends TextProperty>(key: K) { return textStates[key].value ?? e[key]; }
-  let boldState=$derived(textToggleState(propertyItems.map(item=>isTextShape(item)?shapeTextElement(item):item),'bold')),italicState=$derived(textToggleState(propertyItems.map(item=>isTextShape(item)?shapeTextElement(item):item),'italic')),underlineState=$derived(textToggleState(propertyItems.map(item=>isTextShape(item)?shapeTextElement(item):item),'underline'));
+  let boldState=$derived(textSummary.bold),italicState=$derived(textSummary.italic),underlineState=$derived(textSummary.underline),strikeState=$derived(textSummary.strikethrough);
   let {onfonts, onresources, onprototype, onstyles, ondraw, active=true}: {active?:boolean;ondraw?:()=>void;onfonts: () => void; onresources?: (replaceId?: string) => void; onprototype?: (element: SlideElement) => void;onstyles?:(role?:TextRole)=>void} = $props();
   function prototypeUrl(value: string) { prototypeError='';try { editor.patch({prototype: {...e.prototype!, url: normalizePrototypeUrl(value)}}); } catch (error: any) { prototypeError = error.message; } }
-  let weights = $derived(e ? fontWeights(e.fontFamily, editor.deck?.fonts, editor.deck?.onlineFonts) : []);
+  let weights = $derived(textWeightOptions(propertyItems,editor.deck?.fonts,editor.deck?.onlineFonts));
   function patchText(patch: Partial<SlideElement>,merge='') {
     if (editor.slide) editor.commit(editable.filter(canEditText).map(e => {const text=isTextShape(e)?shapeTextElement(e):e;const next={...text,...textStylePatch(text,patch)};return {op:'update_element' as const,slideId:editor.slide!.id,elementId:e.id,patch:isTextShape(e)?shapeTextPatch(e,next):textStylePatch(e,patch)};}),merge);
   }
@@ -169,7 +173,7 @@
           <div class="layout-property-row" class:has-ratio-toggle={row===1&&showRatioToggle} class:dimensions-linked={row===1&&showRatioToggle&&ratioState===true}>
             {#each fields as [key,label]}
               {@const auto = sameType&&e.type==='text'&&(key==='w'?sizing==='auto-width':key==='h'&&sizing!==''&&sizing!=='fixed')}
-              <div class="layout-field"><NumberField unit="px" {label} presets={editor.deck?layoutNumberPresets(key,editor.deck,positionBounds??e):[]} prefix={key==='w'?'W':key==='h'?'H':label} disabled={!single&&!positionBounds||single&&Boolean(memberLayout)&&(key==='x'||key==='y')&&memberLayout!.order.length>1} value={!single&&positionBounds?positionBounds[key as 'x'|'y'|'w'|'h'].toFixed(1):Math.round(e[key as 'x'|'y'|'w'|'h']*10)/10} mixed={!single?!positionBounds:mixed(key as keyof SlideElement)} automatic={single&&Boolean(auto)} min={key==='w'||key==='h'?1:-20000} max={20000} step="any" increment={4} hint={auto?key==='w'?'Enter a width to fix it and keep automatic height':'Enter a height to use fixed size':`${label} in px · ↑ / ↓ adjusts by 1 · Shift adjusts to the next 4 px value`} onchange={value=>number(value,key as keyof SlideElement)}/></div>
+              <div class="layout-field"><NumberField unit="px" {label} presets={editor.deck?layoutNumberPresets(key,editor.deck,positionBounds??e):[]} prefix={key==='w'?'W':key==='h'?'H':label} disabled={!single&&!positionBounds||single&&Boolean(memberLayout)&&(key==='x'||key==='y')&&memberLayout!.order.length>1} value={!single&&positionBounds?positionBounds[key as 'x'|'y'|'w'|'h']:e[key as 'x'|'y'|'w'|'h']} mixed={!single?!positionBounds:mixed(key as keyof SlideElement)} automatic={single&&Boolean(auto)} min={key==='w'||key==='h'?1:-20000} max={20000} step="any" increment={4} hint={auto?key==='w'?'Enter a width to fix it and keep automatic height':'Enter a height to use fixed size':`${label} in px · ↑ / ↓ adjusts by 1 · Shift adjusts to the next 4 px value`} onchange={value=>number(value,key as keyof SlideElement)}/></div>
               {#if key==='w'&&showRatioToggle}<Button variant="quiet" size="sm" kind="icon" class="ratio-toggle" aria-label="Keep aspect ratio" aria-pressed={ratioState} aria-describedby={`${inspectorId}-ratio-help`} title={ratioState===true?'Unlink width and height · Shift reverses this while dragging':'Link width and height · Shift reverses this while dragging'} onclick={()=>editor.patch({aspectRatioLocked:ratioState!==true})}>{#if ratioState===true}<Link2 size={12} aria-hidden="true"/>{:else}<Unlink2 size={12} aria-hidden="true"/>{/if}</Button>{/if}
             {/each}
             {#if row===1&&showRatioToggle&&ratioState===true}
@@ -185,7 +189,7 @@
     {/if}
     {#if sameType&&e.type==='text'}<div class="property-choice-row text-resizing"><span>Resizing{#if sizing===''}<small>Mixed</small>{/if}</span><PropertyChoice label="Text resizing" options={sizingOptions} value={sizing} icons disabled={allLocked} onchange={value=>patchText({textSizing:value as SlideElement['textSizing']})}/></div>{/if}
       {#if !(single&&e.type==='text')}<div class="property-grid"><NumberField label="Rotation" icon={RotateCw} presets={[-180,-90,-45,0,45,90,180]} value={e.rotation} mixed={mixed('rotation')} unit="°" step="any" onchange={value=>number(value,'rotation')}/></div>{/if}
-      {#if !single}<p class="compact-hint">Width and height scale the editable selection together.</p><AlignmentControls dense/>{:else}<details class="inspector-disclosure" bind:open={sections.transform} use:uiDisclosure={next=>sections.transform=next}><summary><span>{e.type==='text'?'Transform and alignment':'Align to slide'}</span><ChevronDown size={14}/></summary><div class="inspector-disclosure-body">{#if e.type==='text'}<NumberField label="Rotation" icon={RotateCw} presets={[-180,-90,-45,0,45,90,180]} value={e.rotation} mixed={mixed('rotation')} unit="°" step="any" onchange={value=>number(value,'rotation')}/>{/if}<AlignmentControls dense/></div></details>{/if}
+      {#if !single}<p class="compact-hint">Width and height scale the editable selection together.</p><AlignmentControls dense/>{:else}<AlignmentControls dense quick/>{#if e.type==='text'}<details class="inspector-disclosure" bind:open={sections.transform} use:uiDisclosure={next=>sections.transform=next}><summary><span>Transform</span><ChevronDown size={14}/></summary><div class="inspector-disclosure-body"><NumberField label="Rotation" icon={RotateCw} presets={[-180,-90,-45,0,45,90,180]} value={e.rotation} mixed={mixed('rotation')} unit="°" step="any" onchange={value=>number(value,'rotation')}/></div></details>{/if}{/if}
       {#if canAddAutoLayout(editor.selected.length,editor.selectedContainer)&&!memberLayout&&!allLocked}<details class="inspector-disclosure" bind:open={sections.layout} use:uiDisclosure={next=>sections.layout=next}><summary><span>Auto layout</span><ChevronDown size={14}/></summary><div class="inspector-disclosure-body"><ObjectAutoLayout bind:disclosures={layoutPanels}/></div></details>{/if}
       {#if !allLocked&&editor.selection.length>1}<div class="inspector-actions"><Button variant="quiet" disabled={editable.length<2} onclick={grouping}><Group size={16}/>Group</Button></div>{/if}
     </section>
@@ -204,7 +208,7 @@
       </InspectorSection>
     {/if}
     {#if sameType&&canEditText(e)}
-      <InspectorSection title="Typography" icon={Type} bind:open={sections.text}>
+      <InspectorTypography {scope} items={propertyItems} editingId={editor.editingId} icon={Type}>
         {#if e.type==='text'}<ObjectStyles mode="text" onedit={onstyles}/>{/if}
         {#if isTextShape(e)}
           {#if single}<label class="field-label">Content<textarea class="ui-property-input" aria-label={e.type==='line'?'Line text':'Shape text'} rows="3" value={e.text} oninput={event=>editor.patch({text:event.currentTarget.value},'shape-text')}></textarea></label>{/if}
@@ -212,10 +216,10 @@
         {/if}
         <FontPicker onbrowse={onfonts} showLinkHint={false}/>
         <div class="property-grid font-properties"><label class="weight-field"><span class="sr-only">Weight</span><select class="ui-property-input" aria-label="Weight" title="Font weight" value={mixed('fontWeight')?'':linkedWeight?'style':textValue('fontWeight')} onchange={event=>chooseWeight(event.currentTarget.value)}>{#if mixed('fontWeight')}<option value="" disabled>Mixed</option>{/if}{#if weightRole}<option value="style" disabled={Boolean(editor.editingId)}>Style · {styleWeight}</option>{/if}{#each [...new Set([...weights,textValue('fontWeight')])].sort((a,b)=>a-b) as w}<option value={w}>{WEIGHT_LABELS[w]||w}</option>{/each}</select></label><NumberField unit="px" label="Font size" prefix="Size" presets={[12,14,16,18,20,24,32,40,48,64,80,96,120]} hint="Font size in px" value={Math.round(textValue('fontSize')*10)/10} mixed={mixed('fontSize')} min={4} max={500} step="any" onchange={value=>number(value,'fontSize')}/></div>
-        <div class="inspector-format-row"><div class="decoration-buttons" role="group" aria-label="Text formatting"><button class="icon-btn" aria-label="Bold" title="Bold" aria-pressed={boldState} onclick={()=>patchText({fontWeight:boldState===true?400:700})}><Bold size={16}/></button><button class="icon-btn" aria-label="Italic" title="Italic" aria-pressed={italicState} onclick={()=>patchText({italic:italicState!==true})}><Italic size={16}/></button><button class="icon-btn" aria-label="Underline" title="Underline" aria-pressed={underlineState} onclick={()=>patchText({underline:underlineState!==true})}><Underline size={16}/></button></div><PropertyChoice label="Text alignment" value={mixed('align')?'':textValue('align')} icons options={[{value:'left',label:'Left',icon:AlignLeft},{value:'center',label:'Center',icon:AlignCenter},{value:'right',label:'Right',icon:AlignRight}]} onchange={value=>patchText({align:value as SlideElement['align']})}/></div>
+        <div class="inspector-format-row"><div class="decoration-buttons" role="group" aria-label="Text formatting"><button class="icon-btn" aria-label="Bold" title="Bold" aria-pressed={boldState} onclick={()=>patchText({fontWeight:boldState===true?400:700})}><Bold size={16}/></button><button class="icon-btn" aria-label="Italic" title="Italic" aria-pressed={italicState} onclick={()=>patchText({italic:italicState!==true})}><Italic size={16}/></button><button class="icon-btn" aria-label="Underline" title="Underline" aria-pressed={underlineState} onclick={()=>patchText({underline:underlineState!==true,...(underlineState!==true?{strikethrough:false}:{})})}><Underline size={16}/></button><button class="icon-btn" aria-label="Strikethrough" title="Strikethrough" aria-pressed={strikeState} onclick={()=>patchText({strikethrough:strikeState!==true,...(strikeState!==true?{underline:false}:{})})}><Strikethrough size={16}/></button></div><PropertyChoice label="Text alignment" value={mixed('align')?'':textValue('align')} icons options={[{value:'left',label:'Left',icon:AlignLeft},{value:'center',label:'Center',icon:AlignCenter},{value:'right',label:'Right',icon:AlignRight}]} onchange={value=>patchText({align:value as SlideElement['align']})}/></div>
         <div class="property-choice-row"><span>Vertical</span><PropertyChoice label="Vertical text alignment" value={mixed('verticalAlign')?'':isTextShape(e)?shapeTextElement(e).verticalAlign:e.verticalAlign} icons options={[{value:'top',label:'Top',icon:textAlignmentIcons.top},{value:'middle',label:'Middle',icon:textAlignmentIcons.middle},{value:'bottom',label:'Bottom',icon:textAlignmentIcons.bottom}]} disabled={e.type==='text'&&sizing!=='fixed'} onchange={value=>patchText({verticalAlign:value as SlideElement['verticalAlign']})}/></div>{#if e.type==='text'&&sizing!=='fixed'}<p class="compact-hint">Use Fixed size to align text vertically.</p>{/if}
-        <details class="inspector-disclosure" bind:open={sections.textOptions} use:uiDisclosure={next=>sections.textOptions=next}><summary><span>More text options</span><ChevronDown size={14}/></summary><div class="inspector-disclosure-body"><div class="property-stack"><NumberField label="Line height" preset="lineHeight" prefix="Line height" keyboardStep={.05} unit="×" value={textValue('lineHeight')} mixed={mixed('lineHeight')} min={.5} max={4} step="any" onchange={value=>number(value,'lineHeight')}/><NumberField label="Letter spacing" preset="tracking" prefix="Letter spacing" value={textValue('letterSpacing')} mixed={mixed('letterSpacing')} min={-30} max={50} unit="px" step="any" onchange={value=>number(value,'letterSpacing')}/></div>{#if single&&e.type==='text'}<label class="field-label">Content<textarea class="ui-property-input" aria-label="Text content" rows="4" value={e.text} oninput={event=>editor.patch({text:event.currentTarget.value},'text')}></textarea></label>{/if}</div></details>
-      </InspectorSection>
+        <details class="inspector-disclosure" bind:open={sections.textOptions} use:uiDisclosure={next=>sections.textOptions=next}><summary><span>More text options</span><ChevronDown size={14}/></summary><div class="inspector-disclosure-body"><div class="property-stack"><NumberField label="Line height" preset="lineHeight" prefix="Line height" keyboardStep={.05} unit="×" value={textValue('lineHeight')} mixed={mixed('lineHeight')} min={.5} max={4} step="any" onchange={value=>number(value,'lineHeight')}/><NumberField label="Letter spacing" preset="tracking" prefix="Letter spacing" value={textValue('letterSpacing')} mixed={mixed('letterSpacing')} min={-30} max={50} unit="px" step="any" onchange={value=>number(value,'letterSpacing')}/></div>{#if single&&e.type==='text'}<label class="field-label">Content<textarea class="ui-property-input" aria-label="Text content" rows="4" value={e.text} oninput={event=>editor.patch({text:event.currentTarget.value},'text')}></textarea></label>{#key `${editor.deck?.id}:${editor.slide?.id}:${e.id}`}{@const target={deck:editor.deck?.id,slide:editor.slide?.id,id:e.id}}<TextLinkField value={e.link} onchange={link=>{if(editor.deck?.id!==target.deck)return;const object=editor.deck?.slides.find(s=>s.id===target.slide)?.elements.find(e=>e.id===target.id);if(object?.type==='text'&&!object.locked)editor.commit([{op:'update_element',slideId:target.slide!,elementId:target.id,patch:{link}}]);}}/>{/key}{/if}</div></details>
+      </InspectorTypography>
     {:else if sameType&&e.type==='image'&&!drawings.any}
       <InspectorSection title={region ? 'Area fill' : 'Image'} icon={Image} label="Image properties" bind:open={sections.image}>
         {#if region}<p class="compact-hint">Resize this area freely. The pattern or texture fills its bounds.</p>{:else}<div class="image-mode-row"><PropertyChoice label="Image fit mode" value={editor.croppingId===e.id?'crop':mixed('fit')?'':e.fit} disabled={Boolean(e.sourceRegion)} options={[{value:'cover',label:'Fill',description:'Fill the box and crop excess image'},{value:'contain',label:'Fit',description:'Keep the entire image visible'},{value:'crop',label:'Crop',description:'Adjust directly on the canvas'},{value:'fill',label:'Stretch',description:'Stretch the image to the box'}]} onchange={value=>void imageFit(value as SlideElement['fit'])}/>{#if single&&!e.sourceRegion}<RestoreImageRatio value={e} disabled={Boolean(editor.croppingId)} onchange={patch=>editor.patch(patch)}/>{/if}</div>{/if}
@@ -337,5 +341,6 @@
     .stroke-width{padding-left:0}
   }
   @media(min-width:761px){.inspector-section{container-type:inline-size}}
-  @container(max-width:13rem){.inspector-format-row{flex-wrap:wrap}.decoration-buttons{flex-basis:100%}.stroke-width{padding-left:0}}
+  @container(max-width:15rem){.inspector-format-row{flex-wrap:wrap}.decoration-buttons{flex-basis:100%}}
+  @container(max-width:13rem){.stroke-width{padding-left:0}}
 </style>

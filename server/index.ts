@@ -1,10 +1,13 @@
+import {BRAND_NAME} from '../src/brand-name.js';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import {requestBytes} from './request-body';
-import {sendDocumentJson} from './document-json-response';
-import { access } from 'node:fs/promises';
+import {figmaSyncCors,figmaSyncRoute} from './figma-sync';
+import {sendDocumentJson,sendDocumentFrames,wantsDocumentFrames} from './document-json-response';
 import { serveStatic } from './static';
+import { distributionRoot } from './runtime-assets';
 import { resolve, extname } from 'node:path';
-import { initStore, listDecks, readLibraryPreview, readDeck, saveDeck, proposals, resolveProposal, listHistory, readHistory } from './store';
+import { DATA, initStore, listDecks, readLibraryPreview, readDeck, readDeckWithMediaToken, saveDeck, saveDeckForId, proposals, resolveProposal, listHistory, readHistory } from './store';
+import { MEDIA_REVISION_HEADER } from '../src/core/document-media-update';
 import { validateDeck, NativeSourceSchema } from '../src/core/model';
 import { ProposalSchema, applyOperations } from '../src/core/operations';
 import { runAI, availableModels } from './ai';
@@ -25,27 +28,33 @@ import { photoProviders } from './photo-providers';
 import {characterCatalog,renderCharacter,characterEmbedded,savedCharacterEmbedded,saveCharacterVariant,savedCharacterImage,saveCharacterRequest,characterRequests} from './characters';
 
 const port = Number(process.env.PORT || 4310);
-const prod = process.env.NODE_ENV === 'production';
+declare const __DECK_PACKAGED_SERVER__: boolean;
 await initStore();
-const vite = prod ? null : await (await import('vite')).createServer({cacheDir: resolve('node_modules/.vite', `deck-studio-${port}`), optimizeDeps: {include: ['pptxgenjs']}, server: {middlewareMode: true, hmr: false, ws: false, watch: {ignored: ['**/output/**', '**/.data/**', '**/dist/**']}}, appType: 'spa'});
+const vite = (typeof __DECK_PACKAGED_SERVER__ !== 'undefined' && __DECK_PACKAGED_SERVER__) || process.env.NODE_ENV === 'production'
+  ? null : await (await import('vite')).createServer({cacheDir: resolve('node_modules/.vite', `deck-studio-${port}`), optimizeDeps: {include: ['pptxgenjs']}, server: {middlewareMode: true, hmr: false, ws: false, watch: {ignored: ['**/output/**', '**/.data/**', '**/dist/**']}}, appType: 'spa'});
+const staticRoot = distributionRoot();
 const bytes=requestBytes;
 const json = async (req: IncomingMessage) => JSON.parse((await bytes(req)).toString('utf8'));
 function send(res: ServerResponse, value: unknown, status = 200) { if (res.headersSent || res.destroyed || res.writableEnded) return; if((value as any)?.schema==='deck-studio/1')return sendDocumentJson(res,value as any,status);res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'}); res.end(JSON.stringify(value)); }
-function sendSaved(req:IncomingMessage,res:ServerResponse,deck:Awaited<ReturnType<typeof saveDeck>>) {
+function sendSaved(req:IncomingMessage,res:ServerResponse,deck:Awaited<ReturnType<typeof saveDeck>>,mediaToken?:string) {
   const preference=Array.isArray(req.headers.prefer)?req.headers.prefer.join(','):req.headers.prefer;
   if(preference?.split(',').some(p=>p.trim().toLowerCase()==='return=minimal')){
-    res.setHeader('Preference-Applied','return=minimal');return send(res,{id:deck.id,revision:deck.revision,updatedAt:deck.updatedAt});
+    res.setHeader('Preference-Applied','return=minimal');return send(res,{id:deck.id,revision:deck.revision,updatedAt:deck.updatedAt,mediaToken});
   }
   return send(res,deck);
 }
 const server = createServer(async (req, res) => {
   const host = req.headers.host || '';
   if (![`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`].includes(host)) return send(res, {error: 'Local host only'}, 403);
-  const origin = req.headers.origin;
-  if (origin && ![`http://127.0.0.1:${port}`, `http://localhost:${port}`].includes(origin)) return send(res, {error: 'Same-origin requests only'}, 403);
   const requestUrl = new URL(req.url || '/', `http://127.0.0.1:${port}`);
   const path = requestUrl.pathname;
+  const origin = req.headers.origin;
+  const pluginRoute = path === '/api/figma-sync/pair' || /^\/api\/figma-sync\/[\da-f-]{36}\/plugin$/.test(path);
+  if(pluginRoute){if(!figmaSyncCors(req,res,port))return send(res,{error:'Figma origin only'},403);if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}}
+  else if (origin && ![`http://127.0.0.1:${port}`, `http://localhost:${port}`].includes(origin)) return send(res, {error: 'Same-origin requests only'}, 403);
   try {
+    if(path==='/api/figma-native-motion/canvas'){const {nativeDeckMotionCanvasRoute}=await import('./native-deck-motion-route');return send(res,await nativeDeckMotionCanvasRoute(req,port));}
+    if(path.startsWith('/api/figma-sync/'))return send(res,await figmaSyncRoute(req,path,()=>json(req)));
     const googleSession=oauthCookie(req.headers.cookie,GOOGLE_COOKIE),googlePending=oauthCookie(req.headers.cookie,GOOGLE_PENDING_COOKIE);
     if(path==='/api/agent/context'&&req.method==='POST')return send(res,editorContexts.update(await json(req)));
     if(path==='/api/agent/context'&&req.method==='GET')return send(res,{...await editorContexts.read(requestUrl.searchParams.get('deckId')||undefined),workspaceId:workspaceIdentity});
@@ -99,9 +108,10 @@ const server = createServer(async (req, res) => {
       const data = await loadResource(String(b.id || ''), b.color || undefined,false,b.graphicRecipe);
       return send(res, {src: `data:${data.type};base64,${data.bytes.toString('base64')}`, resource: data.resource});
     }
+    if(path==='/api/storage'){const service=await import('./storage-maintenance');if(req.method==='GET')return send(res,await service.localStorageStatus(DATA));if(req.method==='POST'){const {operation}=await json(req);if(operation==='migrate')return send(res,await service.migrateLocalStorage(DATA));if(operation==='rollback')return send(res,await service.rollbackLocalStorage(DATA));throw new Error('Choose a supported storage operation.');}}
     if (path === '/api/health') return send(res, {ok: true, converters: await converters(), ai: {configured: Boolean(process.env.OPENAI_API_KEY || process.env.DECK_AI_KEY), model: process.env.DECK_AI_MODEL || ''}});
     if (path === '/api/decks' && req.method === 'GET') return send(res, await listDecks(requestUrl.searchParams.get('view') !== 'summary'));
-    if (path === '/api/decks' && req.method === 'POST') return sendSaved(req,res,await saveDeck(validateDeck(await json(req)),null));
+    if (path === '/api/decks' && req.method === 'POST') return sendSaved(req,res,await saveDeck(await json(req),null));
     const preview = path.match(/^\/api\/decks\/([\w.:-]+)\/preview$/);
     if (preview && req.method === 'GET') return send(res, await readLibraryPreview(preview[1], requestUrl.searchParams.has('revision') ? Number(requestUrl.searchParams.get('revision')) : undefined));
     const historyList = path.match(/^\/api\/decks\/([\w.:-]+)\/history$/);
@@ -109,11 +119,17 @@ const server = createServer(async (req, res) => {
     const historyVersion = path.match(/^\/api\/decks\/([\w.:-]+)\/history\/(\d+)$/);
     if (historyVersion && req.method === 'GET') return send(res, await readHistory(historyVersion[1], Number(historyVersion[2])));
     const match = path.match(/^\/api\/decks\/([\w.:-]+)$/);
-    if (match && req.method === 'GET') return send(res, await readDeck(match[1]));
+    if (match && req.method === 'GET') {
+      const delivery = await readDeckWithMediaToken(match[1],wantsDocumentFrames(req));
+      if (res.destroyed) return;
+      if (delivery.mediaToken) res.setHeader(MEDIA_REVISION_HEADER, delivery.mediaToken);
+      if('frames' in delivery)return sendDocumentFrames(res,delivery.frames);
+      return send(res,delivery.deck);
+    }
     if (match && req.method === 'PUT') {
       const {deck, expectedRevision} = await json(req);
-      if (deck.id !== match[1]) throw new Error('ID mismatch');
-      return sendSaved(req,res,await saveDeck(validateDeck(deck),expectedRevision));
+      const {deck:saved,mediaToken} = await saveDeckForId(match[1],deck,expectedRevision,req.headers[MEDIA_REVISION_HEADER.toLowerCase()]==='request');
+      return sendSaved(req,res,saved,mediaToken);
     }
     if (path === '/api/ai/propose' && req.method === 'POST') {
       const b = await json(req), deck = validateDeck(b.deck);
@@ -154,7 +170,16 @@ const server = createServer(async (req, res) => {
     }
     if (path === '/api/convert' && req.method === 'POST') {
       const filename = decodeURIComponent(String(req.headers['x-filename'] || ''));
-      return send(res, await convertUpload(await bytes(req, 100_000_000), filename, req.headers['x-native'] === 'true'));
+      const native = req.headers['x-native'] === 'true';
+      const cancel = !native && /\.pptx$/i.test(filename) && req.headers.accept === 'application/pdf' ? new AbortController() : undefined;
+      res.once('close', () => { if (!res.writableEnded) cancel?.abort(); });
+      const result = await convertUpload(await bytes(req, 100_000_000), filename, native, cancel?.signal);
+      if (!result.pptx && req.headers.accept === 'application/pdf') {
+        if (res.destroyed) return;
+        res.writeHead(200, {'Content-Type': 'application/pdf', 'Content-Length': result.pdf.length, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Source-Warning': result.warning});
+        return res.end(result.pdf);
+      }
+      return send(res, {...result, pdf: result.pdf.toString('base64'), pptx: result.pptx?.toString('base64')});
     }
     if (path === '/api/import/figma' && req.method === 'POST') { const b = await json(req); return send(res, await figmaImport(b.url, b.token)); }
     if (path === '/api/import/google' && req.method === 'POST') { const b = await json(req),bundle=await googleImport(b.url,b.token); return send(res,{...bundle,googleSource:await preserveGoogleSource(bundle)}); }
@@ -163,15 +188,17 @@ const server = createServer(async (req, res) => {
     if (path === '/api/export/google' && req.method === 'POST') {const input=await json(req);return send(res,await exportGoogle({...input,token:input.authorization==='google-oauth'?googleOAuth.token(googleSession):input.token}));}
     if (path.startsWith('/api/')) return send(res, {error: 'Not found'}, 404);
     if (vite) { vite.middlewares(req, res, () => { res.writeHead(404); res.end(); }); return; }
-    const root = resolve(process.env.DECK_STUDIO_DIST || 'dist'), requested = resolve(root, `.${decodeURIComponent(path)}`);
+    const root = staticRoot, requested = resolve(root, `.${decodeURIComponent(path)}`);
     if (!requested.startsWith(root + '/') && requested !== root) return send(res, {error: 'Not found'}, 404);
-    let file = requested;
-    if (path === '/') file = resolve(root, 'index.html');
-    try { await access(file); } catch { if (extname(path) && path !== '/') return send(res, {error: 'File not found.'}, 404); file = resolve(root, 'index.html'); }
     if (res.destroyed) return;
-    await serveStatic(req, res, file);
+    const index = resolve(root, 'index.html');
+    try { await serveStatic(req, res, path === '/' ? index : requested); }
+    catch (error: any) {
+      if (error.code !== 'ENOENT' || path === '/' || extname(path) || res.headersSent) throw error;
+      await serveStatic(req, res, index);
+    }
   } catch (error: any) { if (res.headersSent) { res.destroy(); return; } send(res, {error: error.code === 'ENOENT' ? 'File not found.' : error.message || 'Could not complete the action. Try again.'}, error.status || (error.code === 'ENOENT' ? 404 : 400)); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`Decksprig · http://127.0.0.1:${port}`));
+server.listen(port, '127.0.0.1', () => console.log(`${BRAND_NAME} · http://127.0.0.1:${port}`));
 process.once('SIGTERM', () => server.close(() => process.exit()));
 process.once('SIGINT', () => server.close(() => process.exit()));

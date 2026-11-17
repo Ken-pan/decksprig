@@ -1,11 +1,12 @@
 import {importGoogle} from './google';
 import {validateDeck,type Deck} from '../core/model';
+import {decodeBase64} from '../core/base64';
 
 // Google page JSON omits text insets and some masks. The platform's own PPTX
 // export supplies those properties; native page renders remain the reference.
 export async function importGoogleBundle(bundle:any):Promise<Deck>{
   if(!bundle.nativePptx){const deck=importGoogle(bundle);if(bundle.googleSource)deck.googleSource=bundle.googleSource;return validateDeck(deck);}
-  const bytes=Uint8Array.from(atob(bundle.nativePptx),c=>c.charCodeAt(0));
+  const bytes=decodeBase64(bundle.nativePptx);
   if(bytes.length>100_000_000)throw new Error('The Google PPTX export exceeds 100 MB. Import fewer slides at a time.');
   const {importPptx} = await import('./pptx');
   const native=await importPptx(bytes,'Google Slides.pptx');

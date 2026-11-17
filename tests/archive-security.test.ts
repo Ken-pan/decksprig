@@ -58,3 +58,17 @@ test('Unicode path extra fields cannot change validated names or alias another e
 test('a local-only Unicode filename override is rejected before native extraction',async()=>{
   const original=Buffer.from(await new JSZip().file('safe.xml','payload').generateAsync({type:'uint8array'})),end=original.length-22,central=original.readUInt32LE(end+16),nameLength=original.readUInt16LE(26),extra=Buffer.alloc(9+Buffer.byteLength('../escaped.xml'));extra.writeUInt16LE(0x7075,0);extra.writeUInt16LE(extra.length-4,2);extra[4]=1;extra.write('../escaped.xml',9);const pos=30+nameLength,modified=Buffer.concat([original.subarray(0,pos),extra,original.subarray(pos)]);modified.writeUInt16LE(extra.length,28);modified.writeUInt32LE(central+extra.length,end+extra.length+16);await assert.rejects(loadBoundedZip(modified),/import limits/);
 });
+
+test('evicting ZIP buffers releases cached data without resetting expansion accounting',async()=>{
+  const {releaseZipBytes}=await import('../src/core/safe-zip');
+  const zip=await loadBoundedZip(await archive('image.png','original bytes'));
+  const first=await readZipBytes(zip,'image.png');releaseZipBytes(zip,'image.png');
+  const second=await readZipBytes(zip,'image.png');assert.deepEqual(first,second);assert.notEqual(first,second);
+  await assert.rejects(readZipBytes(zip,'image.png',1),/import limits/);releaseZipBytes(zip,'image.png');
+  const entry=zip.file('image.png')!;
+  // Simulate dishonest streams without allocating hundreds of MB in the test.
+  (entry as any).internalStream=()=>{let data:(value:unknown)=>void;const stream={on(event:string,fn:any){if(event==='data')data=fn;return stream;},pause(){},resume(){queueMicrotask(()=>data({length:40_000_001}));}};return stream;};
+  for(let i=0;i<7;i++){await assert.rejects(readZipBytes(zip,'image.png'),/import limits/);releaseZipBytes(zip,'image.png');}
+  (entry as any).internalStream=()=>{let data:(value:unknown)=>void;const stream={on(event:string,fn:any){if(event==='data')data=fn;return stream;},pause(){},resume(){queueMicrotask(()=>data(new Uint8Array(1)));}};return stream;};
+  await assert.rejects(readZipBytes(zip,'image.png'),/import limits/);
+});

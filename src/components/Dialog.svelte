@@ -45,15 +45,21 @@
     const current = element!, origin = document.activeElement as HTMLElement | null;focusOrigin=origin;
     const measure=()=>scrollable=body.scrollHeight>body.clientHeight+1;
     let revealFrame=0;
-    const resize=new ResizeObserver(()=>{measure();cancelAnimationFrame(revealFrame);revealFrame=requestAnimationFrame(()=>{
+    const reveal=()=>{measure();cancelAnimationFrame(revealFrame);revealFrame=requestAnimationFrame(()=>{
       const active=document.activeElement;
       // Keep the focused control in view when the keyboard shrinks the body.
       if(current.open&&active instanceof HTMLElement&&active!==body&&body.contains(active)&&!active.closest('[popover]:popover-open'))active.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});
-    });}), content=new MutationObserver(measure);
+    });},resize=new ResizeObserver(reveal), content=new MutationObserver(records=>{
+      // Body/feedback changes can replace the scrolling surface. Ordinary
+      // descendant updates must not undo an intentional scroll elsewhere.
+      const changed=records.some(({target})=>target===body||(target instanceof Element?target:target.parentElement)?.closest('.notification-feedback,.notification-fallback')?.parentElement===body);
+      if(changed)reveal();else measure();
+    });
+    body.addEventListener('focusin',reveal);
     resize.observe(body);content.observe(body,{childList:true,subtree:true,characterData:true});
     current.showModal(); releaseFeedback??=registerNotificationDialog(current); focusContent();measure();
     return () => {
-      resize.disconnect();content.disconnect();cancelAnimationFrame(revealFrame);cancelAnimationFrame(focusFrame); releaseFeedback?.();releaseFeedback=undefined; const wasOpen=current.open;current.close();
+      body.removeEventListener('focusin',reveal);resize.disconnect();content.disconnect();cancelAnimationFrame(revealFrame);cancelAnimationFrame(focusFrame); releaseFeedback?.();releaseFeedback=undefined; const wasOpen=current.open;current.close();
       if(!wasOpen)return;
       queueMicrotask(() => {
         if (document.querySelector('dialog:modal')) return;

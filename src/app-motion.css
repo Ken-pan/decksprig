@@ -34,10 +34,11 @@
 /* Focus composition settles in one layout pass; the canvas owns its FLIP. */
 [data-ui-reframing] :is(.workspace, .slide-rail, .property-panel) { transition: none !important; }
 
-/* Colour feedback is immediate enough for repeated editing; position stays direct. */
+/* Colour feedback is immediate: theme and selection changes must not tween
+   foreground/background through an unreadable intermediate pair. */
 .editor-app button:not(.resize-handle), .editor-app .layer-row,
-.modal button, .auto-layout-dialog button, .presentation-controls button, .character-library button {
-  transition: background-color var(--ui-motion-feedback) ease, color var(--ui-motion-feedback) ease, border-color var(--ui-motion-feedback) ease, opacity var(--ui-motion-feedback) ease, scale var(--ui-motion-feedback) var(--ui-ease-out);
+.modal button, [popover] button, .auto-layout-dialog button, .presentation-controls button, .character-library button {
+  transition: border-color var(--ui-motion-feedback) ease, opacity var(--ui-motion-feedback) ease, scale var(--ui-motion-feedback) var(--ui-ease-out);
 }
 :where(.editor-app, .modal, .auto-layout-dialog, [popover]) :is(.icon-btn, .text-btn):not(:disabled):active { transform: none; scale: 1; }
 .stage-canvas { transform-origin: center; }
@@ -60,6 +61,7 @@
   transition: translate var(--ui-motion-reveal) var(--ui-ease-out), width var(--ui-motion-reveal) var(--ui-ease-out), opacity var(--ui-motion-feedback) ease;
 }
 .seg[data-ui-indicator] button[aria-pressed='true'] { background: transparent; box-shadow: none; }
+.seg[data-ui-indicator]::before { background: var(--control-selected-surface); }
 :is(.panel-tabs, .resource-tabs, .character-tabs)[data-ui-indicator]::before { top: auto; bottom: 0; translate: var(--ui-marker-x, 0px) 0; height: 2px; border-radius: 0; background: var(--accent); box-shadow: none; }
 :is(.panel-tabs, .resource-tabs, .character-tabs)[data-ui-indicator] button { border-bottom-color: transparent; }
 .modal::backdrop, .auto-layout-dialog::backdrop { opacity: var(--ui-surface-progress); animation: none; }

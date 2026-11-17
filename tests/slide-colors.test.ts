@@ -12,6 +12,8 @@ import {createLayout} from '../src/core/templates';
 import {buildPptx} from '../src/core/pptx-export';
 import JSZip from 'jszip';
 import {adaptSlideColors} from '../src/core/slide-colors';
+import {compositeColor} from '../src/core/color-contrast';
+import {shapeTextElement} from '../src/core/shape-text';
 
 const system=DEFAULT_DESIGN_SYSTEM;
 function fixture():Deck{
@@ -150,4 +152,33 @@ test('alpha table inks and legacy chart labels materialize valid portable colors
   for(const value of [p.headerText,p.line,...p.cellStyles.flatMap(cell=>cell.color?[cell.color]:[])])assert.match(value,/^#[\da-f]{6}$/i);
   assert.ok(contrastRatio(chartFromElement(find(dark,'legacy-chart')).textColor,dark.slides[0].background)>=4.5);
   assert.deepEqual(mode(dark,'background').slides[0].elements,deck.slides[0].elements);
+});
+
+test('automatic shape labels contrast against the composited surface and restore missing or empty style containers',()=>{
+  for(const shape of ['rect','ellipse','diamond'] as const)for(const fill of ['transparent','#ffffff40','#060b0880','#ffffff'])for(const opacity of [1,.8])for(const shapeText of [undefined,{}]){
+    const slide=blankSlide();slide.backgroundStyle='background';
+    const original=element(shape,{id:'label',text:'Automatic label',fill,opacity,...(shapeText?{shapeText}:{}),x:100,y:100,w:400,h:120});slide.elements=[original];
+    const deck={...newDeck('Automatic label',[slide]),designSystem:structuredClone(system)},before=structuredClone(deck),dark=mode(deck,'dark'),e=find(dark,'label');
+    const inner=compositeColor(e.fill,dark.slides[0].background),back=compositeColor(inner,dark.slides[0].background,opacity);
+    const visible=compositeColor(compositeColor(shapeTextElement(e).fill,inner),dark.slides[0].background,opacity);
+    assert(contrastRatio(visible,back)>=4.5,JSON.stringify({shape,fill,opacity,color:shapeTextElement(e).fill,ratio:contrastRatio(visible,back)}));
+    const persisted=validateDeck(JSON.parse(JSON.stringify(dark)));assert.deepEqual(mode(persisted,'background').slides[0].elements,deck.slides[0].elements);assert.deepEqual(deck,before);
+  }
+});
+test('connector text uses its painted slide-background label rather than a card or the line contrast target',()=>{
+  const slide=blankSlide();slide.backgroundStyle='background';slide.elements=[element('rect',{fill:'#ffffff',x:0,y:0,w:800,h:500,locked:true}),element('line',{id:'connector',text:'Connector label',x:50,y:150,w:600,h:1,stroke:'#111111',strokeWidth:2})];
+  const deck={...newDeck('Connector label',[slide]),designSystem:structuredClone(system)},dark=mode(deck,'dark'),e=find(dark,'connector');
+  assert.equal(e.stroke,'#111111');assert(contrastRatio(shapeTextElement(e).fill,dark.slides[0].background)>=4.5);assert.deepEqual(mode(dark,'background').slides[0].elements,deck.slides[0].elements);
+});
+test('manual label color and alignment edits survive reversible generated automatic colors',()=>{
+  const slide=blankSlide();slide.backgroundStyle='background';slide.elements=[element('rect',{id:'label',fill:'transparent',text:'Editable label'})];
+  const deck={...newDeck('Label edits',[slide]),designSystem:structuredClone(system)},dark=mode(deck,'dark');assert.ok(find(dark,'label').contrastColors?.['shapeText.color']?.created);
+  const custom=applyOperations(dark,[{op:'update_element',slideId:slide.id,elementId:'label',patch:{shapeText:{color:'#654321',align:'right'}}}]);
+  assert.equal(find(mode(custom,'background'),'label').shapeText?.color,'#654321');assert.equal(find(mode(custom,'background'),'label').shapeText?.align,'right');
+  const aligned=applyOperations(dark,[{op:'update_element',slideId:slide.id,elementId:'label',patch:{shapeText:{...find(dark,'label').shapeText,align:'right'}}}]);
+  assert.deepEqual(find(mode(aligned,'background'),'label').shapeText,{align:'right'});
+});
+test('automatic label fixes preserve invisible, protected and unknown photographic backings',()=>{
+  const slide=blankSlide();slide.backgroundStyle='background';slide.elements=[element('rect',{id:'locked-label',fill:'transparent',text:'Locked',locked:true,x:10,y:10,w:200,h:100}),element('rect',{id:'source-label',fill:'transparent',text:'Source',sourceId:'source',x:400,y:10,w:200,h:100}),element('rect',{id:'invisible-label',fill:'transparent',text:'Invisible',opacity:0,x:10,y:150,w:200,h:100}),element('image',{x:400,y:150,w:200,h:100,src:'data:image/png;base64,aA=='}),element('rect',{id:'photo-label',fill:'transparent',text:'Unknown photo',x:400,y:150,w:200,h:100})];
+  const deck={...newDeck('Protected label',[slide]),designSystem:structuredClone(system)},dark=mode(deck,'dark');for(const id of ['locked-label','source-label','invisible-label','photo-label'])assert.deepEqual(find(dark,id),find(deck,id));
 });

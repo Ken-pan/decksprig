@@ -27,7 +27,7 @@ export function createTextMeasurer(stack: (family: string) => string = fontStack
     const e = {...original, ...scaledTextStyle(original, size)};
     host.style.cssText = `position:fixed;left:-100000px;top:0;visibility:hidden;pointer-events:none;box-sizing:border-box;overflow:hidden;height:0;width:${Math.max(1, width)}px;${textBoxStyle(e)}justify-content:flex-start;overflow-wrap:break-word;font-family:${stack(e.fontFamily)};font-size:${size}px;font-weight:${e.fontWeight};font-style:${e.italic ? 'italic' : 'normal'};line-height:${e.lineHeight};letter-spacing:${e.letterSpacing}px;`;
     flow.style.cssText = 'width:100%;flex-shrink:0;'; flow.replaceChildren();
-    const span = (run: NonNullable<SlideElement['runs']>[number]) => {const node = document.createElement('span'); node.textContent = run.text; node.style.cssText = runStyle(run); return node;};
+    const span = (run: NonNullable<SlideElement['runs']>[number]) => {const node = document.createElement('span'); node.textContent = run.text; node.style.cssText = runStyle(run,e); return node;};
     if (e.paragraphs?.length) for (const p of e.paragraphs) {
       const paragraph = document.createElement('div'); paragraph.style.cssText = paragraphStyle(p, e);
       if (p.bullet) {const bullet = document.createElement('span'); bullet.textContent = `${p.bullet} `; paragraph.append(bullet);}

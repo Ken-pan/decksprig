@@ -3,12 +3,13 @@
   import { notificationUI } from '../notification-ui.svelte';
   import { notificationDuration, notificationLifetime } from '../notification-lifetime';
   import { uiPresence } from '../ui-motion';
-  import { positionNotification } from '../notification-position';
+  import { positionNotification, positionDialogNotification } from '../notification-position';
+  import { restoreFocus } from '../ui-focus';
   import { Button } from './ui';
   import Notice from './ui/Notice.svelte';
   let {kind, owner}: {kind: 'feedback' | 'toast'; owner?: HTMLDialogElement} = $props();
   const active = $derived(owner ? notificationUI.dialog === owner : kind === 'feedback' || !notificationUI.dialog);
-  function placement(node:HTMLElement) { if(!owner)return positionNotification(node); }
+  function placement(node:HTMLElement) { return owner?positionDialogNotification(node,owner):positionNotification(node); }
   const lifetime=$derived.by(()=>{
     const id=editor.noticeSequence;
     return {id,duration:notificationUI.busy?0:notificationDuration(editor.noticeTone,editor.notice),dismiss:()=>{if(editor.noticeSequence===id&&!notificationUI.busy)editor.notice='';}};
@@ -33,7 +34,7 @@
     {/if}
     {#if editor.saveFailed && editor.dirty}
       <Notice tone="error" title="Changes not saved" message={editor.error || 'Saving did not finish.'} detail="Save or export a copy before leaving.">
-        {#snippet actions()}<Button variant="secondary" busy={editor.saving} disabled={Boolean(notificationUI.busy)} onclick={()=>editor.flush()}>Retry save</Button><Button variant="quiet" disabled={Boolean(notificationUI.busy)} onclick={notificationUI.exportCopy}>Export a copy</Button>{/snippet}
+        {#snippet actions()}<Button variant="secondary" busy={editor.saving} disabled={Boolean(notificationUI.busy)} onclick={async()=>{await editor.flush();if(document.activeElement===document.body)restoreFocus();}}>Retry save</Button><Button variant="quiet" disabled={Boolean(notificationUI.busy)} onclick={notificationUI.exportCopy}>Export a copy</Button>{/snippet}
       </Notice>
     {:else if editor.error}<Notice tone="error" title="Action could not finish" message={editor.error} ondismiss={()=>editor.error=''} dismissLabel="Dismiss error"/>{/if}
     {#if notificationUI.error && notificationUI.error !== editor.error}<Notice tone="error" title="Action could not finish" message={notificationUI.error} ondismiss={notificationUI.dismissError} dismissLabel="Dismiss error"/>{/if}

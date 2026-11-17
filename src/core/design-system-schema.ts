@@ -8,15 +8,15 @@ export type TextRole = typeof TEXT_ROLES[number];
 export type TypeProperty = typeof TYPE_PROPERTIES[number];
 const color = z.string().check(z.regex(/^#[\da-fA-F]{6}$/));
 export const TypeStyleSchema = z.strictObject({
-  fontFamily: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)).check(z.regex(/^[^";{}<>\\]+$/)),
-  fontSize: z.number().check(z.minimum(4)).check(z.maximum(200)), fontWeight: z.number().check(z.int()).check(z.minimum(100)).check(z.maximum(900)),
-  lineHeight: z.number().check(z.minimum(.5)).check(z.maximum(4)), letterSpacing: z.number().check(z.minimum(-30)).check(z.maximum(50)),
+  fontFamily: z.string().check(z.trim()).check(z.minLength(1),z.maxLength(100)).check(z.regex(/^[^";{}<>\\]+$/)),
+  fontSize: z.number().check(z.minimum(4),z.maximum(200)), fontWeight: z.number().check(z.int(),z.minimum(100),z.maximum(900)),
+  lineHeight: z.number().check(z.minimum(.5),z.maximum(4)), letterSpacing: z.number().check(z.minimum(-30),z.maximum(50)),
 });
 export const DesignSystemSchema = z.strictObject({
-  name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
+  name: z.string().check(z.trim()).check(z.minLength(1),z.maxLength(80)),
   colors: z.strictObject({background:color,ink:color,muted:color,accent:color,surface:color,line:color,dark:color,onDark:color}),
   typography: z.strictObject({title:TypeStyleSchema,heading:TypeStyleSchema,body:TypeStyleSchema,caption:TypeStyleSchema}),
-  pattern: z.strictObject({kind:z.enum(['none','dots','grid']),spacing:z.number().check(z.minimum(12)).check(z.maximum(160)),opacity:z.number().check(z.minimum(0)).check(z.maximum(.3))}),
+  pattern: z.strictObject({kind:z.enum(['none','dots','grid']),spacing:z.number().check(z.minimum(12),z.maximum(160)),opacity:z.number().check(z.minimum(0),z.maximum(.3))}),
 });
 export const StyleBindingSchema = z.strictObject({
   text: z.optional(z.enum(TEXT_ROLES)), textScale: z.optional(z.number().check(z.gt(0)).check(z.maximum(30))),

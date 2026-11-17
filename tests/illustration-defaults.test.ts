@@ -1,3 +1,4 @@
+import {ICON_SETS} from '../src/core/resources';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -69,7 +70,7 @@ test('browser catalog compatibility and resource rendering match the local trans
   const oldFetch=globalThis.fetch,oldReader=globalThis.FileReader;
   class Reader{result='';error=null;onload?:()=>void;onerror?:()=>void;readAsDataURL(blob:Blob){void blob.arrayBuffer().then(data=>{this.result=`data:${blob.type};base64,${Buffer.from(data).toString('base64')}`;this.onload?.();});}}
   globalThis.FileReader=Reader as unknown as typeof FileReader;
-  globalThis.fetch=async input=>{const path=String(input);if(path==='/resources/catalog.json')return Response.json({items,catalog:{},icons:{}});assert(path.startsWith('/resources/illlustrations/'));return new Response(await readFile('public'+path),{headers:{'Content-Type':path.endsWith('.svg')?'image/svg+xml':'image/png'}});};
+  globalThis.fetch=async input=>{const path=String(input);if(path==='/resources/catalog.json')return Response.json({items,catalog:{iconCount:0,illustrationCount:items.length,collections:[]},icons:Object.fromEntries(ICON_SETS.map(({id})=>[id,{author:'QA fixture',license:'MIT',licenseUrl:'https://example.invalid/license',notice:'Synthetic illustration fixture notice'}]))});assert(path.startsWith('/resources/illlustrations/'));return new Response(await readFile('public'+path),{headers:{'Content-Type':path.endsWith('.svg')?'image/svg+xml':'image/png'}});};
   try{const {browserResourceJson}=await import('../src/core/web/resources');const page=await browserResourceJson('/api/resources/search',new URLSearchParams({kind:'illustration',view:'illustrations'}),'GET',{});assert(page.items.every((i:{colorable?:boolean})=>i.colorable));
     for(const item of items){const local=await embedded(item.id,'#7652b5'),web=await browserResourceJson('/api/resources/import',new URLSearchParams(),'POST',{id:item.id,color:'#7652b5'});assert.equal(web.resource.color,local.resource.color);assert.equal(web.src,local.src);}
   }finally{globalThis.fetch=oldFetch;globalThis.FileReader=oldReader;}

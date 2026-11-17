@@ -1,0 +1,98 @@
+/* File navigation and delivery belong to their sidebars, leaving the canvas full height. */
+.workspace { --navigation-height:max(56px,calc(1.4rem + 32px)); }
+.document-navigation,.workspace-tools { position:absolute; top:0; z-index:42; display:flex; align-items:center; gap:0; min-width:0; height:var(--navigation-height); padding:8px 12px; box-sizing:border-box; background:var(--surface-chrome); }
+.document-navigation { left:0; width:var(--ui-rail-width); --brand-mark-color:light-dark(#000000,#ffffff); }
+.workspace-tools { right:0; width:var(--ui-panel-width); justify-content:flex-end; gap:4px; border-bottom:1px solid var(--border-subtle); }
+.workspace-tools .editing-panel-picker > button { flex:none; white-space:nowrap; }
+/* Keep the named panel picker inside its panel when text grows. Present keeps
+   its accessible name and tooltip in the compact icon treatment. */
+@media(min-width:761px) {
+ .workspace:not(.right-hidden)>.workspace-tools { container:workspace-actions / inline-size; }
+ @container workspace-actions (max-width:15.5rem) {
+  .workspace-tools .present-entry > span { display:none; }
+  .workspace-tools .present-entry { min-width:36px; padding-inline:8px; }
+ }
+}
+/* Touch targets retain 44px without pushing the panel picker over its edge. */
+@media(min-width:761px) and (any-pointer:coarse) {
+ .workspace-tools { padding-inline:4px; gap:0; }
+ @container workspace-actions (max-width:16.5rem) {
+  .workspace-tools .present-entry > span { display:none; }
+  .workspace-tools .present-entry { min-width:44px; padding-inline:8px; }
+ }
+}
+.document-navigation .brand-button { width:32px; min-width:32px; flex:none; padding:0; }
+.document-navigation .brand-mark { width:18px; height:18px; mask-image:var(--brand-header-logo); }
+.document-navigation .brand-type { display:none; }
+.document-controls { display:flex; align-items:center; gap:2px; flex:1; min-width:0; }
+.document-title-field { position:relative; flex:1; min-width:0; min-height:max(36px,calc(1lh + 16px)); }
+.document-title-field,.document-name { font-size:var(--ui-text); font-weight:var(--ui-weight-medium); line-height:var(--ui-line-control); }
+.document-title-size { display:block; visibility:hidden; white-space:pre; overflow:hidden; padding:4px 6px; border:1px solid transparent; }
+.document-title-field>.document-name { position:absolute; inset:0; width:100%; height:100%; min-width:0; max-width:none; padding-inline:4px; text-overflow:ellipsis; }
+.document-controls>.ui-action-menu-trigger>button { min-width:28px; padding-inline:4px; }
+.rail-content,.property-content { box-sizing:border-box; padding-top:var(--navigation-height); }
+.workspace.left-hidden>.document-navigation,.workspace.right-hidden>.workspace-tools { top:8px; height:auto; padding:4px; border:1px solid var(--border-subtle); border-radius:var(--r-popover); box-shadow:var(--shadow-floating); }
+.workspace.left-hidden>.document-navigation { left:8px; width:min(320px,calc(100% - 208px)); }
+.workspace.right-hidden>.workspace-tools { right:8px; width:auto; }
+.workspace:is(.left-hidden,.right-hidden) .stage-column { padding-top:calc(var(--navigation-height) + 16px); }
+.canvas-focused .workspace>:is(.document-navigation,.workspace-tools) { display:none; }
+.canvas-focused .workspace .stage-column { padding-top:0; }
+.welcome-workspace .workspace>.document-navigation { width:auto; }
+.welcome-workspace .document-navigation .brand-type { display:flex; }
+.welcome-workspace .document-navigation .brand-button { width:auto; padding-inline:8px; }
+.welcome-workspace .workspace>:is(.document-navigation,.workspace-tools) { background:transparent; border-color:transparent; box-shadow:none; }
+@media(max-width:1100px) {
+ .workspace>.document-navigation { left:8px; top:8px; width:min(320px,calc(100% - var(--ui-panel-width) - 24px)); height:auto; padding:4px; border:1px solid var(--border-subtle); border-radius:var(--r-popover); box-shadow:var(--shadow-floating); }
+ .workspace .stage-column { padding-top:calc(var(--navigation-height) + 16px); }
+ .workspace .rail-content { padding-top:0; }
+}
+@media(max-width:760px),(any-pointer:coarse) {
+ .workspace { --navigation-height:max(64px,calc(1.4rem + 32px)); }
+ .document-navigation .brand-button,.document-controls>.ui-action-menu-trigger>button { min-width:44px; min-height:44px; }
+ .document-title-field { min-height:44px; }
+ .document-name { font-size:16px; }
+ .workspace-tools button { min-width:44px; min-height:44px; }
+}
+@media(max-width:760px) {
+ .workspace>.document-navigation,.workspace.left-hidden>.document-navigation { width:calc(100% - max(144px,calc(3.5rem + 84px))); }
+ .workspace>.workspace-tools { top:8px; right:8px; width:auto; height:auto; padding:4px; gap:0; border:1px solid var(--border-subtle); border-radius:var(--r-popover); box-shadow:var(--shadow-floating); }
+ .workspace .property-content { padding-top:0; }
+ .workspace.right-hidden .property-panel,.workspace.inspector-expanded>:is(.document-navigation,.workspace-tools) { display:none; }
+ .workspace-tools .present-entry { padding-inline:8px; }
+ .workspace-tools .present-entry>svg { display:none; }
+ .document-controls { gap:0; }
+ .document-title-size,.document-title-field>.document-name { padding-inline:4px; }
+}
+
+/* Page numbers sit on the artwork, leaving the rail height to the previews. */
+.workspace .slide-list { padding-inline:8px; gap:12px; }
+.workspace .slide-thumb { grid-template-columns:minmax(0,1fr); gap:0; padding:4px; border-radius:var(--r-control); }
+/* Mark the page on its chrome, so authored artwork cannot hide its state. */
+.workspace .slide-thumb.current .thumb-image { outline:none; }
+.workspace .slide-thumb:is(.current,.slide-selected) { outline:2px solid var(--accent-line); outline-offset:-2px; }
+.workspace .slide-thumb.slide-selected:not(.current) { outline:1px solid var(--text-secondary); outline-offset:-1px; }
+:root .workspace .slide-thumb:focus-visible { outline:3px solid var(--accent-line); outline-offset:-3px; }
+@media(hover:hover) and (pointer:fine) {
+ .workspace .slide-thumb:not(.slide-selected):hover { background:var(--state-hover); }
+}
+@media(forced-colors:active) {
+ .workspace .slide-thumb:is(.current,.slide-selected,:focus-visible) { outline-color:Highlight; }
+}
+.workspace .slide-thumb .thumb-number { position:absolute; z-index:1; left:6px; bottom:6px; display:grid; place-items:center; min-width:22px; min-height:18px; padding:0 4px; border-radius:var(--radius-sm); background:rgb(0 0 0 / 66%); color:#fff; line-height:var(--ui-line-control); pointer-events:none; }
+@media(hover:hover) and (not (any-pointer:coarse)) {
+ .slide-thumb:not(:hover,:focus-visible) > .thumb-number { opacity:0; }
+}
+.workspace .thumb-selection-mark { left:8px; }
+.workspace .thumb-hidden-mark { top:8px; bottom:auto; }
+@media(min-width:1101px) {
+ .workspace .rail-head { padding-inline:12px; }
+ .workspace .rail-foot { padding-inline:8px; }
+ .workspace .slide-thumb.drop-before::before,.workspace .slide-thumb.drop-after::after { left:2px; right:2px; }
+}
+@media(max-width:1100px) {
+ .workspace .slide-list { padding-block:8px; gap:8px; }
+ .workspace .slide-thumb { width:120px; }
+}
+@media(forced-colors:active) {
+ .workspace .slide-thumb .thumb-number { background:CanvasText; color:Canvas; forced-color-adjust:none; }
+}

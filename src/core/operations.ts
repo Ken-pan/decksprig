@@ -1,3 +1,5 @@
+import {reconcileTableText} from './table-rich-text';
+import {fontFamilyKey,sameFontFamily} from './font-stack';
 import {patchSchema} from './patch-schema';
 import {isBlockSizingFrame} from './block-frame';
 import {adaptSlideColors} from './slide-colors';
@@ -18,11 +20,11 @@ import {continueChart} from './chart-continuation';
 import {templateChartCaption} from './chart-caption';
 import {formatChartValue} from './chart-format';
 import {isShape} from './shapes';
-import {createRevisionValidator} from './document-revision';
+import {createRevisionValidator,isOwnedDocumentData} from './document-revision';
 
 const patch = z.extend(patchSchema(z.omit(ElementSchema, {id: true, type: true})), {type:z.optional(ElementSchema.shape.type)});
 export const OperationSchema = z.discriminatedUnion('op', [
-  z.strictObject({op: z.literal('set_page_elements'), settings: PageElementsSchema, slideIds: z.optional(z.array(z.string()).check(z.minLength(1)).check(z.maxLength(500)))}),
+  z.strictObject({op: z.literal('set_page_elements'), settings: PageElementsSchema, slideIds: z.optional(z.array(z.string()).check(z.minLength(1),z.maxLength(500)))}),
   z.strictObject({op: z.literal('update_element'), slideId: z.string(), elementId: z.string(), patch, unset:z.optional(z.array(z.enum(['crop','resource'])).check(z.maxLength(2)))}),
   z.strictObject({op: z.literal('add_element'), slideId: z.string(), element: ElementSchema}),
   z.strictObject({op: z.literal('delete_element'), slideId: z.string(), elementId: z.string()}),
@@ -35,7 +37,7 @@ export const OperationSchema = z.discriminatedUnion('op', [
   z.strictObject({op: z.literal('add_slide'), slide: SlideSchema, afterId: z.optional(z.string()), templateCollection: DeckSchema.shape.templateCollection}),
   z.strictObject({op: z.literal('delete_slide'), slideId: z.string()}),
   z.strictObject({op: z.literal('reorder_slides'), ids: z.array(z.string())}),
-  z.strictObject({op: z.literal('rename_deck'), title: z.string().check(z.minLength(1)).check(z.maxLength(300))}),
+  z.strictObject({op: z.literal('rename_deck'), title: z.string().check(z.minLength(1),z.maxLength(300))}),
   z.strictObject({op: z.literal('set_illustration_accent'), color: z.string().check(z.regex(/^#[\da-fA-F]{6}$/))}),
   z.strictObject({op:z.literal('set_design_system'),system:DesignSystemSchema,adopt:z.optional(z.boolean()),templateCollection:DeckSchema.shape.templateCollection}),
   z.strictObject({op: z.literal('register_local_font'), font: DocumentFontSchema}),
@@ -43,9 +45,9 @@ export const OperationSchema = z.discriminatedUnion('op', [
 ]);
 export type Operation = z.infer<typeof OperationSchema>;
 export const ProposalSchema = z.strictObject({
-  baseRevision: z.number().check(z.int()).check(z.minimum(0)), summary: z.string().check(z.maxLength(3000)),
-  operations: z.array(OperationSchema).check(z.minLength(1)).check(z.maxLength(1000)),
-  reviewWarnings:z.optional(z.array(z.strictObject({slide:z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(3000)),problem:z.string().check(z.maxLength(1000)),evidence:z.string().check(z.maxLength(600))})).check(z.maxLength(30))),
+  baseRevision: z.number().check(z.int(),z.minimum(0)), summary: z.string().check(z.maxLength(3000)),
+  operations: z.array(OperationSchema).check(z.minLength(1),z.maxLength(1000)),
+  reviewWarnings:z.optional(z.array(z.strictObject({slide:z.number().check(z.int(),z.minimum(1),z.maximum(3000)),problem:z.string().check(z.maxLength(1000)),evidence:z.string().check(z.maxLength(600))})).check(z.maxLength(30))),
 });
 export type Proposal = z.infer<typeof ProposalSchema>;
 function reorder<T extends {id: string}>(items: T[], ids: string[]): T[] {
@@ -59,9 +61,9 @@ export function applyOperations(deck: Deck, operations: Operation[], baseRevisio
 /** Editor-owned history shares frozen canonical pages; mutable SDK results stay independent. */
 export function applyImmutableOperations(deck: Deck, operations: Operation[], baseRevision = deck.revision, actor: 'manual' | 'ai' = 'manual', measure: TextSizeMeasure = browserTextSize): Deck {
   const validator = createRevisionValidator(deck);
-  return executeOperations(validator.base, operations, baseRevision, actor, measure, validator.assert, validator.validate);
+  return executeOperations(validator.base, operations, baseRevision, actor, measure, validator.assert, validator.validate,true);
 }
-function executeOperations(deck: Deck, operations: Operation[], baseRevision: number, actor: 'manual' | 'ai', measure: TextSizeMeasure, assert: (deck: Deck) => void, validate: (deck: Deck) => Deck): Deck {
+function executeOperations(deck: Deck, operations: Operation[], baseRevision: number, actor: 'manual' | 'ai', measure: TextSizeMeasure, assert: (deck: Deck) => void, validate: (deck: Deck) => Deck, immutable=false): Deck {
   if (baseRevision !== deck.revision) throw new Error('The document has changed. Generate a new proposal from the current version.');
   // Copy only containers that an operation will modify. The final full-document
   // validator still owns schema/global invariants and returns independent data.
@@ -101,9 +103,9 @@ function executeOperations(deck: Deck, operations: Operation[], baseRevision: nu
       continue;
     }
     if (op.op === 'set_illustration_accent') { next.illustrationAccent = op.color; continue; }
-    if (op.op === 'register_local_font') { next.fonts = [...(next.fonts || []).filter(f=>!(f.family===op.font.family&&f.weight===op.font.weight&&f.style===op.font.style)),op.font]; continue; }
+    if (op.op === 'register_local_font') { next.fonts = [...(next.fonts || []).filter(f=>!(sameFontFamily(f.family,op.font.family)&&f.weight===op.font.weight&&f.style===op.font.style)),op.font]; continue; }
     if (op.op === 'register_online_font') {
-      next.onlineFonts = [...(next.onlineFonts ?? []).filter(f => f.family !== op.font.family), op.font];
+      next.onlineFonts = [...(next.onlineFonts ?? []).filter(f => fontFamilyKey(f.family) !== fontFamilyKey(op.font.family)), op.font];
       continue;
     }
     if (op.op === 'reorder_slides') { next.slides = reorder(next.slides, op.ids); continue; }
@@ -159,6 +161,17 @@ function executeOperations(deck: Deck, operations: Operation[], baseRevision: nu
       next.slides = next.slides.filter(s => s.id !== op.slideId); continue;
     }
     if (op.op === 'update_slide') {
+      const t=op.patch.transition,prior=slide.transition;
+      // Retiming a native projection must not discard its direction/delay.
+      // Keep the full native validator in the deferred integration/player code.
+      if(t&&prior?.native&&(!t.native||t.native===prior.native))try{
+        const data=JSON.parse(prior.native),p=data.projection;
+        if(data.provider==='Figma'&&p.effect===prior.effect&&p.duration===prior.duration&&p.easing===prior.easing&&t.effect===prior.effect){
+          if(t.duration!==prior.duration)data.transition.duration=t.duration/1000;
+          if(t.easing!==prior.easing)data.transition.curve=t.easing==='linear'?'LINEAR':'EASE_IN_AND_OUT';
+          data.projection={effect:t.effect,duration:t.duration,easing:t.easing};op.patch.transition={...t,native:JSON.stringify(data)};
+        }else if(t.effect!==prior.effect)op.patch.transition={...t,native:undefined};
+      }catch{/* Invalid source metadata stays subject to the native validator. */}
       if(op.patch.background!==undefined&&op.patch.backgroundStyle===undefined){delete slide.backgroundStyle;slide.elements=slide.elements.filter(e=>!e.designPattern);}
       Object.assign(slide, op.patch);
       if(op.patch.backgroundStyle==='dark')slide.adaptiveColors=true;
@@ -173,7 +186,9 @@ function executeOperations(deck: Deck, operations: Operation[], baseRevision: nu
     if (op.op === 'add_element') { slide.elements.push(op.element); resize.add(op.element.id); continue; }
     const elementIndex = slide.elements.findIndex(e => e.id === op.elementId);
     if (elementIndex < 0) throw new Error('Element no longer exists');
-    const e = cloneDocumentData(slide.elements[elementIndex]);
+    const previous=slide.elements[elementIndex];
+    const geometryOnly=immutable&&op.op==='update_element'&&!op.unset?.length&&isOwnedDocumentData(previous)&&Object.keys(op.patch).every(key=>['x','y','rotation','flipX','flipY'].includes(key));
+    const e = geometryOnly?{...previous}:cloneDocumentData(previous);
     slide.elements[elementIndex] = e;
     if (op.op === 'update_element' && op.patch.prototype && e.type !== 'prototype') throw new Error('Only prototype objects support embed links.');
     if(op.op==='update_element'&&op.patch.type){
@@ -186,7 +201,11 @@ function executeOperations(deck: Deck, operations: Operation[], baseRevision: nu
     else {
       const binding=styleOverrides(e,op.patch);if(binding)e.design=binding;
       op.patch = manualTextSizing(e, manualLayoutSizing(e, op.patch));
-      if (Object.keys(op.patch).some(k => ['text', 'textSizing', 'w', 'h', 'fontFamily', 'fontSize', 'fontWeight', 'italic', 'lineHeight', 'letterSpacing', 'padding', 'runs', 'paragraphs', 'wrap', 'maxLines'].includes(k))) resize.add(e.id);
+      // Legacy snapshots predate this policy in their geometry fingerprint.
+      // Invalidate only an explicit change; retain the imported font metrics.
+      const edgePolicy='paragraphSpacingAtEdges',native=e.nativeTextLayout;
+      if(native&&edgePolicy in op.patch&&op.patch[edgePolicy]!==e[edgePolicy])native.fingerprint='';
+      if (Object.keys(op.patch).some(k => ['text', 'textSizing', 'w', 'h', 'fontFamily', 'fontSize', 'fontWeight', 'italic', 'lineHeight', 'letterSpacing', 'padding', 'runs', 'paragraphs', 'wrap', 'maxLines', 'textCase', edgePolicy].includes(k))) resize.add(e.id);
       if (op.patch.text !== undefined && !op.patch.paragraphs && !op.patch.runs) { const preserved=editedTextStyle(e,op.patch.text);Object.assign(e,preserved);if(preserved.text!==undefined)op.patch.text=preserved.text; }
       if (op.patch.runs && !op.patch.paragraphs) delete e.paragraphs;
       if (op.patch.fontSize !== undefined && op.patch.fontSize !== e.fontSize) {
@@ -195,9 +214,22 @@ function executeOperations(deck: Deck, operations: Operation[], baseRevision: nu
         for (const p of e.paragraphs ?? []) if (p.lineSpacing) p.lineSpacing *= ratio;
       }
       if (op.patch.fontFamily !== undefined) for (const r of [...(e.runs ?? []), ...(e.paragraphs?.flatMap(p => p.runs) ?? [])]) r.fontFamily = op.patch.fontFamily;
+      // Imported tables retain mixed cell fonts. Whole-table sizing follows
+      // the same proportional behavior as text runs; an explicit tableStyle
+      // patch already owns its own values and must never be scaled twice.
+      if(e.type==='table'&&e.tableStyle?.cellStyles&&op.patch.tableStyle===undefined&&(op.patch.fontSize!==undefined||op.patch.fontFamily!==undefined)){
+        const ratio=op.patch.fontSize===undefined?1:op.patch.fontSize/e.fontSize;
+        e.tableStyle={...e.tableStyle,cellStyles:e.tableStyle.cellStyles.map(cell=>({...cell,...(cell.fontSize!==undefined?{fontSize:cell.fontSize*ratio}:{}),...(cell.fontFamily!==undefined&&op.patch.fontFamily!==undefined?{fontFamily:op.patch.fontFamily}:{}),...(cell.runs?{runs:cell.runs.map(run=>({...run,...(run.fontSize!==undefined?{fontSize:run.fontSize*ratio}:{}),...(op.patch.fontFamily!==undefined?{fontFamily:op.patch.fontFamily}:{})}))}:{})}))};
+      }
+      if(e.type==='table'&&e.tableStyle&&op.patch.tableStyle===undefined){
+        if(op.patch.stroke!==undefined)e.tableStyle={...e.tableStyle,lineColor:op.patch.stroke,...(op.patch.stroke==='transparent'?{borders:'none' as const}:e.tableStyle.borders==='none'?{borders:'grid' as const}:{})};
+        if(op.patch.strokeWidth!==undefined)e.tableStyle={...e.tableStyle,borderWidth:op.patch.strokeWidth};
+        if((op.patch.stroke!==undefined||op.patch.strokeWidth!==undefined)&&e.tableStyle.cellStyles)e.tableStyle={...e.tableStyle,cellStyles:e.tableStyle.cellStyles.map(cell=>cell.edges?{...cell,edges:Object.fromEntries(Object.entries(cell.edges).map(([side,edge])=>[side,{...edge!,...(op.patch.stroke!==undefined?{color:op.patch.stroke}:{}),...(op.patch.strokeWidth!==undefined?{width:op.patch.strokeWidth}:{})}]))}:cell)};
+      }
       // Source dimensions belong to the old pixels, never to the frame.
       if(op.patch.src&&op.patch.src!==e.src)e.imageSize=op.patch.imageSize;
       Object.assign(e, op.patch);
+      if(e.type==='table'&&op.patch.cells!==undefined)e.tableStyle=reconcileTableText(e,e.cells??[]);
       for(const field of op.unset??[])e[field]=undefined;
       // A direct text edit becomes the field's new value, so numbering refresh
       // cannot silently overwrite the user's literal copy.

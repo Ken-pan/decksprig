@@ -1,3 +1,5 @@
+import {publicOrigin} from './public-origin.mjs';
+const origin=publicOrigin();
 import {mkdir,readFile,writeFile,cp} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {searchResources,resourceCatalog} from '../server/resources';
@@ -6,10 +8,8 @@ import {blueBlackLibrary} from '../server/blue-black';
 import {characterManifest} from '../server/characters';
 import {graphicLibrary,graphicItem} from '../server/deck-graphics';
 import {ICON_SETS,attributionText} from '../src/core/resources';
-import {publicOrigin} from './public-origin.mjs';
 
 const out=resolve(process.argv[2]||'output/web-editor/resources');
-const origin = publicOrigin();
 await mkdir(out,{recursive:true});
 const items=[];
 for(let page=1;;page++){

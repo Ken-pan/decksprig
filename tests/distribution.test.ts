@@ -4,6 +4,10 @@ import {mkdtemp, mkdir, readFile, writeFile, access, rm} from 'node:fs/promises'
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {createServer} from 'node:net';
+import {brotliCompressSync} from 'node:zlib';
+import {buildLocalRuntime} from '../scripts/build-local-runtime.mjs';
 import {runtimePublicAssets, writeRuntimeFontManifest} from '../scripts/public-assets.mjs';
 import {distributionOutput, exportSources, freshOutput} from '../scripts/distribution.mjs';
 
@@ -63,4 +67,55 @@ test('distribution staging refuses unrelated or existing destinations',async t=>
   assert.throws(()=>distributionOutput(join(root,'../output'),root),/output directory/);
   assert.equal(distributionOutput(join(root,'output/release'),root),join(root,'output/release'));
   await freshOutput(join(root,'output/release'));await assert.rejects(freshOutput(join(root,'output/release')),{code:'EEXIST'});
+});
+
+test('the packaged server boots outside the repository and serves only its frontend tree',async t=>{
+  const root=await mkdtemp(join(tmpdir(),'deck-standalone-'));
+  t.after(()=>rm(root,{recursive:true,force:true}));
+  const app=join(root,'app');
+  const html=Buffer.from('<!doctype html><title>Standalone editor</title>');
+  await put(app,'dist/index.html.stored.br',brotliCompressSync(html));
+  const resourceRoot='resources/blue-black-v1';
+  const illustration=JSON.parse(await readFile(join('public',resourceRoot,'manifest.json'),'utf8')).assets[0];
+  const png=await readFile(join('public',resourceRoot,illustration.file));
+  await put(app,join('dist',resourceRoot,illustration.file+'.stored.br'),brotliCompressSync(png));
+  await put(app,join('dist',resourceRoot,'manifest.json.stored.br'),brotliCompressSync(JSON.stringify({assets:[illustration]})));
+  await buildLocalRuntime(join(app,'runtime'));
+  const reservation=createServer();
+  await new Promise<void>(ok=>reservation.listen(0,'127.0.0.1',ok));
+  const port=(reservation.address() as {port:number}).port;
+  await new Promise<void>(ok=>reservation.close(()=>ok()));
+  const child=spawn(process.execPath,[join(app,'runtime','server.mjs')],{
+    cwd:root,env:{PATH:process.env.PATH,PORT:String(port)},stdio:['ignore','pipe','pipe'],
+  });
+  const done=new Promise<void>(ok=>child.once('close',()=>ok()));
+  try {
+    await new Promise<void>((ok,fail)=>{
+      const timer=setTimeout(()=>fail(new Error('Packaged server did not start.')),10_000);
+      child.stdout.on('data',data=>{if(data.toString().includes('127.0.0.1:'+port)){clearTimeout(timer);ok();}});
+      child.once('close',code=>{clearTimeout(timer);fail(new Error('Packaged server exited with status '+code));});
+    });
+    const origin='http://127.0.0.1:'+port;
+    const page=await fetch(origin);
+    assert.equal(page.status,200);
+    assert.deepEqual(Buffer.from(await page.arrayBuffer()),html);
+    const image=await fetch(origin+'/'+join(resourceRoot,illustration.file));
+    assert.equal(image.headers.get('Content-Type'),'image/png');
+    assert.deepEqual(Buffer.from(await image.arrayBuffer()),png);
+    const id='blue-black:'+illustration.id;
+    const preview=await fetch(origin+'/api/resources/preview?id='+encodeURIComponent(id)+'&color=%2335664d');
+    assert.equal(preview.status,200);
+    assert.equal(preview.headers.get('Content-Type'),'image/png');
+    await preview.arrayBuffer();
+    const restored=await fetch(origin+'/api/resources/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,color:'#2f5bff'})});
+    assert.equal(restored.status,200);
+    assert.equal((await restored.json()).src,'data:image/png;base64,'+png.toString('base64'));
+    assert.equal((await fetch(origin+'/runtime/server.mjs')).status,404);
+    assert.equal((await fetch(origin+'/.data/decks/private.json')).status,404);
+    assert.deepEqual(await (await fetch(origin+'/api/decks?view=summary')).json(),[]);
+    await access(join(app,'.data','decks'));
+  } finally {
+    child.kill();
+    await done;
+  }
 });

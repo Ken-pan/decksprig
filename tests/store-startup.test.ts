@@ -36,10 +36,24 @@ test('history summaries retain version order/content and still require a live do
 
 test('large chunked saves preserve source bytes/history and reject stale revisions before replacement',async()=>{
   const deck=newDeck('Large original',[blankSlide('Original')]);
-  deck.slides[0].elements=Array.from({length:8},()=>element('image',{src:'data:image/png;base64,'+'A'.repeat(300000)}));
+  deck.slides[0].elements=Array.from({length:8},()=>element('image',{src:'data:image/png;base64,'+'A'.repeat(600000)}));
   await store.saveDeck(deck,null);
   const changed=applyOperations(deck,[{op:'rename_deck',title:'Saved change'}]);await store.saveDeck(changed,0);
   assert.deepEqual(await store.readHistory(deck.id,0),deck);assert.deepEqual(await store.readDeck(deck.id),changed);
   await assert.rejects(store.saveDeck({...changed,revision:2},0),{status:409});
   assert.deepEqual(await store.readDeck(deck.id),changed);assert.deepEqual(await store.readHistory(deck.id,0),deck);
+});
+
+test('history lists cap numeric revisions, ignore unrelated lookalike names and refresh changed originals',async()=>{
+  const deck=newDeck('Current',[blankSlide()]);await store.saveDeck(deck,null);
+  for(let revision=0;revision<55;revision++)await writeFile(join(store.DATA,'history',`${deck.id}-${revision}.json`),JSON.stringify({...deck,title:`Version ${revision}`,revision}));
+  const lookalikes=['0001','9999999999999999999999999999','1.backup'];
+  for(const suffix of lookalikes)await writeFile(join(store.DATA,'history',`${deck.id}-${suffix}.json`),'preserved unrelated bytes');
+  const versions=await store.listHistory(deck.id);assert.equal(versions.length,50);assert.deepEqual(versions.map(v=>v.revision),Array.from({length:50},(_,i)=>54-i));
+  versions[0].title='Caller mutation';assert.equal((await store.listHistory(deck.id))[0].title,'Version 54');
+  await writeFile(join(store.DATA,'history',`${deck.id}-54.json`),JSON.stringify({...deck,title:'External history replacement',revision:999}));
+  const external=(await store.listHistory(deck.id))[0];assert.equal(external.title,'External history replacement');assert.equal(external.revision,54);
+  for(const suffix of lookalikes)assert.equal(await readFile(join(store.DATA,'history',`${deck.id}-${suffix}.json`),'utf8'),'preserved unrelated bytes');
+  const live=join(store.DATA,'decks',deck.id+'.json');await writeFile(live,'{corrupt live document');
+  await assert.rejects(store.listHistory(deck.id));await assert.rejects(store.readHistory(deck.id,54));
 });

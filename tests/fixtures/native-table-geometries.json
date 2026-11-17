@@ -1,0 +1,292 @@
+{
+  "source": "output/figma-three-core-20261025/table/five-actual-native-geometries.json",
+  "sourceSha256": "1123b2f600d27517ac90f312219c23fa0abf8db3189a9e82d41e8d73d8708795",
+  "capturedAt": "2026-10-25T16:28:44.505Z",
+  "tables": [
+    {
+      "id": "1:2",
+      "type": "TABLE",
+      "name": "Native merged TABLE transfer QA",
+      "width": 480,
+      "height": 128,
+      "numRows": 2,
+      "numColumns": 3,
+      "cells": [
+        [
+          {
+            "row": 0,
+            "column": 0,
+            "width": 320,
+            "height": 64,
+            "text": "A1"
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "C1"
+          }
+        ],
+        [
+          {
+            "row": 1,
+            "column": 0,
+            "width": 160,
+            "height": 64,
+            "text": "A2"
+          },
+          {
+            "row": 1,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": "B2"
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "C2"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "6:14",
+      "type": "TABLE",
+      "name": "Vertical A1:A2",
+      "width": 480,
+      "height": 128,
+      "numRows": 2,
+      "numColumns": 3,
+      "cells": [
+        [
+          {
+            "row": 0,
+            "column": 0,
+            "width": 160,
+            "height": 128,
+            "text": "V-A1"
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": "V-B1"
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "V-C1"
+          }
+        ],
+        [
+          {
+            "row": 1,
+            "column": 0,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 1,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": "V-B2"
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "V-C2"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "6:27",
+      "type": "TABLE",
+      "name": "Rectangle A1:B2",
+      "width": 480,
+      "height": 128,
+      "numRows": 2,
+      "numColumns": 3,
+      "cells": [
+        [
+          {
+            "row": 0,
+            "column": 0,
+            "width": 320,
+            "height": 128,
+            "text": "R-A1"
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "R-C1"
+          }
+        ],
+        [
+          {
+            "row": 1,
+            "column": 0,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 1,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "R-C2"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "6:40",
+      "type": "TABLE",
+      "name": "Full header A1:C1",
+      "width": 480,
+      "height": 128,
+      "numRows": 2,
+      "numColumns": 3,
+      "cells": [
+        [
+          {
+            "row": 0,
+            "column": 0,
+            "width": 480,
+            "height": 64,
+            "text": "H-A1"
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          }
+        ],
+        [
+          {
+            "row": 1,
+            "column": 0,
+            "width": 160,
+            "height": 64,
+            "text": "H-A2"
+          },
+          {
+            "row": 1,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": "H-B2"
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "H-C2"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "6:53",
+      "type": "TABLE",
+      "name": "Empty unmerged control",
+      "width": 480,
+      "height": 128,
+      "numRows": 2,
+      "numColumns": 3,
+      "cells": [
+        [
+          {
+            "row": 0,
+            "column": 0,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          }
+        ],
+        [
+          {
+            "row": 1,
+            "column": 0,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 1,
+            "column": 1,
+            "width": 160,
+            "height": 64,
+            "text": ""
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "width": 160,
+            "height": 64,
+            "text": "E-C2"
+          }
+        ]
+      ]
+    }
+  ]
+}

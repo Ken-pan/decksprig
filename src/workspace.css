@@ -1,28 +1,4 @@
 /* Workspace composition. Controls and dialog frames live in components/ui. */
-/* Quiet header groups share spacing and glyph geometry, including delivery. */
-.topbar-actions { display: flex; align-items: center; gap: 4px; }
-
-:is(.topbar-actions > button, .topbar-actions > div > button) > svg { width: 16px; height: 16px; }
-/* Size document navigation from its UI font, keeping the menu close to the title. */
-.document-controls { display: flex; align-items: center; gap: 2px; min-width: 0; }
-.document-title-field { position: relative; min-width: 0; min-height: max(36px, calc(1lh + 16px)); max-width: 300px; }
-.document-title-field, .topbar .document-name { font-size: var(--ui-body); font-weight: var(--ui-weight-semibold); line-height: var(--ui-line-control); }
-.document-title-size { display: block; visibility: hidden; white-space: pre; overflow: hidden; padding: 4px 6px; border: 1px solid transparent; }
-.document-title-field > .document-name { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; min-width: 0; padding-inline: 6px; }
-.document-controls > .ui-action-menu-trigger > button { min-width: 24px; padding-inline: 4px; }
-.topbar .save-state { margin-left: 4px; gap: 6px; flex: none; }
-@media (max-width: 760px) {
-  .topbar .present-entry { padding-inline: 8px; }
-  .topbar .present-entry > svg { display: none; }
-  .document-title-field { max-width: 140px; }
-  .document-title-size, .document-title-field > .document-name { padding-inline: 4px; }
-}
-@media (any-pointer: coarse) {
-  .topbar-actions { gap: 0; }
-  .document-title-field { min-width: 44px; min-height: 44px; }
-  .document-title-field, .topbar .document-name { font-size: 16px; }
-  .document-controls > .ui-action-menu-trigger > button { min-width: 44px; }
-}
 .resource-popover .ui-popover-body { overflow: hidden; padding: var(--popover-gutter); }
 @media (max-width: 760px) {
   .resource-library.compact .resource-grid.icon-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
@@ -43,8 +19,15 @@
 @media (max-width: 760px) { .insertion-status { gap: 8px; padding-left: 12px; bottom: 12px; font-size: var(--ui-meta); } .insertion-status > span { gap: 8px; } .insertion-status kbd { display: none; } .insertion-status .text-btn { min-height: 40px; } }
 .layer-row .icon-btn { opacity: 0; }
 .layer-row:is(:hover,:focus-within,.chosen) .icon-btn, .layer-row .icon-btn.layer-state { opacity: 1; }
-/* This edge belongs to the workspace shell, never the document or its export. */
-.stage-canvas { box-shadow: 0 0 0 1px var(--canvas-edge), var(--slide-shadow); }
+/* Soft elevation belongs to the workspace shell, never the document or export. */
+.stage-canvas { border-radius:var(--radius-md); box-shadow:var(--slide-shadow); }
+.stage-canvas>.canvas-wrap { border-radius:inherit; }
+.stage-canvas .slide-render { border-radius:calc(var(--radius-md) / var(--canvas-scale)); }
+/* Let the fitted page shadow fade across the footer seam. Editing overlays
+   stay outside the rounded artwork and manual zoom keeps its scrollport. */
+.canvas-stage:not(.manual-zoom):has(.stage-canvas) { overflow-clip-margin:48px; }
+.stage-column>.stage-footer { background:transparent; }
+@media(forced-colors:active) { .stage-canvas { outline:1px solid CanvasText; } }
 
 /* Focus preserves the same creation dock and keeps page navigation nearby. */
 .canvas-focused .stage-column { position: relative; }
@@ -88,23 +71,15 @@
 .task-preview-caption { position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--info-text); font-size: var(--ui-meta); pointer-events: none; }
 .editor-app[data-task='review'] .stage-canvas { outline: 1px solid var(--info); outline-offset: 4px; }
 @media (max-width: 760px) {
-  .workspace .property-panel[data-panel='ai'] { bottom: 8px; }
   .ai-review-actions button { min-height: 44px; }
 }
 
 
-/* Equal text tabs use a quiet underline along the panel's lower edge. */
-.editing-panel-header{display:flex;align-items:center;flex:none;border-bottom:1px solid var(--border-default)}
-.editing-panel-header>.panel-tabs{flex:1;min-width:0;border-bottom:0}
-.editing-panel-close{flex:none;width:44px;min-height:44px;margin-right:4px}
-.property-panel .panel-tabs{display:grid;grid-template-columns:repeat(3,minmax(min-content,1fr));height:auto;min-height:48px;align-items:stretch;padding:0 4px;gap:12px}
-.property-panel .panel-tabs>button{width:100%;min-width:0;min-height:48px;height:auto;padding:12px 0;border-radius:0;font-size:var(--ui-text);line-height:var(--ui-line-control);font-weight:var(--ui-weight-medium);-webkit-tap-highlight-color:transparent}
-.property-panel .panel-tabs>button.active{background:transparent;color:var(--text-primary);box-shadow:none;font-weight:var(--ui-weight-semibold)}
-.property-panel .panel-tabs>button.active::after{content:'';left:8px;right:8px;bottom:0;height:2px;border-radius:0;background:var(--text-primary)}
-.property-panel .panel-tabs>button:focus-visible{outline-offset:-2px}
-
-/* On short phone screens, properties can use the rail's space while open. */
-@media(max-width:760px) and (max-height:500px){.workspace .property-panel{bottom:8px}}
+/* A single picker keeps panel modes alongside the workspace utilities. */
+.editing-panel-header{display:flex;align-items:center;flex:none;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border-subtle)}
+.editing-panel-picker{margin-right:auto;min-width:0}
+.editing-panel-picker>button{gap:4px;padding-inline:8px;font-weight:var(--ui-weight-medium)}
+.editing-panel-close,.editing-panel-size{flex:none;width:44px;min-height:44px}
 
 /* Document navigation, stable creation tools, and selection properties have
    separate jobs. The dock shares a baseline with quiet canvas view utilities. */
@@ -117,19 +92,15 @@
 .canvas-utility-right { margin-left: auto; }
 .canvas-insert-dock {
   position: absolute; left: 50%; top: 50%; translate: -50% -50%; z-index: 35;
-  display: flex; align-items: center; width: max-content; max-width: calc(100% - 24px); padding: 8px;
+  display: flex; align-items: center; width: max-content; max-width: calc(100% - 24px); padding: 6px;
 }
 .canvas-insert-dock .insert-tools { display: flex; flex: none; align-items: center; gap: 4px; overflow: visible; }
 .canvas-insert-dock .insert-primary > button,
 .canvas-insert-dock .resource-tools > button,
-.canvas-insert-dock .ui-action-menu-trigger > button { width: 44px; min-height: 44px; padding: 0; gap: 0; justify-content: center; }
+.canvas-insert-dock .ui-action-menu-trigger > button { width: 40px; min-height: 40px; padding: 0; gap: 0; justify-content: center; }
 .canvas-insert-dock :is(.dock-select, .text-entry, .draw-entry, .shape-entry, .line-entry, .resource-entry) > svg,
-.canvas-insert-dock .insert-secondary .icon-btn > svg { width: 20px; height: 20px; }
+.canvas-insert-dock .insert-secondary .icon-btn > svg { width: 18px; height: 18px; }
 .canvas-insert-dock .dock-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.canvas-meta:has(.canvas-version) { flex-wrap: wrap; justify-content: flex-start; gap: 8px 16px; }
-.canvas-meta > .canvas-version { margin-left: auto; pointer-events: auto; }
-.canvas-meta .canvas-version button { white-space: nowrap; }
-.canvas-viewport:has(.canvas-version) .canvas-stage { --canvas-top-space: 80px; }
 .source-caption, .task-preview-caption { gap: 12px; pointer-events: none; }
 .source-caption > span, .task-preview-caption > span { min-width: 0; }
 .source-caption button, .task-preview-caption button { pointer-events: auto; flex: none; }
@@ -138,7 +109,6 @@
   left: 0; right: 0; bottom: 0; translate: none; margin: 0; width: auto; max-width: none;
   border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 16px 24px;
 }
-.canvas-focused .canvas-viewport:has(.canvas-version) .canvas-stage { --canvas-top-space: 112px; }
 
 @container (max-width: 560px) {
   .stage-footer:has(.canvas-insert-dock) { min-height: 132px; align-items: flex-end; padding: 12px 16px; }
@@ -152,14 +122,13 @@
   .canvas-utility-left > .text-btn > span { display: none; }
   .canvas-utility-right .icon-btn, .canvas-utility-right .zoom-controls .ui-action-menu-trigger > button { min-width: 44px; min-height: 44px; }
   .canvas-utility-right { gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-  .canvas-meta > .canvas-version { flex: 0 0 auto; margin-left: auto; }
-  .canvas-viewport:has(.canvas-version) .canvas-stage { --canvas-top-space: 104px; }
   .source-caption, .task-preview-caption { align-items: center; gap: 8px; }
   .source-caption > svg, .task-preview-caption > svg { display: none; }
   .source-caption button, .task-preview-caption button { min-height: 44px; padding-inline: 8px; }
   .canvas-focused .stage-footer { padding-inline: 12px; }
 }
 @media (max-width: 760px), (pointer: coarse) {
+  .editing-panel-picker > button { min-height:44px; }
   .stage-footer:has(.canvas-insert-dock) { min-height: 144px; align-items: flex-end; padding-bottom: 12px; }
   .canvas-insert-dock { top: 12px; translate: -50% 0; }
   .canvas-insert-dock .insert-primary > button,
@@ -170,7 +139,6 @@
 
 }
 
-.editor-app.canvas-focused .topbar { display: none; }
 
 @media (max-width: 760px) {
   .canvas-focused .canvas-utility-right { flex-wrap: nowrap; }
@@ -191,8 +159,6 @@
 /* Compact precision controls on desktop; touch retains its larger hit areas. */
 @media(min-width:761px) and (pointer:fine){
   .property-panel select{height:auto;min-height:var(--property-control-height);padding-block:4px;font-size:var(--ui-label);line-height:var(--ui-line-control)}
-  .property-panel .panel-tabs{min-height:40px}
-  .property-panel .panel-tabs>button{min-height:40px;padding-block:8px}
   .property-panel .motion-controls select{min-height:var(--property-control-height);padding-block:4px}
 }
 

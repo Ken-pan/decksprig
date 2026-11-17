@@ -1,6 +1,7 @@
 import { jsonRequest } from './json-request';
 import type {Deck} from './model';
 import {packDocumentMedia} from './document-media-transport';
+import {documentMediaUpdate,type DocumentSaveReceipt,type SavedMediaBase} from './document-media-update';
 
 type Reply = {type: 'ready'} | {type: 'result'; id: number; value?: unknown; error?: string; status?: number};
 type Pending = {resolve: (value: any) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout>};
@@ -61,16 +62,16 @@ export class BackgroundDocumentSaver {
     return this.ready;
   }
 
-  async save<T = any>(url: string, body: unknown, fallback?: () => Promise<T>, method: 'PUT' | 'POST' = 'PUT', minimal = false): Promise<T> {
+  async save<T = any>(url: string, body: unknown, fallback?: () => Promise<T>, method: 'PUT' | 'POST' = 'PUT', minimal: boolean | 'receipt' = false): Promise<T> {
     clearTimeout(this.idleTimer);
-    if (!(await this.start())) return fallback?fallback():jsonRequest<T>(url,method,body,fetch,{minimal});
+    if (!(await this.start())) return fallback?fallback():jsonRequest<T>(url,method,body,fetch,{minimal,compact:true});
     clearTimeout(this.idleTimer);
     const worker = this.worker;
     if (!worker) throw new Error(this.failureMessage);
     const id = ++this.sequence;
     return new Promise<T>((resolve, reject) => {
-      // A dispatched write has an uncertain outcome if its worker never replies.
-      // Release the save flight, but never replay the write automatically.
+      // A worker or request that never replies must not hold the shared editor
+      // save flight forever. Its write outcome is uncertain: reject, never replay.
       const timer = setTimeout(() => this.failWorker?.(), this.requestTimeoutMs);
       this.pending.set(id, {resolve, reject, timer});
       try {
@@ -86,9 +87,19 @@ export class BackgroundDocumentSaver {
 }
 
 const saver = new BackgroundDocumentSaver();
-export function saveDocumentInBackground<T = any>(url: string, body: unknown, minimal = false): Promise<T> {
-  return saver.save<T>(url,body,undefined,'PUT',minimal);
+export async function saveDocumentInBackground(url: string, body: {deck: Deck; expectedRevision: number}, base?: SavedMediaBase): Promise<DocumentSaveReceipt | undefined> {
+  const update = base?.deck.revision === body.expectedRevision ? documentMediaUpdate(body.deck, base) : undefined;
+  if (update) {
+    try {
+      return await saver.save(url, {...body, deck: update}, undefined, 'PUT', 'receipt');
+    } catch (error) {
+      // Only an explicit precondition failure tells us no update was applied.
+      // Conflicts and uncertain writes keep the existing recovery behavior.
+      if ((error as {status?:number}).status !== 412) throw error;
+    }
+  }
+  return saver.save(url, body, undefined, 'PUT', 'receipt');
 }
-export function createDocumentInBackground<T = any>(url: string, body: unknown, minimal = false): Promise<T> {
+export function createDocumentInBackground<T = any>(url: string, body: unknown, minimal: boolean | 'receipt' = false): Promise<T> {
   return saver.save<T>(url,body,undefined,'POST',minimal);
 }

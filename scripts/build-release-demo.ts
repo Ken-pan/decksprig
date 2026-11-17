@@ -4,9 +4,9 @@ import {createAIBase, prepareStory, creationPreview} from '../src/core/ai-story-
 import {validateDeck} from '../src/core/model';
 
 // Authored demonstration content only; no AI call, client example or fake study.
-const brief = {brief:'Introduce Decksprig with real product behavior', audience:'People making presentations', slideCount:3, collection:'review' as const, materials:'No research claims or client content.'};
-const story = {title:'Decksprig · A short introduction', replaceBlank:true, slides:[
-  {layout:'cover', heading:'Decksprig', body:'Make room for your ideas.', notes:'A personal open-source slide editor by Ken Pan, built with Codex. This demonstration contains no customer or extracted portfolio material.'},
+const brief = {brief:'Introduce Deckleaf with real product behavior', audience:'People making presentations', slideCount:3, collection:'review' as const, materials:'No research claims or client content.'};
+const story = {title:'Deckleaf · A short introduction', replaceBlank:true, slides:[
+  {layout:'cover', heading:'Deckleaf', body:'Make room for your ideas.', notes:'A personal open-source slide editor by Ken Pan, built with Codex. This demonstration contains no customer or extracted portfolio material.'},
   {layout:'insights', heading:'Make changes with confidence', points:[
     {heading:'Edit',body:'Shape editable text, images, layouts and charts.'},
     {heading:'Review',body:'Preview AI suggestions before applying them.'},
@@ -20,7 +20,7 @@ const story = {title:'Decksprig · A short introduction', replaceBlank:true, sli
 ]};
 const base = await createAIBase('review');
 const operations = await prepareStory(base,story);
-const deck = creationPreview(base,{baseRevision:0,summary:'Authored Decksprig introduction',operations},brief);
+const deck = creationPreview(base,{baseRevision:0,summary:'Authored Deckleaf introduction',operations},brief);
 for(const slide of deck.slides) for(const element of slide.elements) {
   if(element.type !== 'image' || !element.src.startsWith('/')) continue;
   if(!/^\/(?:examples\/template-assets|resources\/blue-black-v1)\/[\w/.-]+\.(?:png|jpg|svg)$/.test(element.src)) throw new Error('Unexpected demo media source.');
@@ -29,5 +29,5 @@ for(const slide of deck.slides) for(const element of slide.elements) {
   element.src = `data:${mime};base64,${bytes.toString('base64')}`;
 }
 validateDeck(deck);
-for (const name of ['decksprig-demo.deck.json', 'deckleaf-demo.deck.json']) await writeFile(`public/examples/${name}`,JSON.stringify(deck));
-console.log(`Authored Decksprig demo: ${deck.slides.length} editable slides with embedded project artwork.`);
+await writeFile('public/examples/deckleaf-demo.deck.json',JSON.stringify(deck));
+console.log(`Authored Deckleaf demo: ${deck.slides.length} editable slides with embedded project artwork.`);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {notificationPlacement} from '../src/notification-position';
+import {notificationPlacement,dialogNotificationPlacement} from '../src/notification-position';
 
 test('phone toast clears the actual two-row insertion tools and keeps both viewport gutters',()=>{
   const placement=notificationPlacement({width:360,height:68},{left:0,top:0,width:390,height:844},{top:72,footer:{left:25,right:365,top:560,bottom:830}});
@@ -21,4 +21,13 @@ test('a crowded critical banner defers a toast instead of covering toolbar contr
   const viewport={left:0,top:0,width:667,height:375},footer={left:50,right:650,top:195,bottom:365};
   const crowded=notificationPlacement({width:360,height:68},viewport,{top:230,footer});assert.equal(crowded.hidden,true);
   const cleared=notificationPlacement({width:360,height:68},viewport,{top:72,footer});assert.equal(cleared.hidden,false);assert.equal(cleared.top+68,183);
+});
+test('dialog notifications defer when chrome leaves too little room for editing',()=>{
+  assert.equal(dialogNotificationPlacement(108,140,360).hidden,true);
+  const roomy=dialogNotificationPlacement(48,584,844);assert.equal(roomy.hidden,false);assert(roomy.maxHeight<=844*.3);
+});
+test('modal notices wait until their complete message fits beside enlarged editing content',()=>{
+  const result=dialogNotificationPlacement(350,400,640,168);assert.equal(result.hidden,true);assert(result.maxHeight<=192);assert(400-result.maxHeight-16>=168);
+  assert.equal(dialogNotificationPlacement(115,400,640,168).hidden,false);
+  assert.equal(dialogNotificationPlacement(350,210,640,168).hidden,true);
 });

@@ -14,6 +14,11 @@
     "sha256": "71816f74edba4338a035d7b26f3016086a2f37e9e5b1439fa6fdd20c95183e14",
     "evidence": "License texts from the installed npm package at this exact version. Optional peer package may be absent after npm ci."
   },
+  "fsevents@2.3.3": {
+    "file": "fsevents-2.3.3-LICENSE.txt",
+    "sha256": "2a8a5d6197bb97a018b8a190dd3ed853d750ca87c8e80c17aad41d6c6ff448e1",
+    "evidence": "License from the npm package at this exact version. This optional macOS dependency is absent on Linux."
+  },
   "source-map@0.6.1": {
     "file": "source-map-0.6.1.txt",
     "sha256": "2d91d8ed24ca8f36f5cc2b1ad53e9c129789ebf2ec5446198d9ffd6704816034",
@@ -33,10 +38,5 @@
     "file": "commander-2.20.3.txt",
     "sha256": "71816f74edba4338a035d7b26f3016086a2f37e9e5b1439fa6fdd20c95183e14",
     "evidence": "License texts from the installed npm package at this exact version. Optional peer package may be absent after npm ci."
-  },
-  "fsevents@2.3.3": {
-    "file": "fsevents-2.3.3-LICENSE.txt",
-    "source": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
-    "sha256": "2a8a5d6197bb97a018b8a190dd3ed853d750ca87c8e80c17aad41d6c6ff448e1"
   }
 }

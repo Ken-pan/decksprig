@@ -33,14 +33,14 @@
 <Dialog class="ui-control-surface ui-property-surface" title={connectOnly?'Connect Netlify':'Publish presentation website'} wide onclose={onclose}>
  <p class="dialog-intro">{connectOnly?'Connect Netlify to publish your presentation.':'Publishing makes this website public.'}</p>
  {#if !connectOnly}
-  {#if preview}<iframe bind:this={previewFrame} class="website-preview" title="Website preview" src={preview} sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>{:else}<Notice tone="progress" message={busy||'Preparing preview…'}/>{/if}
+  {#if preview}<iframe bind:this={previewFrame} class="website-preview" title="Website preview" src={preview} sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>{:else if !error}<Notice tone="progress" message={busy||'Preparing preview…'}/>{/if}
   <p class="hint">Visible slides only · {includeNotes?'Speaker notes included':'Speaker notes excluded'}{draft?` · ${(draft.bytes/1024/1024).toFixed(1)} MB`:''}</p>
  {/if}
  {#if isBrowserEdition}<Notice tone="info" message="Download HTML to publish with your hosting provider."/>
  {:else if !connection.connected}<details bind:open={connectionOpen} class="hosting-connection ui-control-disclosure"><summary><span>Connect Netlify</span><ChevronDown size={14}/></summary><form onsubmit={event=>{event.preventDefault();void connect();}}><label class="field-label">Netlify access token<input class="ui-property-input" type="password" aria-label="Netlify access token" bind:value={token} autocomplete="off" disabled={Boolean(busy)}/></label><p class="hint">Used for this session only.</p><Button variant="secondary" type="submit" disabled={!token.trim()||Boolean(busy)}>Connect</Button></form><a href="https://app.netlify.com/user/applications" target="_blank" rel="noopener noreferrer">Netlify access tokens</a></details>
  {:else}<p class="hint">Netlify connected.</p>{/if}
  {#if draft?.state==='published'&&draft.url}<Notice tone="success" title="Website published" message="The public website is ready."/><a href={draft.url} target="_blank" rel="noopener noreferrer">{draft.url}</a>{/if}
- {#if busy}<Notice tone="progress" message={busy}/>{/if}
+ {#if busy&&(connectOnly||preview)}<Notice tone="progress" message={busy}/>{/if}
  {#if error}<Notice tone="error" title="Website action failed" message={error}/>{/if}
  {#snippet footer()}<DialogFooter>{#snippet actions()}<Button onclick={onclose}>Close</Button>{#if !connectOnly}<Button disabled={!html||Boolean(busy)} onclick={downloadPackage}>Download HTML</Button>{#if !isBrowserEdition}<Button variant="primary" busy={Boolean(busy)} disabled={!draft||!connection.connected||['published','unknown','creating','uploading'].includes(draft.state)} onclick={publish}>Publish</Button>{/if}{/if}{/snippet}</DialogFooter>{/snippet}
 </Dialog>

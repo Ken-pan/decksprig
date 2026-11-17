@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {fontFamilyKey,sameFontFamily} from '../core/font-stack';
   import Notice from './ui/Notice.svelte';
   import {slideLabel} from '../core/slide-label';
   import { countLabel } from "../core/ui-copy";
@@ -32,7 +33,7 @@
   let keepPage = $derived(scope === 'deck' && !!retained[slideId]);
   let chosen = $state<Record<string, LayoutChoiceId>>({});
   let before = $state(false), fontsReady = $state(false), error = $state('');
-  const measure = createTextMeasurer(family => fontStack(family, base.onlineFonts?.find(f => f.family === family)?.category));
+  const measure = createTextMeasurer(family => fontStack(family, base.onlineFonts?.find(f => sameFontFamily(f.family,family))?.category));
   const imageAspects = new Map<string, number>();
   const imageSizes = new Map<string, number>();
   const imageStates = new Map<string, 'ready' | 'loading' | 'failed'>();

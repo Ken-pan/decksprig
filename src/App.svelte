@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {abortable} from './core/async-abort';
   import {isGraphicBackground,isThemedIllustration} from './core/resource-purpose';
   import {slideLabel} from './core/slide-label';
   import {presentationStartIndex, visibleDeliveryDeck} from './core/slide-visibility';
@@ -6,7 +7,7 @@
   import {ancestorIds} from './core/container-tree';
   import {isBrowserEdition,readActiveDocument,rememberActiveDocument} from "./core/runtime";
   import { countLabel, workspaceOpenError } from "./core/ui-copy";
-  import {copyDeck, reorderedSlides, defaultPaneWidths, clampPaneWidth, fitScale} from './core/workspace-view';
+  import {reorderedSlides, defaultPaneWidths, clampPaneWidth, fitScale} from './core/workspace-view';
   import {canvasViewport} from './canvas-viewport';
   import {canvasOverlay} from './canvas-overlay';
   import { editorTask } from './editor-priority';
@@ -22,12 +23,13 @@
   import {stamp} from './clipboard-context';
   import {clipboardScope,copySelection,pasteEvent,pasteFromClipboard} from './editor-clipboard';
   import { holdPointerCursor } from './pointer-cursor';
-  import { onMount, tick, setContext } from 'svelte';
+  import { onMount, tick, setContext, untrack } from 'svelte';
+  import {loadDocumentLibraryActions} from './features';
   import { installVisualViewport } from './ui-viewport';
   import AsyncFeature from './components/LazyFeature.svelte';
   import SlideVisibilityNotice from './components/SlideVisibilityNotice.svelte';
   import { releaseLibraryPreviews, type LibraryDocument } from './core/document-library-view';
-  import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL,workspaceTemplateId } from './core/workspace-startup';
+  import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL } from './core/workspace-startup';
   import { flip } from 'svelte/animate';
   import { uiPresence, uiCollapse, uiChange, uiIndicator, uiCurrentSlide, uiFocus, reframeUI, reducedUI, setUIMotion, installUIMotion, type UIMotionPreference } from './ui-motion';
   import { ResourcesIcon, DocumentStylesIcon } from './components/icons/workspace-icons';
@@ -35,9 +37,20 @@
   import {Unlock} from '@lucide/svelte';
   import { ArrowLeft, ArrowRight, ChevronDown, Plus, MousePointer2, Play, Upload, Download, Type, Image, Square, Shapes, Circle, Minus, Table2, ChartColumn, Settings2, PanelRight, Sparkles, LayoutTemplate, FileText, Search, Copy, Trash2, Maximize2, Minimize2, Scan, X, Check, AlertCircle, MoveUp, MoveDown, Layers, BookOpen, Monitor, Sun, Moon, Link2, Info, Ellipsis, History, AppWindow, SquareDashedMousePointer, ExternalLink, Eye, EyeOff } from '@lucide/svelte';
   let SlideRail=$state<typeof import('./SlideRail.svelte')['default']>();
-  $effect(()=>{if(editor.deck&&!SlideRail)void import('./SlideRail.svelte').then(module=>SlideRail=module.default);});
   let SlideCanvas=$state<typeof import('./components/SlideCanvas.svelte')['default']>();
-  $effect(()=>{if(editor.deck&&!SlideCanvas)void import('./components/SlideCanvas.svelte').then(m=>SlideCanvas=m.default);});
+  let loadingCanvas = false, loadingRail = false;
+  const editorViewFailed = () => editor.notify('The workspace could not load. Refresh the app to retry.', 'error');
+  function loadEditorViews() {
+    if (!loadingCanvas && !SlideCanvas) {
+      loadingCanvas = true;
+      void import('./components/SlideCanvas.svelte').then(module => { SlideCanvas = module.default; }).catch(editorViewFailed).finally(() => { loadingCanvas = false; });
+    }
+    if (!loadingRail && !SlideRail) {
+      loadingRail = true;
+      void import('./SlideRail.svelte').then(module => { SlideRail = module.default; }).catch(editorViewFailed).finally(() => { loadingRail = false; });
+    }
+  }
+  $effect(() => { if (editor.deck) loadEditorViews(); });
   import Dialog from './components/LazyDialog.svelte';
   import BrandLockup from './components/BrandLockup.svelte';
   import { BRAND, syncBrowserBrand, installBrowserBrand } from './branding';
@@ -50,7 +63,6 @@
   import CommandSearch from './components/LazyCommandSearch.svelte';
   import {publishEditorContext} from './core/editor-context-client';
   import type {WorkflowRequest,WorkflowOutcome,WorkflowReceipt} from './core/workflows';
-  import {workflowLabel} from './core/workflow-label';
   import { editor, api } from './core/editor.svelte';
   import NotificationOutlet from './components/NotificationOutlet.svelte';
   import { notificationUI } from './notification-ui.svelte';
@@ -122,7 +134,7 @@
   }
   function expandResources(view: ResourceLibraryView) { resourceView = view; resourcePanel?.close(); modal = 'resources'; }
   let panel = $state<'design' | 'ai' | 'motion'>('design');
-  const panelTabs = [{id:'design',label:'Design'},{id:'motion',label:'Motion'},{id:'ai',label:'AI'}] as const;
+  const panelOptions = [{id:'design',label:'Design'},{id:'motion',label:'Motion'},{id:'ai',label:'AI'}] as const;
   let inspectorView = $state<'properties'|'layers'>('properties');
   let visitedPanels = $state<Array<typeof panel>>(['design']);
   $effect(() => { if (!visitedPanels.includes(panel)) visitedPanels = [...visitedPanels, panel]; });
@@ -137,8 +149,9 @@
   async function insertPrototype() { if (!editor.deck) return; const captured=editor.deck,url=prototypeUrl;try { const {prototypeElement}=await import('./core/prototype');if(editor.deck!==captured||modal!=='prototype')return;editor.add(prototypeElement(url, captured.width, captured.height)); editor.sourceMode = false; panel = 'design'; rightOpen = true; modal = ''; } catch (e: any) { error = e.message; } }
   let viewportWidth = $state(typeof window === 'undefined' ? 1440 : window.innerWidth), viewportHeight = $state(typeof window === 'undefined' ? 960 : window.innerHeight);
   let shortWorkspace = $derived(viewportWidth <= 1100 && (viewportHeight <= 520 || viewportWidth <= 760 && viewportHeight <= 640));
+  let canvasToolsExpanded = $state(false);
   let leftOpen = $state(true), rightOpen = $state(typeof window === 'undefined' || (window.innerWidth > 760 && (window.innerWidth > 1100 || window.innerHeight > 520))), notesOpen = $state(false);
-  let shortSlidesOpen = $state(false);
+  let shortSlidesOpen = $state(false), phoneInspectorExpanded = $state(false);
   $effect(()=>{if(editor.croppingId&&viewportWidth<=760)rightOpen=false;});
   let slidesHidden = $derived(!leftOpen || (shortWorkspace && !shortSlidesOpen));
   function setPaneVisibility(side: 'left' | 'right', visible: boolean) {
@@ -149,7 +162,7 @@
   let canvasFocus = $state(false);
   let PrintDocument = $state<typeof import('./components/PrintDocument.svelte').default>();
   function measureStage() {
-    if (!stage) return;
+    if (!stage?.offsetParent) return;
     // Transient chrome must never reframe the artwork when focus moves into a picker.
     const style = getComputedStyle(stage);
     availableW = Math.round(stage.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight));
@@ -179,21 +192,12 @@
   async function openEditingPanel() {
     showPanel(panel, false);
     await tick();
-    document.getElementById('editing-panel')?.querySelector<HTMLButtonElement>('.panel-tabs button[aria-selected="true"]')?.focus({preventScroll: true});
+    document.querySelector<HTMLButtonElement>('.editing-panel-picker button')?.focus({preventScroll: true});
   }
   function closeEditingPanel() { rightOpen = false; void focusCanvasSelection(); }
-  function choosePanelTab(value: typeof panel) {
+  function choosePanel(value: typeof panel) {
     showPanel(value, false);
     if (value !== 'ai') previewProposal = false;
-  }
-  async function panelTabKey(event: KeyboardEvent) {
-    if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
-    event.preventDefault(); event.stopPropagation();
-    const current = panelTabs.findIndex(tab => tab.id === panel);
-    const index = event.key === 'Home' ? 0 : event.key === 'End' ? panelTabs.length - 1 : (current + (event.key === 'ArrowLeft' ? panelTabs.length - 1 : 1)) % panelTabs.length;
-    choosePanelTab(panelTabs[index].id);
-    await tick();
-    document.getElementById(`editor-tab-${panelTabs[index].id}`)?.focus({preventScroll: true});
   }
   function nextSlide(direction: number) {
     if(proposalDeck){const index=proposalDeck.slides.findIndex(s=>s.id===previewActiveId);previewActiveId=proposalDeck.slides[Math.max(0,Math.min(proposalDeck.slides.length-1,index+direction))].id;return;}
@@ -240,12 +244,10 @@
   function releasePanePointer(){const capture=paneCapture;paneCapture=undefined;if(capture?.target.hasPointerCapture(capture.id))capture.target.releasePointerCapture(capture.id);}
   $effect(() => { if (resizing) return holdPointerCursor('col-resize'); });
   let compactPanelOpen = $derived(Boolean(editor.deck) && rightOpen && !canvasFocus && viewportWidth <= 760);
-  let compactCanvasWidth = $derived(viewportWidth - displayedRightWidth() - 16);
-  let footerObscured = $derived(compactPanelOpen && compactCanvasWidth < 320);
   let workspaceFocus:HTMLElement|null=null;
   function rememberFocus(event:FocusEvent) { if(event.target instanceof HTMLElement)workspaceFocus=event.target; }
   $effect(()=>{
-    panel;rightOpen;slidesHidden;canvasFocus;footerObscured;
+    panel;rightOpen;slidesHidden;canvasFocus;viewportWidth;phoneInspectorExpanded;
     void tick().then(()=>{
       const active=document.activeElement;
       if(document.hasFocus() && !document.querySelector('dialog:modal,[popover]:popover-open:not([role="tooltip"])') && workspaceFocus?.closest('.slide-rail,.property-panel,.stage-column,.stage-footer') && !availableFocus(workspaceFocus) && (active===document.body || active?.closest('[inert],[hidden]'))) restoreFocus(document.querySelector<HTMLElement>('.property-panel'),stage);
@@ -262,7 +264,6 @@
   function cancelPane(){if(!paneGesture)return;if(paneGesture.side==='left')leftWidth=paneGesture.originalWidth;else rightWidth=paneGesture.originalWidth;paneGesture=undefined;resizing=false;releasePanePointer();}
   function paneKey(event:KeyboardEvent,side:'left'|'right'){if(event.defaultPrevented||event.isComposing||event.keyCode===229||event.altKey||event.ctrlKey||event.metaKey||!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();event.stopPropagation();const delta=(event.key==='ArrowRight'?1:-1)*(side==='left'?1:-1)*(event.shiftKey?20:8);if(side==='left')leftWidth=boundedPane(side,leftWidth+delta);else rightWidth=boundedPane(side,displayedRightWidth()+delta);savePaneWidths();}
   function setZoom(value:number|'fit'){zoomMode=value==='fit'?'fit':'scale';if(value!=='fit')zoom=Math.max(.1,Math.min(4,value));}
-  function changeZoom(delta:number){setZoom(Math.round(Math.max(.1,Math.min(4,currentScale+delta))*100)/100);}
 
   let canvasHandle=$state<{beginMarquee(event:PointerEvent):void; cancelPointer():void; finishTextDraft(cancel?:boolean):void;finishTextEditing(cancel?:boolean):void;getTextFormatState():TextFormatState|null;formatText(patch:TextFormatPatch,range?:TextRange):Promise<void>}>();
   let insertTool = $state<CanvasTool | null>(null), insertingText = $state(false), canvasCellsSelected = $state(false);
@@ -275,8 +276,8 @@
   let insertSize = $derived(insertTool && insertTool !== 'draw' && editor.deck ? insertionSizeLabel(insertTool, editor.deck, insertBlock ?? insertImage ?? undefined) : '');
   let insertOrigin: {deckId:string;slideId:string;revision:number}|undefined;
   let fileInput: HTMLInputElement, imageInput: HTMLInputElement, sourceInput: HTMLInputElement;
-  let renameTarget = $state<{id:string;title:string}|null>(null), renameValue = $state('');
-  let historyItems = $state<{revision:number;title:string;updatedAt:string;count:number}[]>([]), historyDeckId = $state('');
+  let renameTarget = $state<{id:string;title:string}|null>(null);
+  let historyDeckId = $state(''),historyRequest=0;
   let draggedSlide = $state(''), draggedSlides=$state<string[]>([]),dropSlide = $state(''), dropAfter = $state(false);
   let slideDragBase:{deckId:string;revision:number}|undefined;
   let fileDropActive = $state(false), fileDragDepth = 0;
@@ -292,12 +293,75 @@
   function openExport(){exportView=editor.sourceMode&&referenceComplete?'reference':'editable';modal='export';}
   let busy = $state(''), error = $state(''), cloudTab = $state('file'), cloudUrl = $state(''), cloudToken = $state('');
   let documentImportBusy = $state(false), exportKind = $state('');
+  type DocumentImportRequest = {id:number;modal:string;documentId?:string;revision?:number;navigation:number;activating?:boolean;controller?:AbortController};
+  let documentImportRequest = $state.raw<DocumentImportRequest>();
+  let documentImportSequence = 0;
+  function importCurrent(request:DocumentImportRequest) {
+    return documentImportRequest === request && modal === request.modal && editor.deck?.id === request.documentId
+      && editor.deck?.revision === request.revision && editor.navigationVersion === request.navigation;
+  }
+  function cancelDocumentImport() {
+    if (!documentImportRequest) return;
+    documentImportRequest.controller?.abort();documentImportRequest = undefined; documentImportBusy = false; busy = '';
+  }
+  function beginDocumentImport() {
+    const request:DocumentImportRequest = {id:++documentImportSequence,modal,documentId:editor.deck?.id,revision:editor.deck?.revision,navigation:editor.navigationVersion};
+    documentImportRequest = request; documentImportBusy = true; error = ''; return request;
+  }
+  $effect(() => {
+    const request=documentImportRequest,deck=editor.deck,currentModal=modal,navigation=editor.navigationVersion;
+    if(request&&(currentModal!==request.modal||!request.activating&&(deck?.id!==request.documentId||deck?.revision!==request.revision||navigation!==request.navigation)))cancelDocumentImport();
+  });
+  async function storeImportedDocument(deck:Deck,request:DocumentImportRequest) {
+    const {createDocumentInBackground} = await import('./core/background-document-save');
+    const saved = await createDocumentInBackground<Pick<Deck,'id'|'revision'|'updatedAt'>>('/api/decks',deck,'receipt');
+    if (!importCurrent(request)) return {opened:false};
+    try {
+      request.activating = true;
+      const confirmed = saved?.id === deck.id && saved.revision === deck.revision && saved.updatedAt === deck.updatedAt ? deck : undefined;
+      const opened = await editor.open(deck.id, () => documentImportRequest === request && modal === request.modal && editor.deck?.id === request.documentId && editor.deck?.revision === request.revision, confirmed);
+      if (opened) {
+        rememberDocument(deck.id);
+        request.documentId = editor.deck?.id; request.revision = editor.deck?.revision; request.navigation = editor.navigationVersion;
+      }
+      return {opened};
+    } catch (e:any) { return {opened:false,error:`Saved in the document library. ${e.message}`}; }
+    finally { request.activating = false; }
+  }
+  type SourceAttachmentRequest = {id:number;documentId:string;revision:number;navigation:number};
+  let sourceAttachment = $state.raw<SourceAttachmentRequest>();
+  let sourceAttachmentSequence = 0;
+  function sourceAttachmentCurrent(request:SourceAttachmentRequest) {
+    return sourceAttachment === request && editor.deck?.id === request.documentId
+      && editor.deck.revision === request.revision && editor.navigationVersion === request.navigation;
+  }
+  function cancelSourceAttachment() {
+    if (!sourceAttachment) return;
+    sourceAttachment = undefined; busy = '';
+  }
+  $effect(() => {
+    const request = sourceAttachment;
+    if (request && (modal !== 'fidelity' || !sourceAttachmentCurrent(request))) {
+      const edited = modal === 'fidelity' && editor.deck?.id === request.documentId && editor.deck.revision !== request.revision;
+      cancelSourceAttachment();
+      if (edited) editor.notify('The document changed. Attach the source PDF again.', 'warning');
+    }
+  });
+  let figmaSyncOpen=$state(false);
+  function openFigmaSync(){figmaSyncOpen=true;}
   let exportFinished:Promise<void>|undefined;
+  let exportRequest:{controller:AbortController;finish:()=>void;timer:ReturnType<typeof setTimeout>}|undefined;
+  function cancelExport() {
+    const request=exportRequest;if(!request)return;
+    exportRequest=undefined;request.controller.abort(new DOMException('Export canceled','AbortError'));
+    clearTimeout(request.timer);request.finish();exportFinished=undefined;exportKind='';busy='';
+    if(printMode){printMode=false;modal='export';}
+  }
   let documentFonts:Promise<typeof import('./core/document-fonts')>|undefined;
   let initializing = $state(true), workspaceError = $state('');
   let workspaceRetry: () => void = () => {};
   let searchRequest = 0;
-  function closeModal() { libraryRequest++; searchRequest++; const returnToCreation=modal==='settings'&&aiCreationSettingsReturn;aiCreationSettingsReturn=false;modal=returnToCreation?'ai-create':''; layoutTarget = undefined; error = ''; cloudToken = ''; }
+  function closeModal() { cancelSourceAttachment(); cancelDocumentImport(); if(modal==='export')cancelExport(); libraryRequest++; searchRequest++; historyRequest++; const returnToCreation=modal==='settings'&&aiCreationSettingsReturn;aiCreationSettingsReturn=false;modal=returnToCreation?'ai-create':''; layoutTarget = undefined; error = ''; cloudToken = ''; }
   $effect(() => { if (modal !== 'import') cloudToken = ''; if (modal) { resourcePanel?.close(); settingsMenu?.close(); commandSearch?.close(); focusCommandSearch?.close(); } });
   let commandSearch = $state<{toggle: () => void; close: () => void}>(), focusCommandSearch = $state<{toggle: () => void; close: () => void}>(), settingsMenu = $state<{toggle: () => void; show: () => void; close: () => void}>();
   let searchQuery = $state(''), searchScope = $state<SearchScope>('all');
@@ -315,13 +379,13 @@
     closeModal(); const request = searchRequest;
     await closed; if (request === searchRequest && !modal) action.run();
   }
-  function toggleCommandSearch() { closeModal(); (canvasFocus ? focusCommandSearch : commandSearch)?.toggle(); }
+  function toggleCommandSearch() { closeModal(); if (!canvasFocus && viewportWidth <= 760 && editor.deck) { expandSearch(''); return; } (canvasFocus ? focusCommandSearch : commandSearch)?.toggle(); }
   async function toggleSettingsMenu() { closeModal(); if (canvasFocus) { await setCanvasFocus(false); await tick(); } settingsMenu?.toggle(); }
   async function openSettingsTab(tab: string) { const fromCreation=modal==='ai-create';settingsTab = tab; closeModal(); if (canvasFocus) { await setCanvasFocus(false); await tick(); } settingsMenu?.close(); modal = 'settings';aiCreationSettingsReturn=fromCreation; }
   let settingsTab = $state('appearance');
   let fontLibraryTab = $state<'browse'|'document'>('browse');
   function openFonts(tab:'browse'|'document'='browse'){fontLibraryTab=tab;modal='fonts';}
-  let theme = $state('light'), palette = $state('forest');
+  let theme = $state('light'), palette = $state('indigo');
   let uiMotion = $state<UIMotionPreference>('system');
   let aiCreation=$state(newAICreationState()),aiCreationSettingsReturn=$state(false),aiSessionVersion=$state(0);
   async function acceptAICreation(base:Deck,proposal:Proposal,request:string){base=$state.snapshot(base);proposal=$state.snapshot(proposal);
@@ -353,7 +417,8 @@
     try{
       if(!editor.deck||editor.deck.id!==request.deckId||editor.deck.revision!==request.baseRevision)throw new Error('The document changed. Request this action again.');
       if(proposalDeck||editor.pending)throw new Error('Apply or discard the document proposal before running this action.');
-      workflowRequest=await (await import('./core/workflow-client')).claimWorkflow(request);const action=request.action;
+      const {claimWorkflow,workflowLabel}=await import('./core/workflow-client');
+      workflowRequest=await claimWorkflow(request);const action=request.action;
       if(action.kind==='import'){cloudTab=action.source;cloudUrl=action.url??'';modal='import';await workflowResult('waiting_for_user',{message:action.source==='file'?'Choose a file to import.':'Complete source authorization and choose Import.',state:'awaiting_import'});}
       if(action.kind==='export'){
         exportView=action.version;const result=await exporting(action.format);
@@ -398,6 +463,8 @@
     try { return applyOperations(editor.operationDocument(), editor.pending.operations, editor.pending.baseRevision, 'ai'); } catch { return null; }
   });
   let task = $derived(editorTask({previewing: Boolean(proposalDeck), reference: editor.sourceMode, editing: Boolean(editor.editingId) || insertingText, selected: editor.selection.length, allLocked: editor.selection.every(element => element.locked)}));
+  const contextualCanvasTools = $derived(viewportWidth <= 760 && !shortWorkspace && (!rightOpen||canvasFocus) && !insertTool && !resourceOpen && ['selection','locked','text'].includes(task));
+  $effect(()=>{if(insertTool||task==='compose')canvasToolsExpanded=false;});
   $effect(() => { if (insertTool && (modal || presenting || proposalDeck || editor.sourceMode || insertOrigin?.deckId !== editor.deck?.id || insertOrigin?.slideId !== editor.slide?.id || insertTool !== 'draw' && insertOrigin?.revision !== editor.deck?.revision)) cancelInsertion(); });
   $effect(() => { if (insertTool !== 'image' && imageQueue.length) imageQueue = []; });
   $effect(() => { if (previewProposal && (!editor.pending || editor.pending.baseRevision !== editor.deck?.revision || !proposalDeck)){if(editor.deck?.id===previewDocumentId&&editor.deck.revision>previewRevision&&editor.deck.slides.some(s=>s.id===previewActiveId))editor.chooseSlide(previewActiveId);previewProposal = false;} });
@@ -419,7 +486,8 @@
   let currentScale = $derived(zoomMode==='fit'?fittedScale:zoom);
   let stageWidth = $derived(editor.deck ? editor.deck.width*currentScale : 800);
   let warnings = $derived([...new Set(editor.deck?.slides.flatMap(s => s.source?.warnings ?? []) ?? [])]);
-  $effect(()=>{if(!editor.deck)return;try{const modes=JSON.parse(localStorage.getItem('deck-studio-view-modes')||'{}');modes[editor.deck.id]=editor.sourceMode;localStorage.setItem('deck-studio-view-modes',JSON.stringify(modes));}catch{/* UI preference only */}});
+  let positionDocumentId=$derived(editor.deck?.id??'');
+  $effect(()=>{positionDocumentId;editor.activeId;editor.preferredSourceMode;untrack(()=>editor.rememberPosition());});
   $effect(() => {
     document.title = editor.deck?.title ? `${editor.deck.title} · ${BRAND.name}` : `${BRAND.name} · ${BRAND.description}`;
   });
@@ -463,11 +531,9 @@
   let documentTitleDraft = $state('');
   $effect(() => { documentTitleDraft = editor.deck?.title || ''; });
   function renameCurrent(input:HTMLInputElement){if(!editor.deck||proposalDeck)return;const title=input.value.trim();if(!title){input.value=editor.deck.title;return;}if(title!==editor.deck.title)editor.commit([{op:'rename_deck',title}]);input.value=editor.deck.title;}
-  function beginRename(id:string,title:string){renameTarget={id,title};renameValue=title;modal='rename';}
-  async function applyRename(){if(!renameTarget||!renameValue.trim())return;try{if(editor.deck?.id===renameTarget.id)editor.commit([{op:'rename_deck',title:renameValue.trim()}]);else{const deck=await api(`/api/decks/${renameTarget.id}`);const next=applyOperations(deck,[{op:'rename_deck',title:renameValue.trim()}]);await api(`/api/decks/${deck.id}`,'PUT',{deck:next,expectedRevision:deck.revision});}await openLibrary();}catch(e:any){error=e.message;}}
-  async function duplicateDocument(id?:string){if(proposalDeck||busy)return;busy='Duplicating…';try{const mode=editor.sourceMode;const deck=!id||id===editor.deck?.id?await editor.readDocument():await api(`/api/decks/${id}`);await editor.create(copyDeck(deck));rememberDocument(editor.deck!.id);modal='';editor.sourceMode=mode;editor.notify('Document duplicated');}catch(e:any){error=e.message;}finally{busy='';}}
-  async function openHistory(){if(!editor.deck)return;try{await editor.flush();historyDeckId=editor.deck.id;historyItems=await api(`/api/decks/${historyDeckId}/history`);modal='history';}catch(e:any){error=e.message;}}
-  async function restoreHistory(revision:number){try{const deck=await api(`/api/decks/${historyDeckId}/history/${revision}`);await editor.create(copyDeck(deck,`${deck.title} · Restored copy`));rememberDocument(editor.deck!.id);modal='';editor.notify('Version restored as a new document');}catch(e:any){error=e.message;}}
+  function beginRename(id:string,title:string){renameTarget={id,title};modal='rename';}
+  async function duplicateDocument(id?:string){if(proposalDeck||busy)return;const from=modal,current=!id||id===editor.deck?.id,origin={deck:editor.deck,navigation:editor.navigationVersion,mode:current?editor.preferredSourceMode:undefined};busy='Duplicating…';try{const [actions,deck]=await Promise.all([loadDocumentLibraryActions(),current?editor.readDocument():api(`/api/decks/${id}`)]),result=await actions.duplicateLibraryDocument(editor,deck,origin,()=>modal===from);if(result.opened){rememberDocument(result.id);modal='';}else if(modal==='library')await openLibrary();editor.notify(result.opened?'Document duplicated':'Copy saved in the document library');}catch(e:any){if(modal===from&&editor.deck===origin.deck)error=e.message;else editor.notify(e.message,'warning');}finally{if(busy==='Duplicating…')busy='';}}
+  async function openHistory(){const id=editor.deck?.id,from=modal,request=++historyRequest;if(!id)return;try{await editor.flush();if(request!==historyRequest||editor.deck?.id!==id||modal!==from)return;historyDeckId=id;modal='history';}catch(e:any){if(request===historyRequest&&editor.deck?.id===id)error=e.message;}}
   function startSlideDrag(event:DragEvent,id:string){
     if(proposalDeck||!editor.deck){event.preventDefault();return;}
     if(!editor.selectedSlides.includes(id))editor.chooseSlide(id);
@@ -496,7 +562,7 @@
     } catch (e: any) { if (request === libraryRequest && modal === from) error = e.message; }
   }
   function rememberDocument(id:string){rememberActiveDocument(id);history.replaceState(null,'',workspaceDocumentURL(location.href,id));}
-  async function openDeck(id: string, dismiss = true) { try { await exportFinished;await editor.open(id); rememberDocument(id); if (dismiss) modal = ''; } catch (e: any) { if (!dismiss) throw e; error = e.message; } }
+  async function openDeck(id: string, dismiss = true) { try { await exportFinished;loadEditorViews();if (!await editor.open(id)) return; rememberDocument(id); if (dismiss) modal = ''; } catch (e: any) { if (!dismiss) throw e; error = e.message; } }
   async function create(d: Deck) { try { await editor.create(d); rememberDocument(d.id); modal = ''; } catch (e: any) { error = e.message; } }
   function addSlideAfter(slideId:string) {
     if(!editor.deck?.slides.some(slide=>slide.id===slideId))return;
@@ -621,48 +687,80 @@
       await prepareImages(images, returnAfter);
     } catch (e: any) { error = e.message; }
   }
-  async function imported(files: FileList | File[]) {
-    if (busy || !files.length) return;
+  async function imported(files: FileList | File[],existingRequest?:DocumentImportRequest) {
+    if ((busy && (!existingRequest || documentImportRequest !== existingRequest)) || !files.length || existingRequest && !importCurrent(existingRequest)) return;
     const actionRequest=workflowRequest?.action.kind==='import'&&workflowRequest.status==='waiting_for_user'?workflowRequest:undefined;
-    busy = 'Importing…'; documentImportBusy = true; error = '';
+    const request = existingRequest ?? beginDocumentImport(), inputs = Array.from(files), failures:string[] = [];
+    let saved = 0, opened = false;
+    busy = 'Importing…'; if (fileInput) fileInput.value = '';
     try {
-      for (const f of Array.from(files)) {
-        const { importFile } = await import('./importers');
-        const d = await importFile(f, text => busy = text); await editor.create(d);
+      const {importFile} = await import('./importers');
+      for (const file of inputs) {
+        if (documentImportRequest !== request) break;
+        try {
+          const deck = await importFile(file, text => { if (importCurrent(request)) busy = text; });
+          const result = await storeImportedDocument(deck,request); saved++; opened ||= result.opened;
+          if (result.error) failures.push(`${file.name}: ${result.error}`);
+        } catch (e:any) { failures.push(`${file.name}: ${e.message}`); }
       }
-      rememberDocument(editor.deck!.id); modal = 'fidelity';if(actionRequest)await workflowResult('completed',{message:'Imported as a new document',documentId:editor.deck!.id,state:'imported'},actionRequest);
-    } catch (e: any) { error = e.message;if(actionRequest)await workflowResult('failed',{message:e.message,state:'failed'},actionRequest).catch(()=>{}); } finally { busy = ''; documentImportBusy = false; if (fileInput) fileInput.value = ''; }
+      if (documentImportRequest !== request) {
+        if (saved) editor.notify(`${countLabel(saved,'document')} imported into the document library`);
+        return;
+      }
+      const summary = `Imported ${saved} of ${inputs.length} ${inputs.length === 1 ? 'file' : 'files'}.`;
+      if (opened && importCurrent(request)) modal = hasImportReport ? 'fidelity' : '';
+      if (failures.length) error = `${summary} ${failures.join(' ')}`;
+      else if (saved && (!opened || !importCurrent(request))) editor.notify(`${countLabel(saved,'document')} imported into the document library`);
+      if(actionRequest)await workflowResult(failures.length?'failed':'completed',{message:failures.length?`${summary} ${failures.join(' ')}`:opened?'Imported as a new document':'Imported into the document library',documentId:opened?editor.deck?.id:undefined,state:failures.length?'partially_imported':'imported'},actionRequest);
+    } catch (e:any) { if (documentImportRequest === request) error = e.message; }
+    finally { if (documentImportRequest === request) { documentImportRequest = undefined; busy = ''; documentImportBusy = false; } }
   }
-  let demoLoading = $state(false);
   async function openDemo() {
-    if (demoLoading || busy) return;
-    demoLoading = true; error = '';
+    if (busy) return;
+    modal='import';const request=beginDocumentImport();request.controller=new AbortController();busy='Opening sample…';
     try {
-      await (await import('./core/demo-file')).openSample(imported);
-    } catch (failure) { error = (failure as Error).message; }
-    finally { demoLoading = false; }
+      const {loadSampleFile}=await abortable(import('./core/demo-file'),request.controller.signal);
+      const file=await loadSampleFile(request.controller.signal);
+      if(importCurrent(request))await imported([file],request);
+    } catch(failure:any) { if(documentImportRequest===request&&failure.name!=='AbortError')error=failure.message; }
+    finally { if(documentImportRequest===request){documentImportRequest=undefined;documentImportBusy=false;busy='';} }
   }
   async function attachSource(file: File) {
-    if (!editor.deck) return;
-    busy = 'Attaching source reference…'; error = '';
+    if (!editor.deck || busy && !sourceAttachment) return;
+    cancelSourceAttachment();
+    const request:SourceAttachmentRequest = {id:++sourceAttachmentSequence,documentId:editor.deck.id,revision:editor.deck.revision,navigation:editor.navigationVersion};
+    sourceAttachment = request; busy = 'Attaching source reference…'; error = '';
     try {
-      const {importPdf} = await import('./importers/pdf'); const pdf = await importPdf(await file.arrayBuffer(), file.name, text => busy = text);
-      if (pdf.slides.length !== editor.deck.slides.length) throw new Error(`The PDF has ${countLabel(pdf.slides.length, "page")}; this document has ${countLabel(editor.deck.slides.length, "slide")}. Use a PDF of the same presentation.`);
-      if (Math.abs(pdf.width/pdf.height - editor.deck.width/editor.deck.height) > .01) throw new Error('The PDF has a different aspect ratio. Export slides from the original app without print margins.');
+      const bytes = await file.arrayBuffer();
+      if (!sourceAttachmentCurrent(request)) return;
+      const {importPdf} = await import('./importers/pdf');
+      if (!sourceAttachmentCurrent(request)) return;
+      const pdf = await importPdf(bytes, file.name, text => { if (sourceAttachmentCurrent(request)) busy = text; });
+      if (!sourceAttachmentCurrent(request)) return;
+      const deck = editor.deck!;
+      if (pdf.slides.length !== deck.slides.length) throw new Error(`The PDF has ${countLabel(pdf.slides.length, "page")}; this document has ${countLabel(deck.slides.length, "slide")}. Use a PDF of the same presentation.`);
+      if (Math.abs(pdf.width/pdf.height - deck.width/deck.height) > .01) throw new Error('The PDF has a different aspect ratio. Export slides from the original app without print margins.');
       const next = editor.snapshot(); next.slides.forEach((s, i) => { s.source = {...(s.source ?? {provider: 'PDF', warnings: [], fidelity: 'source-render'}), render: pdf.slides[i].source!.render, label: file.name, fidelity: 'source-render'}; });
       editor.replace(next); editor.sourceMode = true; modal = 'fidelity';
-    } catch (e: any) { error = e.message; } finally { busy = ''; sourceInput.value = ''; }
+    } catch (e: any) { if (sourceAttachmentCurrent(request)) error = e.message; }
+    finally { if (sourceAttachment === request) { sourceAttachment = undefined; busy = ''; } }
   }
   async function cloudImport() {
     if (busy) return;
     const actionRequest=workflowRequest?.status==='waiting_for_user'&&(workflowRequest.action.kind==='import'||workflowRequest.action.kind==='account'&&workflowRequest.action.provider==='figma'&&cloudTab==='figma')?workflowRequest:undefined;
-    documentImportBusy = true;
-    busy = `Importing from ${cloudTab === 'figma' ? 'Figma' : 'Google Slides'} …`; error = '';
+    const provider = cloudTab, request = beginDocumentImport();
+    busy = `Importing from ${provider === 'figma' ? 'Figma' : 'Google Slides'} …`;
     try {
-      const bundle = await api(`/api/import/${cloudTab}`, 'POST', {url: cloudUrl, token: cloudToken});
-      const d = cloudTab === 'figma' ? (await import('./importers/figma')).importFigma(bundle) : await (await import('./importers/google-native')).importGoogleBundle(bundle);
-      await editor.create(d); rememberDocument(d.id); modal = 'fidelity'; cloudToken = ''; cloudUrl = '';if(actionRequest)await workflowResult('completed',{message:'Source imported as a new document',documentId:d.id,state:'imported'},actionRequest);
-    } catch (e: any) { error = e.message;if(actionRequest)await workflowResult('failed',{message:e.message,state:'failed'},actionRequest).catch(()=>{}); } finally { busy = ''; documentImportBusy = false; }
+      const bundle = await api(`/api/import/${provider}`, 'POST', {url: cloudUrl, token: cloudToken});
+      const d = provider === 'figma' ? await (await import('./importers/figma-fonts')).prepareFigmaFonts((await import('./importers/figma')).importFigma(bundle)) : await (await import('./importers/google-native')).importGoogleBundle(bundle);
+      const result = await storeImportedDocument(d,request);
+      if (documentImportRequest !== request) { editor.notify('Imported into the document library'); return; }
+      if (result.opened && importCurrent(request)) { modal = 'fidelity'; cloudToken = ''; cloudUrl = ''; }
+      else if (result.error) error = result.error;
+      else editor.notify('Imported into the document library');
+      if(actionRequest)await workflowResult('completed',{message:result.opened?'Source imported as a new document':'Source imported into the document library',documentId:d.id,state:'imported'},actionRequest);
+    } catch (e: any) { if (documentImportRequest === request) { error = e.message;if(actionRequest)await workflowResult('failed',{message:e.message,state:'failed'},actionRequest).catch(()=>{}); } }
+    finally { if (documentImportRequest === request) { documentImportRequest = undefined; busy = ''; documentImportBusy = false; } }
   }
   function slideOrder(step: number, slideId=editor.activeId) {
     if (!editor.deck) return;
@@ -685,32 +783,36 @@
     if(original&&!referenceComplete&&['pptx','html','pdf','keynote'].includes(kind)){error='Attach a source reference to every slide first.';return;}
     busy = 'Exporting…'; exportKind = kind; error = ''; let exportMessage='Download started';
     let finishExport!:()=>void;exportFinished=new Promise(resolve=>finishExport=resolve);
+    const controller=new AbortController(),signal=controller.signal;
+    const request=exportRequest={controller,finish:finishExport,timer:setTimeout(()=>controller.abort(new DOMException('Export timed out. Try again or export a Deck backup.','TimeoutError')),120000)};
     try {
-      const d = await editor.readDocument();
-      if (kind !== 'pdf') exportMessage = await (await import('./core/document-export-download')).downloadDocument(d, kind, original);
+      const d = await abortable(editor.readDocument(),signal);
+      if (kind !== 'pdf') { const tool=await abortable(import('./core/document-export-download'),signal);exportMessage=await abortable(tool.downloadDocument(d,kind,original,signal),signal); }
+      signal.throwIfAborted();
       if (kind === 'pdf') {
         const delivery=visibleDeliveryDeck(d);
-        const print=await import('./components/PrintDocument.svelte');
-        PrintDocument ??= print.default; await print.ready();
-        if (!original && d.slides.some(s => s.elements.some(e => e.type === 'chart'))) await import('./core/chart-render');
+        const print=await abortable(import('./components/PrintDocument.svelte'),signal);
+        PrintDocument ??= print.default; await abortable(print.ready(),signal);signal.throwIfAborted();
+        if (!original && d.slides.some(s => s.elements.some(e => e.type === 'chart'))) await abortable(import('./core/chart-render'),signal);
+        signal.throwIfAborted();if(exportRequest!==request)return;
         modal = ''; printOriginal=original; printMode = true;
         try {
-          await tick(); await document.fonts.ready;
+          await tick(); await abortable(document.fonts.ready,signal);
           const charts = original ? 0 : delivery.slides.reduce((n, s) => n + s.elements.filter(e => !e.hidden && e.type === 'chart').length, 0);
           const deadline = performance.now() + 5000;
-          while (document.querySelectorAll('.print-pages [data-chart-rendered]').length < charts && performance.now() < deadline) await new Promise<void>(ok => requestAnimationFrame(() => ok()));
+          while (document.querySelectorAll('.print-pages [data-chart-rendered]').length < charts && performance.now() < deadline) await abortable(new Promise<void>(ok => requestAnimationFrame(() => ok())),signal);
           if (document.querySelectorAll('.print-pages [data-chart-rendered]').length < charts) throw new Error('A chart could not render for printing. Close and try again.');
-          await Promise.all([...document.querySelectorAll<HTMLImageElement>('.print-pages img')].map(image => image.decode().catch(() => {})));
-          window.print();
-        } finally {printMode=false;}
+          await abortable(Promise.all([...document.querySelectorAll<HTMLImageElement>('.print-pages img')].map(image => image.decode().catch(() => {}))),signal);
+          signal.throwIfAborted();window.print();
+        } finally {if(exportRequest===request)printMode=false;}
       }
-      else { modal = ''; editor.notify(exportMessage); }
-      return {message:kind==='pdf'?'Print dialog opened':'Export file prepared',state:kind==='pdf'?'awaiting_print':'download_started',fileName:`${deckFilename(d)}.${({json:'deck.json',potx:'potx',keynote:'key',pptx:'pptx',html:'html',broadser:'broadser.json',markdown:'md',pdf:'pdf'} as Record<string,string>)[kind]||kind}`};
+      else { signal.throwIfAborted();if(exportRequest!==request)return;modal = ''; editor.notify(exportMessage); }
+      return {message:kind==='pdf'?'Print dialog opened':'Export file prepared',state:kind==='pdf'?'awaiting_print':'download_started',fileName:`${deckFilename(d)}.${({json:'deck.json','json-legacy':'deck.json',potx:'potx',keynote:'key',pptx:'pptx',html:'html',broadser:'broadser.json',markdown:'md',pdf:'pdf'} as Record<string,string>)[kind]||kind}`};
     } catch (e: any) {
-      error = /dynamically imported module|loading.*module|module script/i.test(e.message ?? '')
+      if(exportRequest===request&&e.name!=='AbortError')error = /dynamically imported module|loading.*module|module script/i.test(e.message ?? '')
         ? 'The export tool could not load. Refresh the app and try again.'
         : e.message;
-    } finally { busy = ''; exportKind = '';exportFinished=undefined;finishExport(); }
+    } finally { clearTimeout(request.timer);finishExport();if(exportRequest===request){exportRequest=undefined;busy = ''; exportKind = '';exportFinished=undefined;} }
   }
   async function exportRecoveryDraft() {
     const draft = editor.recovery;
@@ -796,6 +898,7 @@
     return()=>{contextRequest++;void contextBridge?.dispose();document.removeEventListener('contextmenu',launch,true);document.removeEventListener('keydown',launch,true);document.removeEventListener('pointerover',tooltip,true);document.removeEventListener('focusin',tooltip,true);};
   });
   function keyboard(event: KeyboardEvent) {
+    if(printMode){if(event.key==='Escape'){event.preventDefault();cancelExport();}return;}
     if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey) return;
     const target = event.target as HTMLElement;
     const typing = target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])');
@@ -819,6 +922,9 @@
     if (cmd && !event.shiftKey && key === ',') { event.preventDefault(); if (!event.repeat) void toggleSettingsMenu(); return; }
     // A native popover owns dismissal and navigation before the editor does.
     if (document.querySelector('[popover]:popover-open:not([role="tooltip"])')) return;
+    if(event.key==='Escape'&&contextualCanvasTools&&canvasToolsExpanded&&target.closest('.insert-disclosure')&&!target.closest('[popover]')){
+      event.preventDefault();canvasToolsExpanded=false;document.querySelector<HTMLElement>('.insert-disclosure > summary')?.focus();return;
+    }
     if (event.key === 'Escape' && proposalDeck && !typing) { event.preventDefault(); returnCurrentVersion(); return; }
     if (event.key === 'Escape' && compactPanelOpen && target.closest('.property-panel') && !typing) { event.preventDefault(); closeEditingPanel(); return; }
     if (event.key === 'Escape' && insertTool && !modal && !typing) { event.preventDefault(); cancelInsertion(); void focusCanvasSelection(); return; }
@@ -883,7 +989,7 @@
     const disposeMotion = installUIMotion();
     const disposeViewport = installVisualViewport(size=>{viewportWidth=size.width;viewportHeight=size.height;});
     const disposeBrand = installBrowserBrand();
-    const resourceLink = new URLSearchParams(location.search);
+    const resourceLink = new URLSearchParams(location.search),explicitDocumentEntry=resourceLink.has('document');
     const linkedLibrary = resourceLink.get('library');
     if(linkedLibrary==='deck-graphics'){resourceInitialKind='illustration';resourceInitialId=resourceLink.get('asset')||'deck-graphics:fine-dots';resourceInitialColor=resourceLink.get('accent')||undefined;try{const raw=resourceLink.get('recipe');if(raw)resourceInitialRecipe=GraphicRecipeSchema.parse(JSON.parse(raw));}catch{error='These graphic settings could not be loaded. The original material is available.';}}
     if (linkedLibrary === 'blue-black' || linkedLibrary === 'characters') {
@@ -897,26 +1003,11 @@
       initializing = true; workspaceError = '';
       try {
         await initializeWorkspace({activeId:workspaceEntryId(location.search,readActiveDocument()),open:id=>openDeck(id,false)});
-        // A deliberate sample link imports a fresh document through the normal
-        // path. Consume it before opening so refresh never duplicates the sample.
-        if (resourceLink.get('demo') === '1') {
-          const cleanURL = new URL(location.href); cleanURL.searchParams.delete('demo');
-          history.replaceState(null, '', cleanURL.pathname + cleanURL.search + cleanURL.hash);
-          if (!editor.deck && !disposed && !resourceLink.has('document')) await openDemo();
-        }
-        // Website template links create one new document through the same path as Templates.
-        if (resourceLink.has('template')) {
-          const linkSearch = '?' + resourceLink.toString();
-          const cleanURL = new URL(location.href); cleanURL.searchParams.delete('template');
-          history.replaceState(null, '', cleanURL.pathname + cleanURL.search + cleanURL.hash);
-          const {COLLECTIONS, templateDeck, embedTemplateArtwork} = await import('./core/templates');
-          const templateId = workspaceTemplateId(linkSearch, COLLECTIONS.map(c => c.id));
-          if (templateId && !editor.deck && !disposed) {
-            busy = 'Opening template…';
-            try { await create(await embedTemplateArtwork(templateDeck(templateId))); }
-            catch { error = 'The template could not open. Choose it from Templates.'; }
-            finally { busy = ''; }
-          }
+        // Consume the deliberate sample entry once; explicit document links keep priority.
+        if(resourceLink.get('demo')==='1'){
+          resourceLink.delete('demo');const cleanURL=new URL(location.href);cleanURL.searchParams.delete('demo');
+          history.replaceState(null,'',cleanURL.pathname+cleanURL.search+cleanURL.hash);
+          if(!disposed&&!explicitDocumentEntry){initializing=false;await openDemo();}
         }
         if (!editor.deck || disposed || !['blue-black','characters','deck-graphics'].includes(linkedLibrary || '')) return;
         void tick().then(()=>resourcePanel?.show());
@@ -946,7 +1037,7 @@
       }).catch(() => {}).finally(() => { polling = false; });
     }, 8000);
     if (stage) observer.observe(stage);
-    const persist = () => { if (editor.dirty) { void editor.backup(); void editor.flush(); } };
+    const persist = () => { editor.rememberPosition();if (editor.dirty) { void editor.backup(); void editor.flush(); } };
     const visibility = () => { if (document.visibilityState === 'hidden') { cancelPane(); clearDropFeedback(); persist(); } };
     document.addEventListener('visibilitychange', visibility); window.addEventListener('pagehide', persist);
     return () => { window.removeEventListener('resize',viewportPanes);window.removeEventListener('blur',cancelPane);window.removeEventListener('blur',clearDropFeedback);window.removeEventListener('dragend',clearDropFeedback);window.removeEventListener('drop',clearDropFeedback);window.removeEventListener('pointermove',resumeDropPointer);window.removeEventListener('keydown',cancelDropKey,true);window.removeEventListener('keydown',cancelPaneKey,true);cancelPane();disposed = true; disposeViewport(); disposeMotion(); disposeBrand(); observer.disconnect(); cancelAnimationFrame(resizeFrame); clearInterval(interval);clearInterval(workflowInterval); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', persist); };
@@ -972,62 +1063,69 @@
 
 
 
+{#if editor.deck}<AsyncFeature feature="figma-sync" props={{open:figmaSyncOpen,onclose:()=>figmaSyncOpen=false,onDocument:rememberDocument}} />{/if}
 <svelte:document onfocusin={rememberFocus} />
 <svelte:window onkeydown={keyboard} oncopy={clipboard} oncut={clipboard} onpaste={clipboard} />
 
 {#if EditorTooltip}<EditorTooltip />{/if}
 <input hidden type="file" accept=".pptx,.key,.pdf,.json" bind:this={fileInput} onchange={(e) => e.currentTarget.files && imported(e.currentTarget.files)} />
 <input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple={!(resourceReplaceId && (resourceOpen || modal === 'resources'))} bind:this={imageInput} onchange={(e) => { const files = Array.from(e.currentTarget.files || []); if (files.length) void imageFiles(files); e.currentTarget.value = ''; }} />
-<input hidden type="file" accept=".pdf" bind:this={sourceInput} onchange={(e) => { const f = e.currentTarget.files?.[0]; if (f) void attachSource(f); }} />
+<input hidden type="file" accept=".pdf" bind:this={sourceInput} onchange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) void attachSource(f); }} />
 
 
 
 {#if printMode && editor.deck && PrintDocument}
   <PrintDocument deck={editor.deck} original={printOriginal} />
+  <Dialog title="Preparing PDF" onclose={cancelExport} returnFocus={() => document.querySelector<HTMLButtonElement>('.document-navigation button[aria-label="Document menu"]') ?? undefined}>
+    <p role="status">Preparing slides for the print dialog…</p>
+    <Button variant="secondary" onclick={cancelExport}>Cancel export</Button>
+  </Dialog>
 {:else}
   <div class="editor-app" class:welcome-workspace={!editor.deck} class:is-presenting={presenting} class:canvas-focused={canvasFocus} class:short-workspace={shortWorkspace} class:inline-text-active={Boolean(editor.editingId||insertingText)} data-task={task}>
-    <a class="skip-link" href="#workspace-canvas" onclick={event=>{event.preventDefault();if(footerObscured)rightOpen=false;void focusCanvasSelection();}}>Skip to canvas</a>
+    <a class="skip-link" href="#workspace-canvas" onclick={event=>{event.preventDefault();if(compactPanelOpen)rightOpen=false;void focusCanvasSelection();}}>Skip to canvas</a>
     {#if editor.deck}<a class="skip-link" href="#editing-panel" onclick={event=>{event.preventDefault();showPanel(panel,false);void focusEditingPanel();}}>Skip to editing panel</a>{/if}
-    <header class="topbar" inert={canvasFocus}>
-      <div class="topbar-left"><button class="icon-btn brand-button" onclick={openLibrary} aria-label="Decksprig · Open document library" data-tooltip="Open library"><BrandLockup /></button>{#if editor.deck}<div class="document-controls"><div class="document-title-field"><span class="document-title-size" aria-hidden="true">{documentTitleDraft || 'Document title'}</span><input class="document-name" aria-label="Document title" title={editor.deck?.title} bind:value={documentTitleDraft} placeholder="Document title" maxlength="300" disabled={!editor.deck||Boolean(proposalDeck)} onfocus={event=>event.currentTarget.select()} onchange={event=>{renameCurrent(event.currentTarget);documentTitleDraft=event.currentTarget.value;}} onkeydown={event=>{if(event.isComposing||event.keyCode===229)return;if(event.key==='Enter'||event.key==='Escape'){event.preventDefault();event.stopPropagation();if(event.key==='Escape'){documentTitleDraft=editor.deck?.title||'';event.currentTarget.value=documentTitleDraft;}event.currentTarget.blur();void focusCanvasSelection();}}}/></div><ActionMenu label="Document menu" disabled={!editor.deck||Boolean(proposalDeck)} items={[{label:'Open document library',icon:BookOpen,onselect:openLibrary},{label:'New document from template',icon:LayoutTemplate,onselect:()=>modal='templates'},{label:'Rename document',onselect:()=>document.querySelector<HTMLInputElement>('.document-name')?.focus()},{label:'Duplicate document',icon:Copy,onselect:()=>void duplicateDocument()},{label:'Import document',icon:Upload,divider:true,onselect:()=>modal='import'},{label:'Export document',icon:Download,onselect:openExport},{label:'Publish presentation website',icon:ExternalLink,onselect:()=>{hostingConnectOnly=false;publishIncludeNotes=false;modal='publish';}},...(hasImportReport?[{label:'Import report',icon:Info,onselect:()=>modal='fidelity'}]:[]),{label:'Undo',shortcut:'⌘Z',disabled:!editor.past.length,onselect:event=>historyAction('undo',event)},{label:'Redo',shortcut:'⇧⌘Z',disabled:!editor.future.length,onselect:event=>historyAction('redo',event)},{label:'Slide details',icon:FileText,divider:true,onselect:openPageElements},{label:'Document styles',icon:DocumentStylesIcon,onselect:()=>openDocumentStyles()},...(editor.deck?.slides.some(s=>s.elements.some(e=>isThemedIllustration(e.resource)))?[{label:'Illustration colors',onselect:()=>modal='illustration-colors'}]:[]),{label:'Document fonts',icon:Type,onselect:()=>{fontLibraryTab='document';modal='fonts';}},{label:'Version history',icon:History,onselect:()=>void openHistory()},{label:'Recent notifications',icon:History,onselect:()=>modal='notifications'},...(slidesHidden?[{label:'Open slides panel',icon:Layers,divider:true,onselect:()=>void openSlidesPanel()}]:[]),...(!rightOpen?[{label:'Open editing panel',icon:PanelRight,divider:!slidesHidden,onselect:()=>void openEditingPanel()}]:[]),{label:'Open AI editor',icon:Sparkles,divider:true,onselect:()=>showPanel('ai')}]} /></div>{/if}{#if editor.dirty}<span class="save-state" role="status" aria-atomic="true" data-saving={editor.dirty} data-save-error={editor.saveState.startsWith('Not saved')} use:uiChange={editor.saveState}>{editor.saveState}</span>{/if}</div>
-      <div class="topbar-right">
-        {#if source?.render && !proposalDeck}<div class="canvas-version"><ActionMenu label="Slide version" iconOnly={viewportWidth<=760} items={[{label:"Editable version",checked:!editor.sourceMode,onselect:()=>editor.sourceMode=false},{label:"Source reference",checked:editor.sourceMode,onselect:()=>{editor.sourceMode=true;editor.selected=[];editor.additiveSelection=false;editor.layerPickerId="";}}]}>{#if viewportWidth<=760}{#if editor.sourceMode}<BookOpen size={16}/>{:else}<MousePointer2 size={16}/>{/if}{:else}<span>{editor.sourceMode ? "Source" : "Editable"}</span>{/if}</ActionMenu></div>{/if}
-        <div class="topbar-actions" role="group" aria-label="Workspace tools">
-          <CommandSearch bind:this={commandSearch} actions={searchActions} onprepare={prepareSearchActions} onexpand={expandSearch} />
+
+
+    <span id="slide-rail-help" hidden>Arrows/Home/End navigate slides. Shift extends selection; Command or Control click toggles slides; Space toggles the focused slide; Command or Control A selects all. Command or Control D duplicates; Delete removes selected slides. Alt and arrows move the selection; Alt Home or End moves it to either end. On touch, use Slide actions or drag the selection grip. Hidden slides stay editable and are skipped in presentation.</span>
+    <span id="editor-toolbar-help" hidden>Tab enters/leaves; arrows navigate buttons; Home/End jump to ends.</span>
+    {#snippet editingPanelPicker()}<ActionMenu class="editing-panel-picker" label={`Editing panel · ${panelOptions.find(option=>option.id===panel)?.label}`} items={panelOptions.map(option=>({label:option.label,checked:panel===option.id,onselect:()=>choosePanel(option.id)}))}><span>{panelOptions.find(option=>option.id===panel)?.label}</span></ActionMenu>{/snippet}
+    <div class="workspace" class:selecting-slides={slideSelecting} class:left-hidden={!editor.deck || slidesHidden || canvasFocus} class:right-hidden={!editor.deck || !rightOpen || canvasFocus} class:is-resizing={resizing} class:inspector-expanded={compactPanelOpen&&phoneInspectorExpanded} style:--ui-rail-width={`${leftWidth}px`} style:--ui-panel-width={`${displayedRightWidth()}px`}>
+    <div class="document-navigation" inert={canvasFocus} role="group" aria-label="Document navigation"><button class="icon-btn brand-button" onclick={openLibrary} aria-label={`${BRAND.name} · Open document library`} data-tooltip="Open library"><BrandLockup /></button>{#if editor.deck}<div class="document-controls"><div class="document-title-field"><span class="document-title-size" aria-hidden="true">{documentTitleDraft || 'Document title'}</span><input class="document-name" aria-label="Document title" title={editor.deck?.title} bind:value={documentTitleDraft} placeholder="Document title" maxlength="300" disabled={!editor.deck||Boolean(proposalDeck)} onfocus={event=>event.currentTarget.select()} onchange={event=>{renameCurrent(event.currentTarget);documentTitleDraft=event.currentTarget.value;}} onkeydown={event=>{if(event.isComposing||event.keyCode===229)return;if(event.key==='Enter'||event.key==='Escape'){event.preventDefault();event.stopPropagation();if(event.key==='Escape'){documentTitleDraft=editor.deck?.title||'';event.currentTarget.value=documentTitleDraft;}event.currentTarget.blur();void focusCanvasSelection();}}}/></div><ActionMenu label="Document menu" disabled={!editor.deck||Boolean(proposalDeck)} items={[{label:'Open document library',icon:BookOpen,onselect:openLibrary},{label:'New document from template',icon:LayoutTemplate,onselect:()=>modal='templates'},{label:'Rename document',onselect:()=>document.querySelector<HTMLInputElement>('.document-name')?.focus()},{label:'Duplicate document',icon:Copy,onselect:()=>void duplicateDocument()},{label:'Import document',icon:Upload,divider:true,onselect:()=>modal='import'},{label:'Export document',icon:Download,onselect:openExport},{label:'Figma Slides sync',icon:ExternalLink,onselect:openFigmaSync},{label:'Publish presentation website',icon:ExternalLink,onselect:()=>{hostingConnectOnly=false;publishIncludeNotes=false;modal='publish';}},...(hasImportReport?[{label:'Import report',icon:Info,onselect:()=>modal='fidelity'}]:[]),{label:'Undo',shortcut:'⌘Z',disabled:!editor.past.length,onselect:event=>historyAction('undo',event)},{label:'Redo',shortcut:'⇧⌘Z',disabled:!editor.future.length,onselect:event=>historyAction('redo',event)},{label:'Slide details',icon:FileText,divider:true,onselect:openPageElements},{label:'Document styles',icon:DocumentStylesIcon,onselect:()=>openDocumentStyles()},...(editor.deck?.slides.some(s=>s.elements.some(e=>isThemedIllustration(e.resource)))?[{label:'Illustration colors',onselect:()=>modal='illustration-colors'}]:[]),{label:'Document fonts',icon:Type,onselect:()=>{fontLibraryTab='document';modal='fonts';}},{label:'Version history',icon:History,onselect:()=>void openHistory()},{label:'Recent notifications',icon:History,onselect:()=>modal='notifications'},...(slidesHidden?[{label:'Open slides panel',icon:Layers,divider:true,onselect:()=>void openSlidesPanel()}]:[]),...(!rightOpen?[{label:'Open editing panel',icon:PanelRight,divider:!slidesHidden,onselect:()=>void openEditingPanel()}]:[]),{label:'Search and commands',icon:Search,divider:true,onselect:()=>expandSearch('')},{label:'Open AI editor',icon:Sparkles,divider:true,onselect:()=>showPanel('ai')}]} /></div>{/if}</div>
+      <div class="workspace-tools" inert={canvasFocus} role="group" aria-label="Workspace actions">{#if editor.deck&&viewportWidth>760}{@render editingPanelPicker()}{/if}
+
+        
+          {#if viewportWidth > 760 || !editor.deck}<CommandSearch bind:this={commandSearch} actions={searchActions} onprepare={prepareSearchActions} onexpand={expandSearch} />{/if}
           <PopoverPanel onerror={message=>editor.notify(message,'warning')} bind:this={settingsMenu} title="Settings" iconOnly class="settings-popover" width={320} height={640} autoHeight>
             {#snippet trigger()}<Settings2 size={16} aria-hidden="true" />{/snippet}
             {@render settingsContent(true)}
           </PopoverPanel>
-        </div>
-        {#if editor.deck}<div class="topbar-actions" role="group" aria-label="Document actions">
+        {#if editor.deck}
           <Button variant="secondary" class="present-entry" aria-label="Present" onclick={() => startPresentation()} title={editor.deck?.slides.every(s=>s.hidden)?'Unhide a slide before presenting':'Present'} disabled={!editor.deck || Boolean(proposalDeck) || editor.deck.slides.every(s=>s.hidden)}><Play size={16} aria-hidden="true" /><span>Present</span></Button>
-        </div>{/if}
+        {/if}
       </div>
-    </header>
-    <span id="slide-rail-help" hidden>Arrows/Home/End navigate slides. Shift extends selection; Command or Control click toggles slides; Space toggles the focused slide; Command or Control A selects all. Command or Control D duplicates; Delete removes selected slides. Alt and arrows move the selection; Alt Home or End moves it to either end. On touch, use Slide actions or drag the selection grip. Hidden slides stay editable and are skipped in presentation.</span>
-    <span id="editor-toolbar-help" hidden>Tab enters/leaves; arrows navigate buttons; Home/End jump to ends.</span>
-    <div class="workspace" class:selecting-slides={slideSelecting} class:left-hidden={!editor.deck || slidesHidden || canvasFocus} class:right-hidden={!editor.deck || !rightOpen || canvasFocus} class:is-resizing={resizing} style:--ui-rail-width={`${leftWidth}px`} style:--ui-panel-width={`${displayedRightWidth()}px`}>
     <div class="workspace-feedback" class:feedback-in-dialog={Boolean(notificationUI.dialog)} inert={Boolean(notificationUI.dialog)} aria-hidden={Boolean(notificationUI.dialog)}><NotificationOutlet kind="feedback"/></div>
-      <aside id="slides-panel" class="slide-rail" aria-label="Slides" inert={!editor.deck || slidesHidden || canvasFocus || footerObscured}><div class="rail-content">
+      <aside id="slides-panel" class="slide-rail" aria-label="Slides" inert={!editor.deck || slidesHidden || canvasFocus}><div class="rail-content">
+
         {#if SlideRail}<SlideRail proposalDeck={Boolean(proposalDeck)} previewDocument={proposalDeck} {previewActiveId} onPreviewSelect={id=>previewActiveId=id} {viewportWidth} {leftWidth} {draggedSlide} {draggedSlides} {dropSlide} {dropAfter} onDragStart={startSlideDrag} {slideDragOver} onDragLeave={event=>{if(!(event.relatedTarget instanceof Node)||!(event.currentTarget as HTMLElement).contains(event.relatedTarget))dropSlide='';}} {slideDrop} onDragEnd={clearDropFeedback} {toggleSlideHidden} {setSelectedSlidesHidden} onAdd={()=>modal='layout'} {duplicateSlide} slideOrder={step=>slideOrder(step)}/>{/if}
       </div><!-- Keyboard adjustable split-pane separator. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div class="pane-resizer left-resizer" class:gesture-pane={resizing&&paneGesture?.side==='left'} role="separator" tabindex="0" aria-label="Resize slides panel" aria-orientation="vertical" aria-valuemin="140" aria-valuemax="320" aria-valuenow={leftWidth} onpointerdown={event=>resizePane(event,'left')} onpointermove={movePane} onpointerup={finishPane} onpointercancel={cancelPane} onlostpointercapture={cancelPane} onkeydown={event=>paneKey(event,'left')}></div></aside>
-      <main class="stage-column" inert={footerObscured}>
-        <span id="canvas-keyboard-help" hidden>Canvas: T text, R rectangle. Tap/click places; drag sizes. Touch: pan empty space, pinch zooms. Ctrl/Command + plus/minus zooms; 0 fits. Scroll changes slides when the full page is visible; zoomed view scrolls within the slide. Shift + wheel pans horizontally. Ctrl/Command + wheel zooms at pointer. Arrows move preview. Enter previews, then places. Escape cancels.</span>
+      <main class="stage-column">
+
+        <span id="canvas-keyboard-help" hidden>Canvas: T text; R rectangle. Click to place, drag to size. Shift+1 fits; Shift+2 frames selection. Ctrl/Command +/- zooms; Ctrl/Command+0 fits. Scroll pans or switches slides in Fit. Shift+wheel pans horizontally; Ctrl/Command+wheel zooms at the pointer. Arrows move the insertion preview; Enter previews or places; Escape cancels.</span>
         <div class="canvas-viewport">
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <div id="workspace-canvas" class="canvas-stage" data-clipboard-blocked={Boolean(proposalDeck||presenting||modal)} use:canvasViewport={{scale:currentScale,fit:zoomMode==='fit',key:editor.deck?.id??'',slideKey:editor.activeId,pageBlocked:Boolean(!editor.deck||editor.editingId||insertingText||insertTool||proposalDeck||presenting||modal),page:nextSlide,zoom:setZoom,cancel:()=>canvasHandle?.cancelPointer()}} use:canvasTouch={{scale:()=>currentScale,zoom:setZoom,cancel:()=>canvasHandle?.cancelPointer(),key:`${editor.deck?.id}:${editor.slide?.id}:${editor.sourceMode}:${Boolean(proposalDeck)}`,editing:Boolean(editor.editingId||insertingText)}} class:manual-zoom={zoomMode==='scale'} class:is-file-drop={fileDropActive} bind:this={stage} tabindex="0" onpointerdown={e => { if (e.target === e.currentTarget) { if(!insertTool&&!editor.sourceMode&&!proposalDeck&&canvasHandle)canvasHandle.beginMarquee(e);else if(!insertTool&&!proposalDeck)editor.selected=[];editor.hovered='';e.currentTarget.focus({preventScroll:true}); } }} ondragenter={enterFileDrop} ondragleave={leaveFileDrop} ondragover={canvasDragOver} ondrop={(e) => { e.preventDefault(); fileDropActive=false;fileDragDepth=0; if (proposalDeck || !e.dataTransfer?.files.length) return; insertTool=null; if (e.dataTransfer.files.length) { const f = e.dataTransfer.files[0]; f.type.startsWith('image/') ? void imageFiles(Array.from(e.dataTransfer.files)) : void imported(e.dataTransfer.files); } }} role="region" aria-label="Slide canvas" aria-describedby="canvas-keyboard-help">
           {#if editor.deck && editor.slide}
-            <div class="stage-canvas" use:uiChange={`${editor.deck.id}:${editor.slide.id}:${editor.sourceMode}:${Boolean(proposalDeck)}`} style:width="{stageWidth}px" data-shadow-owner="slide-canvas">{#if SlideCanvas}<SlideCanvas bind:this={canvasHandle} deck={editor.deck} slide={displayedSlide!} interactive={!editor.sourceMode && !proposalDeck && !resourcePreviewSlide} original={editor.sourceMode && !proposalDeck} {insertTool} {insertImage} {insertBlock} onplace={placeElement} oninsertcancel={cancelInsertion} oncellselection={active=>canvasCellsSelected=active} ontextdraft={active => {insertingText=active; if(active)insertTool=null;}} onprototype={openPrototype} />{:else}<div role="status">Loading canvas…</div>{/if}</div>
+            <div class="stage-canvas" use:uiChange={`${editor.deck.id}:${editor.slide.id}:${editor.sourceMode}:${Boolean(proposalDeck)}`} style:width="{stageWidth}px" style:background-color={displayedSlide?.background==='transparent'?'#000':undefined} data-shadow-owner="slide-canvas">{#if SlideCanvas}<SlideCanvas bind:this={canvasHandle} deck={editor.deck} slide={displayedSlide!} layoutWidth={stageWidth} interactive={!editor.sourceMode && !proposalDeck && !resourcePreviewSlide} original={editor.sourceMode && !proposalDeck} {insertTool} {insertImage} {insertBlock} onplace={placeElement} oninsertcancel={cancelInsertion} oncellselection={active=>canvasCellsSelected=active} ontextdraft={active => {insertingText=active; if(active)insertTool=null;}} onprototype={openPrototype} />{:else}<div role="status">Loading canvas…</div>{/if}</div>
           {:else if initializing}
             <EmptyState busy title="Opening workspace…" description="Preparing the editor and your document." />
           {:else if workspaceError}
             <EmptyState icon={AlertCircle} tone="error" role="alert" title="Workspace could not open" description={workspaceError}><Button variant="secondary" onclick={()=>workspaceRetry()}>Try again</Button><Button onclick={openLibrary}><BookOpen size={16}/>Open document library</Button></EmptyState>
           {:else}
-            <AsyncFeature feature="welcome" props={{ontemplates:collection=>{templateStart=collection;modal='templates';},onblank:()=>create(newDeck('Untitled document',[blankSlide()])),onimport:()=>modal='import',onlibrary:openLibrary,onai:()=>modal='ai-create',ondemo:openDemo,demoLoading}} />
+            <AsyncFeature feature="welcome" props={{ontemplates:collection=>{templateStart=collection;modal='templates';},onblank:()=>create(newDeck('Untitled document',[blankSlide()])),onimport:()=>modal='import',onlibrary:openLibrary,onai:()=>modal='ai-create',aiReady:Boolean(aiSettings.model.trim())&&(aiSettings.provider==='compatible'||Boolean(health?.ai?.configured)||Boolean(aiSettings.apiKey?.trim()))}} />
           {/if}
-          {#if !editor.croppingId && !canvasCellsSelected && !editor.sourceMode && !proposalDeck && !insertTool && (insertingText || editor.selection.length || editor.additiveSelection)}
+          {#if !editor.croppingId && !canvasCellsSelected && !editor.sourceMode && !proposalDeck && !insertTool && !(contextualCanvasTools&&canvasToolsExpanded) && (insertingText || editor.selection.length || editor.additiveSelection)}
             <div class="selection-context ui-floating-toolbar" use:editorToolbar use:selectionToolbar={{ids: editor.selected, editingId: editor.editingId, revision: editor.deck?.revision, scale: currentScale, draft: insertingText, docked: shortWorkspace}} role="toolbar" aria-label="Selected object actions">
               {#if !(editor.selection.length===1&&editor.selection[0].type==='line'&&!editor.selection[0].locked)}<span title={editor.selection.length===1?editor.selection[0].name:undefined}>{insertingText ? 'Text' : editor.selection.length === 1 ? elementLabel(editor.selection[0]) : editor.selection.length ? countLabel(editor.selection.length, "object") : 'Select objects'}</span>{/if}
               {#if !editor.editingId && !insertingText && editor.selection.length>1}<AsyncFeature feature="selection-actions" props={{onproperties:()=>showPanel('design'),mode:'primary'}}/>{/if}
@@ -1061,25 +1159,26 @@
         </div>
         </div>
         {#if editor.deck}
-        <footer class="stage-footer" class:compact-panel-layout={compactPanelOpen && !footerObscured} class:panel-obscured={footerObscured} inert={footerObscured} style:--compact-canvas-width={`${Math.max(0,compactCanvasWidth)}px`} aria-label="Canvas view tools">
+        <footer class="stage-footer" class:compact-insert={contextualCanvasTools&&!canvasToolsExpanded} aria-label="Canvas view tools">
           <div class="canvas-utility-left">
+            {#if source?.render && !proposalDeck}<div class="canvas-version"><ActionMenu label="Slide version" iconOnly={viewportWidth<=760} items={[{label:"Editable version",checked:!editor.sourceMode,onselect:()=>editor.sourceMode=false},{label:"Source reference",checked:editor.sourceMode,onselect:()=>{editor.sourceMode=true;editor.selected=[];editor.additiveSelection=false;editor.layerPickerId="";}}]}>{#if viewportWidth<=760}{#if editor.sourceMode}<BookOpen size={16}/>{:else}<MousePointer2 size={16}/>{/if}{:else}<span>{editor.sourceMode ? "Source" : "Editable"}</span>{/if}</ActionMenu></div>{/if}
             {#if !canvasFocus && !proposalDeck}<button class="text-btn" class:active={notesOpen} aria-label="Notes" title="Notes" aria-pressed={notesOpen} onclick={() => notesOpen = !notesOpen}><FileText size={14} /><span>Notes</span></button>{/if}
           {#if canvasFocus || slidesHidden}<div class="focus-page-controls" tabindex="-1" role="group" aria-label="Slide navigation"><button class="icon-btn small" aria-label="Previous slide" disabled={activeIndex <= 0} onclick={() => nextSlide(-1)}><ArrowLeft /></button><span class="slide-count">{activeIndex + 1} / {editor.deck?.slides.length ?? 0}</span><button class="icon-btn small" aria-label="Next slide" disabled={activeIndex >= (editor.deck?.slides.length ?? 1) - 1} onclick={() => nextSlide(1)}><ArrowRight /></button></div>{#if canvasFocus}<div class="divider"></div>{/if}{/if}
 
           </div>
           {#if editor.deck}
-          <div class="canvas-dock-slot"><div class="canvas-insert-dock ui-floating-toolbar" class:unavailable={editor.sourceMode||Boolean(proposalDeck)} inert={editor.sourceMode||Boolean(proposalDeck)} use:editorToolbar role="toolbar" aria-label="Insert tools" aria-describedby="editor-toolbar-help">
+          <div class="canvas-dock-slot"><details class="insert-disclosure" class:contextual={contextualCanvasTools} open={!contextualCanvasTools || canvasToolsExpanded} ontoggle={event=>{if(contextualCanvasTools)canvasToolsExpanded=event.currentTarget.open;}}>
+          <!-- svelte-ignore a11y_no_redundant_roles (Keep summary discoverable as a button across responsive display changes.) -->
+          <summary class="text-btn" role="button" aria-expanded={canvasToolsExpanded} aria-controls="canvas-insert-tools" hidden={!contextualCanvasTools}><Plus size={16}/><span>Insert</span><ChevronDown size={14}/></summary>
+          <div id="canvas-insert-tools" class="canvas-insert-dock ui-floating-toolbar" class:unavailable={editor.sourceMode||Boolean(proposalDeck)} inert={editor.sourceMode||Boolean(proposalDeck)} use:editorToolbar role="toolbar" aria-label="Insert tools" aria-describedby="editor-toolbar-help">
       <AsyncFeature feature="insert-tools" props={{insertTool, compact:shortWorkspace, resourceOpen, resourceActiveView, resourceBusy: Boolean(resourceOpen && resourceExpandControl?.disabled), disabled: !editor.deck, onselect: () => { finishInlineText(); cancelInsertion(); resourcePanel?.close(); void focusCanvasSelection(); }, oninsert: insert, onresource: openResourceTool, onchart: () => { cancelInsertion(); modal = 'chart'; }, onprototype: () => openPrototype(), onblocks: () => openBlocks()}} />
           </div>
+          </details>
           </div>
           {/if}
           <div class="canvas-utility-right">
-          <div class="zoom-controls"><ActionMenu label={`Canvas zoom · ${Math.round(currentScale*100)}%${zoomMode==='fit'?' · Fit to window':''}`} items={[
-            {label:'Fit to window',icon:Scan,checked:zoomMode==='fit',onselect:()=>setZoom('fit')},
-            ...[.25,.5,.75,1,1.25,1.5,2].map(value=>({label:`${Math.round(value*100)}%`,checked:zoomMode==='scale'&&Math.abs(zoom-value)<.001,onselect:()=>setZoom(value)})),
-            {label:'Zoom out',icon:Minus,divider:true,disabled:currentScale<=.1,onselect:()=>changeZoom(-.1)},
-            {label:'Zoom in',icon:Plus,disabled:currentScale>=4,onselect:()=>changeZoom(.1)}
-          ]}><span class="zoom-value">{Math.round(currentScale*100)}%</span></ActionMenu></div>
+          {#if viewportWidth <= 760 && !rightOpen && !canvasFocus}<button class="text-btn" aria-label="Open editing panel" onclick={()=>void openEditingPanel()}><PanelRight size={16}/><span>Edit</span></button>{/if}
+          <div class="zoom-controls"><AsyncFeature feature="canvas-zoom" props={{scale:currentScale,fit:zoomMode==='fit',zoom:setZoom,stage,blocked:Boolean(proposalDeck||presenting||modal||editor.sourceMode||editor.editingId||insertingText||insertTool)}}/></div>
           <button class="icon-btn focus-toggle" aria-label={canvasFocus ? 'Exit focus view' : 'Focus view'} aria-pressed={canvasFocus} title={canvasFocus ? 'Exit focus view · Esc' : 'Focus view'} disabled={!editor.deck} onclick={() => void setCanvasFocus(!canvasFocus)}>{#if canvasFocus}<Minimize2 />{:else}<Scan />{/if}</button>
           {#if canvasFocus}<CommandSearch bind:this={focusCommandSearch} class="focus-commands" actions={searchActions} onprepare={prepareSearchActions} onexpand={expandSearch} />{/if}
           {#if proposalDeck && (canvasFocus || !rightOpen)}<Button variant="primary" onclick={() => showPanel('ai')}>Review changes</Button>{/if}
@@ -1088,9 +1187,7 @@
         {/if}
         {#if notesOpen && !canvasFocus && !proposalDeck && editor.slide}<div class="notes-panel" transition:uiCollapse><label for="slide-notes">Speaker notes</label><textarea id="slide-notes" aria-label="Speaker notes" value={editor.slide.notes} oninput={(e) => editor.commit([{op: 'update_slide', slideId: editor.slide!.id, patch: {notes: e.currentTarget.value}}], 'notes')} placeholder="Add talking points, sources, or questions to resolve…"></textarea></div>{/if}
       </main>
-      <aside id="editing-panel" class="property-panel" tabindex="-1" data-panel={panel} aria-label="Editing panel" inert={!editor.deck || !rightOpen || canvasFocus}><div class="property-content"><div class="editing-panel-header"><div class="panel-tabs" role="tablist" tabindex="-1" aria-label="Editing panels" aria-orientation="horizontal">
-        {#each panelTabs as tab}<button id="editor-tab-{tab.id}" role="tab" class:active={panel === tab.id} aria-selected={panel === tab.id} aria-controls="editor-panel-{tab.id}" aria-label={tab.id === 'ai' ? 'AI editor' : tab.label} tabindex={panel === tab.id ? 0 : -1} onkeydown={panelTabKey} onclick={() => choosePanelTab(tab.id)}>{tab.label}</button>{/each}
-      </div>{#if viewportWidth<=760}<Button class="editing-panel-close" kind="icon" aria-label="Close editing panel" title="Return to canvas" onclick={closeEditingPanel}><X size={18}/></Button>{/if}</div>{#each panelTabs as tab (tab.id)}{@const panelView = tab.id}<div id="editor-panel-{panelView}" class="panel-swap" role="tabpanel" aria-labelledby="editor-tab-{panelView}" tabindex="0" hidden={panel !== panelView} inert={panel !== panelView} in:uiPresence={{x: 4, y: 0}}>{#if visitedPanels.includes(panelView)}{#if panelView === 'design'}<AsyncFeature feature="inspector" props={{ondraw:()=>{if(viewportWidth<=760)closeEditingPanel();if(insertTool!=='draw')insert('draw');},active:panel==='design'&&rightOpen&&!canvasFocus&&!presenting,view:inspectorView,onviewchange:(value:'properties'|'layers')=>inspectorView=value,ondeckstyles:openDocumentStyles,onpageelements:openPageElements,onreference:()=>modal='fidelity',onlayout:()=>modal='auto-layout',layoutDisabled:Boolean(proposalDeck),onresources:openResources,onfonts:()=>openFonts(),onprototype:openPrototype}} />{:else if panelView === 'motion'}<AsyncFeature feature="motion" props={{disabled:Boolean(proposalDeck),onexitpreview:returnCurrentVersion,active: panel === 'motion' && rightOpen && !canvasFocus && !presenting && !modal, onpreview: (fromId?: string) => { presentationStartId = fromId; editor.sourceMode = false; presenting = true; }}} />{:else}<AsyncFeature feature="ai" props={{workflow:workflowRequest,onworkflow:receiveWorkflow,onrunworkflow:()=>void runWorkflow(),ondismissworkflow:()=>void dismissWorkflow(),active:panel==='ai'&&rightOpen&&!canvasFocus&&!presenting&&!modal,settings: aiSettings, sessionVersion:aiSessionVersion, serverConfigured: Boolean(health?.ai?.configured), onpreview: toggleProposalPreview, preview: previewProposal, onsettings: () => void openSettingsTab('ai')}} />{/if}{/if}</div>{/each}</div><!-- Keyboard adjustable split-pane separator. -->
+      <aside id="editing-panel" class="property-panel" tabindex="-1" data-panel={panel} aria-label="Editing panel" inert={!editor.deck || !rightOpen || canvasFocus}><div class="property-content">{#if viewportWidth<=760}<div class="editing-panel-header">{@render editingPanelPicker()}<button class="icon-btn editing-panel-size" aria-label="Focus on editing panel" aria-pressed={phoneInspectorExpanded} onclick={()=>phoneInspectorExpanded=!phoneInspectorExpanded}><Maximize2/></button><Button class="editing-panel-close" kind="icon" aria-label="Close editing panel" title="Return to canvas" onclick={closeEditingPanel}><X/></Button></div>{/if}{#each panelOptions as tab (tab.id)}{@const panelView = tab.id}<div id="editor-panel-{panelView}" class="panel-swap" role="region" aria-label={tab.label} hidden={panel !== panelView} inert={panel !== panelView} in:uiPresence={{x: 4, y: 0}}>{#if editor.deck && visitedPanels.includes(panelView)}{#if panelView === 'design'}<AsyncFeature feature="inspector" props={{ondraw:()=>{if(viewportWidth<=760)closeEditingPanel();if(insertTool!=='draw')insert('draw');},active:panel==='design'&&rightOpen&&!canvasFocus&&!presenting,view:inspectorView,onviewchange:(value:'properties'|'layers')=>inspectorView=value,ondeckstyles:openDocumentStyles,onpageelements:openPageElements,onreference:()=>modal='fidelity',onlayout:()=>modal='auto-layout',layoutDisabled:Boolean(proposalDeck),onresources:openResources,onfonts:()=>openFonts(),onprototype:openPrototype}} />{:else if panelView === 'motion'}<AsyncFeature feature="motion" props={{disabled:Boolean(proposalDeck),onexitpreview:returnCurrentVersion,active: panel === 'motion' && rightOpen && !canvasFocus && !presenting && !modal, onpreview: (fromId?: string) => { presentationStartId = fromId; editor.sourceMode = false; presenting = true; }}} />{:else}<AsyncFeature feature="ai" props={{workflow:workflowRequest,onworkflow:receiveWorkflow,onrunworkflow:()=>void runWorkflow(),ondismissworkflow:()=>void dismissWorkflow(),active:panel==='ai'&&rightOpen&&!canvasFocus&&!presenting&&!modal,settings: aiSettings, sessionVersion:aiSessionVersion, serverConfigured: Boolean(health?.ai?.configured), onpreview: toggleProposalPreview, preview: previewProposal, onsettings: () => void openSettingsTab('ai')}} />{/if}{/if}</div>{/each}</div><!-- Keyboard adjustable split-pane separator. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div class="pane-resizer right-resizer" class:gesture-pane={resizing&&paneGesture?.side==='right'} role="separator" tabindex="0" aria-label="Resize editing panel" aria-orientation="vertical" aria-valuemin="260" aria-valuemax={viewportWidth<=760?Math.min(304,Math.max(0,viewportWidth-24)):viewportWidth<=1100?320:440} aria-valuenow={displayedRightWidth()} onpointerdown={event=>resizePane(event,'right')} onpointermove={movePane} onpointerup={finishPane} onpointercancel={cancelPane} onlostpointercapture={cancelPane} onkeydown={event=>paneKey(event,'right')}></div></aside>
     </div>
@@ -1124,8 +1221,12 @@
   <AsyncFeature feature="publish" props={{readDocument:async()=>{await editor.flush();if(editor.dirty)throw new Error('Save the document before publishing.');return editor.readDocument();},onclose:closeModal,includeNotes:publishIncludeNotes,connectOnly:hostingConnectOnly,onprepared:(result:WorkflowReceipt)=>{if(workflowRequest?.action.kind==='publish'&&workflowRequest.action.target==='web')void workflowResult('waiting_for_user',result);},oncomplete:(result:WorkflowReceipt)=>{if(workflowRequest?.action.kind==='publish'&&workflowRequest.action.target==='web'||workflowRequest?.action.kind==='account'&&workflowRequest.action.provider==='netlify')void workflowResult('completed',result);}}} onclose={closeModal} modalTitle={hostingConnectOnly?'Connect website hosting':'Publish presentation website'}/>
 {:else if modal === 'google-export'}
   <AsyncFeature feature="google-export" props={{readDocument:()=>editor.readDocument(),onclose:closeModal,oncomplete:(result:{url:string})=>{if(workflowRequest?.action.kind==='export'&&workflowRequest.action.format==='google'||workflowRequest?.action.kind==='publish'&&workflowRequest.action.target==='google')void workflowResult('completed',{message:'Google Slides copy created',url:result.url,provider:'google',state:'created'});},onconnection:(connected:boolean)=>{if(workflowRequest?.action.kind==='account'&&workflowRequest.action.provider==='google')void workflowResult('completed',{message:connected?'Google connected':'Google disconnected',provider:'google',state:connected?'connected':'disconnected'});}}} onclose={closeModal} modalTitle="Export to Google Slides" />
+{:else if modal === 'settings'}
+  <Dialog title="Settings" wide onclose={closeModal} returnFocus={() => document.querySelector<HTMLButtonElement>('.workspace-tools button[aria-label="Settings"]') ?? undefined}>
+    {@render settingsContent(false)}
+  </Dialog>
 {:else if modal && modal !== 'auto-layout' && modal !== 'deck-styles' && modal !== 'page-elements' && modal !== 'chart' && modal !== 'blocks'}
-  <Dialog title={{library: 'Document library', templates: 'Start with a template', layout: 'Add slide', 'ai-create':'Create with AI', import: 'Import document', export: 'Export document', fidelity: 'Import report', help: 'Keyboard shortcuts', settings: 'Settings', resources: resourceReplaceId ? 'Replace image' : 'Resource library', search: 'Search and commands', prototype: prototypeTarget ? 'Prototype preview' : 'Embed interactive prototype', fonts: 'Font library', rename:'Rename document', history:'Version history', notifications:'Recent notifications', 'illustration-colors':'Illustration colors'}[modal]} wide={['library', 'templates', 'layout', 'fonts', 'prototype', 'fidelity','history','settings','search','ai-create'].includes(modal)} class={modal === 'library' ? 'document-library-dialog' : modal === 'fonts' ? 'font-library-dialog' : ''} review={modal === 'fidelity'} resource={modal === 'resources'} onclose={closeModal} returnFocus={() => insertTool ? stage : undefined}>
+  <Dialog title={{library: 'Document library', templates: 'Start with a template', layout: 'Add slide', 'ai-create':'Create with AI', import: 'Import document', export: 'Export document', fidelity: 'Import report', help: 'Keyboard shortcuts', resources: resourceReplaceId ? 'Replace image' : 'Resource library', search: 'Search and commands', prototype: prototypeTarget ? 'Prototype preview' : 'Embed interactive prototype', fonts: 'Font library', rename:'Rename document', history:'Version history', notifications:'Recent notifications', 'illustration-colors':'Illustration colors'}[modal]} wide={['library', 'templates', 'layout', 'fonts', 'prototype', 'fidelity','history','search','ai-create'].includes(modal)} class={modal === 'library' ? 'document-library-dialog' : modal === 'fonts' ? 'font-library-dialog' : ''} review={modal === 'fidelity'} resource={modal === 'resources'} onclose={closeModal} returnFocus={() => insertTool ? stage : undefined}>
     {#if modal === 'ai-create'}
       <AsyncFeature feature="ai-create" props={{state:aiCreation,settings:aiSettings,serverConfigured:Boolean(health?.ai?.configured),onsettings:()=>{aiCreationSettingsReturn=true;void openSettingsTab('ai');},oncreate:acceptAICreation}} />
     {:else if modal === 'prototype'}
@@ -1137,22 +1238,20 @@
       <AsyncFeature feature="illustration-colors" props={{}} />
     {:else if modal === 'search'}
       <AsyncFeature feature="search" props={{actions: searchActions, initialQuery: searchQuery, initialScope: searchScope, onselect: runSearchAction}} />
-    {:else if modal === 'settings'}
-      {@render settingsContent(false)}
     {:else if modal === 'fonts'}
       <AsyncFeature feature="fonts" props={{onclose: closeModal, initialTab: fontLibraryTab}} />
     {:else if modal === 'rename'}
-      <label class="field-label">Document title<input aria-label="New document title" data-dialog-autofocus bind:value={renameValue} maxlength="300" onkeydown={event=>{if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229&&!event.repeat){event.preventDefault();void applyRename();}}} /></label><div class="button-row"><Button variant="secondary" onclick={()=>void openLibrary()}>Cancel</Button><Button variant="primary" disabled={!renameValue.trim()} onclick={applyRename}>Save title</Button></div>
+      <AsyncFeature feature="document-rename" props={{target:renameTarget!,onclose:()=>void openLibrary(),onsaved:()=>void openLibrary()}} />
     {:else if modal === 'history'}
-      <p class="dialog-intro">Restore a version as a new document. Your current document is preserved.</p><div class="document-history">{#each historyItems as version}<div><span><strong>{version.title}</strong><small>Version {version.revision} · {new Date(version.updatedAt).toLocaleString('en-US')} · {countLabel(version.count, "slide")}</small></span><Button variant="secondary" onclick={()=>restoreHistory(version.revision)}>Restore copy</Button></div>{:else}<section><EmptyState icon={History} title="No previous versions yet" description="Earlier versions appear here after you edit and save this document."><Button variant="secondary" onclick={closeModal}>Back to editor</Button></EmptyState></section>{/each}</div>
+      <AsyncFeature feature="version-history" props={{deckId:historyDeckId,onclose:closeModal,onrestored:(id:string)=>{if(editor.deck?.id!==id)return;rememberDocument(id);if(modal==='history')modal='';editor.notify('Version restored as a new document');}}}/>
     {:else if modal === 'library'}
-      <AsyncFeature feature="document-library" props={{documents:library, currentId:editor.deck?.id, onopen:(id:string) => void openDeck(id), onrename:beginRename, onduplicate:(id:string) => void duplicateDocument(id), onimport:() => modal = 'import', oncreate:() => modal = 'templates'}} />
+      <AsyncFeature feature="document-library" props={{documents:library, currentId:editor.deck?.id, busy, onopen:(id:string) => void openDeck(id), onrename:beginRename, onduplicate:(id:string) => void duplicateDocument(id), onimport:() => modal = 'import', oncreate:() => modal = 'templates'}} />
     {:else if modal === 'templates'||modal==='layout'}
       <AsyncFeature feature="templates" props={{mode:modal==='templates'?'document':'slide',deck:editor.deck,initialCollection:templateStart,oncreate:create,onlayout:addLayout,onlibrary:openLibrary}}/>
     {:else if modal === 'import'}
       <AsyncFeature feature="import-options" props={{cloudTab,cloudUrl,cloudToken,busy,documentImportBusy,onTab:(value:string)=>{cloudTab=value;error='';},onUrl:(value:string)=>cloudUrl=value,onToken:(value:string)=>cloudToken=value,onChooseFile:()=>fileInput.click(),onImport:cloudImport}} />
     {:else if modal === 'export'}
-      <AsyncFeature feature="export-options" props={{exportView,referenceComplete,hiddenCount:hiddenSlideCount,slideCount:editor.deck?.slides.length??0,hasGoogleSource:Boolean(editor.deck?.googleSource),hasKeynote:Boolean(health?.converters?.keynote),hasNativeSource:Boolean(editor.deck?.nativeSource),busy,exportKind,onView:(value:'editable'|'reference')=>exportView=value,onExport:exporting}} />
+      <AsyncFeature feature="export-options" props={{exportView,referenceComplete,hiddenCount:hiddenSlideCount,slideCount:editor.deck?.slides.length??0,hasGoogleSource:Boolean(editor.deck?.googleSource),hasKeynote:Boolean(health?.converters?.keynote),hasNativeSource:Boolean(editor.deck?.nativeSource),busy,exportKind,onCancel:cancelExport,onView:(value:'editable'|'reference')=>exportView=value,onExport:exporting}} />
     {:else if modal === 'fidelity'}
       {#if editor.deck}<AsyncFeature feature="fidelity" props={{deck: editor.deck, attach: () => sourceInput.click(), fonts: () => { fontLibraryTab='document'; modal='fonts'; }}} />{/if}
     {:else if modal === 'help'}

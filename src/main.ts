@@ -14,6 +14,7 @@ import './typography.css';
 import './feedback.css';
 import './cursors.css';
 import './responsive.css';
+import './workspace-navigation.css';
 import './scrollbars.css';
 const touchMedia=matchMedia('(any-pointer:coarse)');
 const loadTouchStyles=()=>{if(touchMedia.matches)void import('./touch.css');};

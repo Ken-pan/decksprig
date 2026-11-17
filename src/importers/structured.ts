@@ -1,7 +1,9 @@
+import {BRAND_NAME} from '../brand-name.js';
 import { element, newDeck, blankSlide, validateDeck, type Deck, type Slide } from '../core/model';
 import { importFigma } from './figma';
 import { importGoogle } from './google';
 import { importPortfolioDeck } from './portfolio';
+import {readDocumentFile,DOCUMENT_FILE_SCHEMA} from '../core/document-file';
 
 export { importFigma } from './figma';
 export { importGoogle } from './google';
@@ -29,6 +31,8 @@ export function importBroadser(raw: any): Deck {
   const d = newDeck(data.board?.name || raw.name || 'Broadser material', slides); d.provenance = {provider: 'Broadser', importedAt: new Date().toISOString()}; return d;
 }
 export function importJson(raw: any): Deck {
+  if(raw?.schema===DOCUMENT_FILE_SCHEMA)return readDocumentFile(raw);
+  if(typeof raw?.schema==='string'&&raw.schema.startsWith('deck-studio/file-'))throw new Error(`This Deck file uses a newer format. Update ${BRAND_NAME} to open it.`);
   if (raw.schema === 'deck-studio/1') return validateDeck(raw);
   if (raw.kind === 'figma-rest') return importFigma(raw);
   if (raw.kind === 'google-rest') return importGoogle(raw);

@@ -4,11 +4,14 @@ The active mark is the user-selected solid rounded card with a transparent two-l
 
 The vector contains two editable cubic paths and no embedded bitmap. Card corners and the rear cap meet straight edges tangentially; source sprout curves and spacing are preserved. Negative space is transparent. Default ink remains `#055841`, the selected application brand color. The source image's texture and gradient are not part of the vector mark.
 
+The editor document navigation uses a dedicated outline variant, following the user's Figma Slides UI reference. Its editable authority is `public/brand/references/header-outline-vector.svg`; the card-and-sprout contour reduces the rear card to one short vertical line. The overall mark is optically centered, using a 1.125px stroke at 24px and a wider stem opening and a smooth, tangent-continuous leaf junction; the sprout cutout meets the lower edge. Navigation uses tighter title spacing, with the phone target kept at 44px. The navigation mark remains 24px with an independent button target. Library, About, browser icons and exported brand artwork keep the approved solid mark.
+
 ## Active assets
 
 | Purpose | Asset |
 | --- | --- |
 | Editable mark | `public/brand/logo.svg` |
+| Editor navigation outline | `public/brand/header-outline.svg` |
 | Transparent mark, 1024px | `public/brand/logo.png` |
 | App icon artwork | `public/brand/app-icon.svg`, `app-icon.png` (1024), `app-icon-512.png`, `app-icon-192.png` |
 | Browser icon | `public/favicon.svg`, `public/favicon.ico` (16/32px frames), `public/brand/favicon-16.png`, `favicon-32.png` |
@@ -22,9 +25,9 @@ The vector contains two editable cubic paths and no embedded bitmap. Card corner
 
 ## Theme and caching
 
-Application marks use `--accent-text`; controls and states use existing semantic roles. All seven palettes support light, dark and system appearance. The browser icon uses the palette's paired accent/foreground roles. Document and illustration colors stay independent. Exported artwork is the default ink-green identity; home-screen artwork is a static asset.
+Header, Library and About marks use black in light appearance and white in dark appearance, independent of the accent palette. Other application marks use the selected accent; controls and states use existing semantic roles. All seven palettes support light, dark and system appearance. The browser icon uses the palette's paired accent/foreground roles. Document and illustration colors stay independent. Exported artwork is the default ink-green identity; home-screen artwork is a static asset.
 
-The vector SHA determines the asset revision. `src/brand-assets.ts`, `src/brand-assets.css` and all three entry-page icon links are generated together. CSS masks and dynamic browser icons request the versioned master, so a previous logo URL is not reused after a new release. Do not hand-edit generated files.
+The solid vector SHA determines its asset revision; the navigation outline has an independent source hash and CSS mask URL. `src/brand-assets.ts`, `src/brand-assets.css` and all three entry-page icon links are generated together. CSS masks and dynamic browser icons request the versioned master, so a previous logo URL is not reused after a new release. Do not hand-edit generated files.
 
 ## Regenerate and verify
 

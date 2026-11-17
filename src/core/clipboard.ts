@@ -1,3 +1,4 @@
+import {fontFamilyKey,sameFontFamily} from './font-stack';
 import {uid,type Deck,type Slide,type SlideElement,type SlideGroup,type GroupLayout} from './model';
 import {cloneDocumentData as clone} from './document-data';
 import {selectionBounds,type Point} from './interactions';
@@ -29,6 +30,14 @@ export function portableMembers(members:SlideElement[],slide:Slide):SlideElement
     return e;
   });
 }
+function carriedFonts(deck:Deck,elements:SlideElement[]):Pick<ClipboardContent,'fonts'|'onlineFonts'>{
+  const families=new Set<string>();
+  for(const e of elements){
+    families.add(fontFamilyKey(e.fontFamily));
+    for(const item of [...(e.runs??[]),...(e.paragraphs??[]).flatMap(p=>[...p.runs,...(p.endStyle?[p.endStyle]:[])]),...(e.tableStyle?.cellStyles??[]).flatMap(cell=>[cell,...(cell.runs??[])])])if(item.fontFamily)families.add(fontFamilyKey(item.fontFamily));
+  }
+  return {fonts:clone((deck.fonts??[]).filter(f=>families.has(fontFamilyKey(f.family)))),onlineFonts:clone((deck.onlineFonts??[]).filter(f=>families.has(fontFamilyKey(f.family))))};
+}
 export function clipboardContent(deck:Deck,slide:Slide,content:{members:SlideElement[];groups:ClipboardContent['groups'];layouts:ClipboardContent['layouts']},wholeSlide=false):ClipboardContent {
   const copiedSlide=wholeSlide?clone(slide):undefined;
   const members=copiedSlide?.elements??portableMembers(content.members,slide);
@@ -37,9 +46,8 @@ export function clipboardContent(deck:Deck,slide:Slide,content:{members:SlideEle
     for(const e of members)if(e.group&&!groupIds.has(e.group)){delete e.group;delete e.layoutItem;}
     for(const g of groups)if(g.parent&&!groupIds.has(g.parent)){delete g.parent;delete g.layoutItem;}
   }
-  const families=new Set(members.flatMap(e=>[e.fontFamily,...(e.runs??[]).map(r=>r.fontFamily),...(e.paragraphs??[]).flatMap(p=>[p.endStyle?.fontFamily,...p.runs.map(r=>r.fontFamily)])]));
   return ownClipboardContent({format:'deck-studio/clipboard/1',kind:wholeSlide?'slide':'objects',deckId:deck.id,slideId:slide.id,width:deck.width,height:deck.height,
-    members,groups,layouts:copiedSlide?.autoLayouts??clone(content.layouts),...(copiedSlide?{slide:copiedSlide}:{}),fonts:clone((deck.fonts??[]).filter(f=>families.has(f.family))),onlineFonts:clone((deck.onlineFonts??[]).filter(f=>families.has(f.family)))});
+    members,groups,layouts:copiedSlide?.autoLayouts??clone(content.layouts),...(copiedSlide?{slide:copiedSlide}:{}),...carriedFonts(deck,members)});
 }
 export function clipboardText(content:ClipboardContent):string {
   return (content.kind==='slides'?content.slides!.flatMap(slide=>slide.elements):content.kind==='slide'?content.slide!.elements:content.members).map(e=>e.type==='table'?e.cells?.map(row=>row.map(cell=>/[\t\r\n"]/.test(cell)?`"${cell.replaceAll('"','""')}"`:cell).join('\t')).join('\n'):e.text||e.name).filter(Boolean).join('\n');
@@ -47,8 +55,7 @@ export function clipboardText(content:ClipboardContent):string {
 export function clipboardSlides(deck:Deck,ids:readonly string[]):ClipboardContent|undefined {
   const order=selectedSlideOrder(deck.slides.map(slide=>slide.id),ids);if(!order.length)return;
   const selected=new Set(order),slides=clone(deck.slides.filter(slide=>selected.has(slide.id)));
-  const families=new Set(slides.flatMap(slide=>slide.elements.flatMap(e=>[e.fontFamily,...(e.runs??[]).map(r=>r.fontFamily),...(e.paragraphs??[]).flatMap(p=>[p.endStyle?.fontFamily,...p.runs.map(r=>r.fontFamily)])])));
-  return ownClipboardContent({format:'deck-studio/clipboard/1',kind:'slides',deckId:deck.id,slideId:order[0],width:deck.width,height:deck.height,members:[],groups:[],layouts:[],slides,fonts:clone((deck.fonts??[]).filter(font=>families.has(font.family))),onlineFonts:clone((deck.onlineFonts??[]).filter(font=>families.has(font.family)))});
+  return ownClipboardContent({format:'deck-studio/clipboard/1',kind:'slides',deckId:deck.id,slideId:order[0],width:deck.width,height:deck.height,members:[],groups:[],layouts:[],slides,...carriedFonts(deck,slides.flatMap(slide=>slide.elements))});
 }
 export function clipboardFormats(content:ClipboardContent){
   const cached=snapshots.has(content)?formats.get(content):undefined;if(cached)return cached;
@@ -75,18 +82,18 @@ export function pasteOffset(members:SlideElement[],layouts:ClipboardContent['lay
 /** Register carried fonts in the same transaction without overwriting destination fonts. */
 export function clipboardFonts(content:ClipboardContent,deck:Deck):{content:ClipboardContent;operations:Operation[]} {
   const operations:Operation[]=[],aliases=new Map<string,string>();
-  for(const family of new Set(content.fonts.map(f=>f.family))){
-    const carried=content.fonts.filter(f=>f.family===family),sameFace=(a:typeof carried[number],b:typeof carried[number])=>a.weight===b.weight&&a.style===b.style;
-    if(!carried.some(font=>deck.fonts?.some(f=>f.family===family&&sameFace(f,font)&&f.data!==font.data)))continue;
+  for(const [key,family] of new Map(content.fonts.map(f=>[fontFamilyKey(f.family),f.family]))){
+    const carried=content.fonts.filter(f=>fontFamilyKey(f.family)===key),sameFace=(a:typeof carried[number],b:typeof carried[number])=>a.weight===b.weight&&a.style===b.style;
+    if(!carried.some(font=>deck.fonts?.some(f=>fontFamilyKey(f.family)===key&&sameFace(f,font)&&f.data!==font.data)))continue;
     const prefix=`${family.slice(0,70)} Copy `;
-    const existing=deck.fonts?.find(f=>f.family.startsWith(prefix)&&carried.some(c=>sameFace(f,c)&&f.data===c.data)&&carried.every(c=>!deck.fonts?.some(other=>other.family===f.family&&sameFace(other,c)&&other.data!==c.data)));
-    aliases.set(family,existing?.family??`${prefix}${uid().slice(-8)}`);
+    const existing=deck.fonts?.find(f=>fontFamilyKey(f.family).startsWith(fontFamilyKey(prefix))&&carried.some(c=>sameFace(f,c)&&f.data===c.data)&&carried.every(c=>!deck.fonts?.some(other=>sameFontFamily(other.family,f.family)&&sameFace(other,c)&&other.data!==c.data)));
+    aliases.set(key,existing?.family??`${prefix}${uid().slice(-8)}`);
   }
   const c=aliases.size?clone(content):content;
-  const rename=(e:SlideElement)=>{e.fontFamily=aliases.get(e.fontFamily)??e.fontFamily;for(const r of [...(e.runs??[]),...(e.paragraphs??[]).flatMap(p=>[...p.runs,...(p.endStyle?[p.endStyle]:[])])])if(r.fontFamily)r.fontFamily=aliases.get(r.fontFamily)??r.fontFamily;};
+  const rename=(e:SlideElement)=>{e.fontFamily=aliases.get(fontFamilyKey(e.fontFamily))??e.fontFamily;for(const r of [...(e.runs??[]),...(e.paragraphs??[]).flatMap(p=>[...p.runs,...(p.endStyle?[p.endStyle]:[])])])if(r.fontFamily)r.fontFamily=aliases.get(fontFamilyKey(r.fontFamily))??r.fontFamily;for(const cell of e.tableStyle?.cellStyles??[]){if(cell.fontFamily)cell.fontFamily=aliases.get(fontFamilyKey(cell.fontFamily))??cell.fontFamily;for(const r of cell.runs??[])if(r.fontFamily)r.fontFamily=aliases.get(fontFamilyKey(r.fontFamily))??r.fontFamily;}};
   if(aliases.size){c.members.forEach(rename);c.slide?.elements.forEach(rename);c.slides?.forEach(slide=>slide.elements.forEach(rename));}
-  for(const sourceFont of c.fonts){const font=aliases.size?{...sourceFont,family:aliases.get(sourceFont.family)??sourceFont.family}:sourceFont;if(!deck.fonts?.some(f=>f.family===font.family&&f.weight===font.weight&&f.style===font.style&&f.data===font.data))operations.push({op:'register_local_font',font});}
-  for(const font of c.onlineFonts)if(!deck.onlineFonts?.some(f=>f.family===font.family))operations.push({op:'register_online_font',font});
+  for(const sourceFont of c.fonts){const font=aliases.size?{...sourceFont,family:aliases.get(fontFamilyKey(sourceFont.family))??sourceFont.family}:sourceFont;if(!deck.fonts?.some(f=>sameFontFamily(f.family,font.family)&&f.weight===font.weight&&f.style===font.style&&f.data===font.data))operations.push({op:'register_local_font',font});}
+  for(const font of c.onlineFonts)if(!deck.onlineFonts?.some(f=>sameFontFamily(f.family,font.family)))operations.push({op:'register_online_font',font});
   return{content:c,operations};
 }
 

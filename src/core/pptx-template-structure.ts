@@ -1,36 +1,53 @@
+import {refreshPptxTextMetadata} from './pptx-text-metadata';
+import {sameFontFamily} from './font-stack';
 import JSZip from 'jszip';
 import type {Deck,Slide,SlideElement} from './model';
 import {TEMPLATE_CONTRACTS} from './template-contracts';
 import {textBodyXml} from './pptx-fidelity';
-import {embedPptxFonts,type PptxFontLoader} from './pptx-fonts';
+import {embedPptxFonts,nativeFontCodecs,type PptxFontLoader} from './pptx-fonts';
+import {bindPptxEastAsianFonts} from './pptx-font-policy';
+import {resolveObjectMotion,type ObjectMotionEntry} from './motion-sequence';
 const esc=(s:string)=>s.replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 const emu=(v:number)=>Math.round(v*9525);
 const roles={ink:'dk1',background:'lt1',muted:'dk2',surface:'lt2',accent:'accent1',line:'accent2',dark:'accent3',onDark:'accent4'} as const;
 function timing(s:Slide,ids:Map<string,string>):string{
-  const groups=new Map<string,SlideElement[]>();
-  for(const e of s.elements)if(e.animation&&e.animation.effect!=='none'&&!e.hidden&&ids.has(e.id)){const key=e.animation.trigger+':'+e.animation.order;groups.set(key,[...(groups.get(key)??[]),e]);}
-  if(!groups.size)return '';
+  const entries=resolveObjectMotion(s).entries.filter(e=>ids.has(e.id)),elements=new Map(s.elements.map(e=>[e.id,e]));
+  if(!entries.length)return '';
   let tn=3;
-  const visibility=(e:SlideElement,value:'visible'|'hidden')=>`<p:set><p:cBhvr><p:cTn id="${tn++}" dur="1" fill="hold"/><p:tgtEl><p:spTgt spid="${ids.get(e.id)}"/></p:tgtEl><p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="${value}"/></p:to></p:set>`;
-  const initial=[...groups.entries()].filter(([key])=>key.startsWith('click')).flatMap(([,es])=>es).map(e=>visibility(e,'hidden')).join('');
-  const sequence=[...groups.entries()].sort(([a],[b])=>a.startsWith('auto')!==b.startsWith('auto')?a.startsWith('auto')?-1:1:Number(a.split(':')[1])-Number(b.split(':')[1])).map(([key,es])=>{
-    const id=tn++,click=key.startsWith('click'),duration=Math.max(...es.map(e=>e.animation!.duration));
-    const effects=es.map(e=>visibility(e,'visible')+`<p:animEffect transition="in" filter="fade"><p:cBhvr><p:cTn id="${tn++}" dur="${duration}" fill="hold"/><p:tgtEl><p:spTgt spid="${ids.get(e.id)}"/></p:tgtEl></p:cBhvr></p:animEffect>`).join('');
-    return `<p:par><p:cTn id="${id}" presetID="10" presetClass="entr" presetSubtype="0" fill="hold" nodeType="${click?'clickEffect':'afterEffect'}"><p:stCondLst><p:cond delay="${click?'indefinite':'0'}"/></p:stCondLst><p:childTnLst>${effects}</p:childTnLst></p:cTn></p:par>`;
-  }).join('');
-  return `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>${initial}<p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>${sequence}</p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>`;
+  const visibility=(id:string,value:'visible'|'hidden',delay=0)=>`<p:set><p:cBhvr><p:cTn id="${tn++}" dur="1" fill="hold"><p:stCondLst><p:cond delay="${delay}"/></p:stCondLst></p:cTn><p:tgtEl><p:spTgt spid="${ids.get(id)}"/></p:tgtEl><p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="${value}"/></p:to></p:set>`;
+  const initial=entries.filter(e=>e.phase==='in').map(e=>visibility(e.id,'hidden')).join('');
+  const effect=(entry:ObjectMotionEntry,index:number)=>{
+    const a=elements.get(entry.id)!.animation!,id=tn++,type=entry.trigger==='after-previous'?'afterEffect':entry.cue>0&&index===0?'clickEffect':'withEffect';
+    const effects=(entry.phase==='in'?visibility(entry.id,'visible'):'')+`<p:animEffect transition="${entry.phase}" filter="fade"><p:cBhvr><p:cTn id="${tn++}" dur="${a.duration}" fill="hold"/><p:tgtEl><p:spTgt spid="${ids.get(entry.id)}"/></p:tgtEl></p:cBhvr></p:animEffect>`+(entry.phase==='out'?visibility(entry.id,'hidden',a.duration):'');
+    return `<p:par><p:cTn id="${id}" presetID="10" presetClass="${entry.phase==='out'?'exit':'entr'}" presetSubtype="0" fill="hold" nodeType="${type}"><p:stCondLst><p:cond delay="${entry.start}"/></p:stCondLst><p:childTnLst>${effects}</p:childTnLst></p:cTn></p:par>`;
+  };
+  const group=(cue:number)=>{const members=entries.filter(e=>e.cue===cue);if(!members.length)return '';const id=tn++;return `<p:par><p:cTn id="${id}" dur="${Math.max(...members.map(e=>e.end))}" fill="hold"><p:stCondLst><p:cond delay="${cue?'indefinite':'0'}"/></p:stCondLst><p:childTnLst>${members.map(effect).join('')}</p:childTnLst></p:cTn></p:par>`;};
+  // Slide-entry tracks run independently; each numbered cue consumes one click.
+  const automatic=group(0),sequence=[...new Set(entries.filter(e=>e.cue>0).map(e=>e.cue))].sort((a,b)=>a-b).map(group).join('');
+  return `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>${initial}${automatic}<p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>${sequence}</p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>`;
 }
 /** Native templates gain reusable layouts, semantic theme slots and standard PPT fades.
  * Imported/source-reference documents are left to the fidelity exporter. */
 export async function enhancePptxTemplate(bytes:Uint8Array,deck:Deck,template=false,authored=deck,fontLoader?:PptxFontLoader):Promise<Uint8Array>{
   const zip=await JSZip.loadAsync(bytes),system=deck.designSystem;
-  if(!system||deck.provenance)return bytes;
+  const imported=nativeFontCodecs&&deck.fonts?.length&&(fontLoader||typeof location!=='undefined')?await (await import('./pptx-imported-fonts')).prepareImportedPptxFonts(deck):undefined;
+  if(!system||deck.provenance){
+    const binding=await bindPptxEastAsianFonts(zip,deck,imported?.han),fonts=await embedPptxFonts(zip,deck,fontLoader,imported);
+    if(template){
+      const content=await zip.file('[Content_Types].xml')!.async('string');
+      zip.file('[Content_Types].xml',content.replace('application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml','application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'));
+    }
+    if(!binding&&!fonts&&!template)return bytes;
+    for(const [path,file]of Object.entries(zip.files))if(/^ppt\/media\/[^/]+\.(jpe?g|gif|webp)$/i.test(path))file.options.compression='STORE';
+    await refreshPptxTextMetadata(zip);
+    return zip.generateAsync({type:'uint8array',compression:'DEFLATE',compressionOptions:{level:3}});
+  }
   let content=await zip.file('[Content_Types].xml')!.async('string');
   const pns='http://schemas.openxmlformats.org/presentationml/2006/main',ans='http://schemas.openxmlformats.org/drawingml/2006/main',rns='http://schemas.openxmlformats.org/officeDocument/2006/relationships',relsns='http://schemas.openxmlformats.org/package/2006/relationships';
   for(const path of Object.keys(zip.files).filter(p=>/^ppt\/theme\/theme\d+\.xml$/.test(p))){
     const chartFile=zip.file(path);if(!chartFile)continue;let x=await chartFile.async('string');
     x=x.replace(/<a:clrScheme\b[^>]*>[\s\S]*?<\/a:clrScheme>/,`<a:clrScheme name="${esc(system.name)}">${Object.entries(roles).map(([role,slot])=>`<a:${slot}><a:srgbClr val="${system.colors[role as keyof typeof roles].slice(1)}"/></a:${slot}>`).join('')}<a:accent5><a:srgbClr val="${system.colors.accent.slice(1)}"/></a:accent5><a:accent6><a:srgbClr val="${system.colors.muted.slice(1)}"/></a:accent6><a:hlink><a:srgbClr val="${system.colors.accent.slice(1)}"/></a:hlink><a:folHlink><a:srgbClr val="${system.colors.muted.slice(1)}"/></a:folHlink></a:clrScheme>`);
-    x=x.replace(/<a:fontScheme\b[^>]*>[\s\S]*?<\/a:fontScheme>/,`<a:fontScheme name="${esc(system.name)}"><a:majorFont><a:latin typeface="${esc(system.typography.title.fontFamily)}"/><a:ea typeface="${system.typography.title.fontFamily==='DM Serif Display'?'Noto Serif SC':'Noto Sans SC'}"/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${esc(system.typography.body.fontFamily)}"/><a:ea typeface="Noto Sans SC"/><a:cs typeface=""/></a:minorFont></a:fontScheme>`);zip.file(path,x);
+    x=x.replace(/<a:fontScheme\b[^>]*>[\s\S]*?<\/a:fontScheme>/,`<a:fontScheme name="${esc(system.name)}"><a:majorFont><a:latin typeface="${esc(system.typography.title.fontFamily)}"/><a:ea typeface="${sameFontFamily(system.typography.title.fontFamily,'DM Serif Display')?'Noto Serif SC':'Noto Sans SC'}"/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${esc(system.typography.body.fontFamily)}"/><a:ea typeface="Noto Sans SC"/><a:cs typeface=""/></a:minorFont></a:fontScheme>`);zip.file(path,x);
   }
   const masterPath='ppt/slideMasters/slideMaster1.xml',masterRelsPath='ppt/slideMasters/_rels/slideMaster1.xml.rels';
   let master=await zip.file(masterPath)!.async('string'),masterRels=await zip.file(masterRelsPath)!.async('string');
@@ -64,7 +81,7 @@ export async function enhancePptxTemplate(bytes:Uint8Array,deck:Deck,template=fa
       if(e.type==='table'&&e.design&&!adaptive){
         const cells=shape.match(/<a:tr\b[^>]*>[\s\S]*?<\/a:tr>/g)??[];
         cells.forEach((row,ri)=>{const themed=row.replace(/<a:tc>[\s\S]*?<\/a:tc>/g,cell=>{
-          cell=cell.replace(/<a:(latin|ea)\b[^>]*typeface="[^"]*"[^>]*\/>/g,(_,script)=>`<a:${script} typeface="+mn-${script==='ea'?'ea':'lt'}"/>`);
+          if(!e.design!.overrides?.includes('fontFamily'))cell=cell.replace(/<a:(latin|ea)\b[^>]*typeface="([^"]*)"[^>]*\/>/g,(original,script,family)=>sameFontFamily(family,esc(e.fontFamily))?`<a:${script} typeface="+mn-${script==='ea'?'ea':'lt'}"/>`:original);
           cell=cell.replace(/<a:txBody>[\s\S]*?<\/a:txBody>/,tx=>tx.replace(/<a:srgbClr val="[^"]*"\s*\/>/g,`<a:schemeClr val="${e.design?.fill?roles[e.design.fill]:'dk1'}"/>`));
           return cell.replace(/<a:tcPr[\s\S]*?<\/a:tcPr>/,pr=>pr.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln[^>]*>/g,ln=>ln.replace(/<a:srgbClr val="[^"]*"\s*\/>/g,`<a:schemeClr val="${e.design?.stroke?roles[e.design.stroke]:'accent2'}"/>`)).replace(/<a:solidFill><a:srgbClr val="[^"]*"\s*\/><\/a:solidFill>/g,`<a:solidFill><a:schemeClr val="${ri===0?'lt2':'lt1'}"/></a:solidFill>`));
         });shape=shape.replace(row,themed);});
@@ -115,9 +132,11 @@ export async function enhancePptxTemplate(bytes:Uint8Array,deck:Deck,template=fa
   master=master.replace('</p:sldLayoutIdLst>',layoutIds.join('')+'</p:sldLayoutIdLst>');zip.file(masterPath,master);zip.file(masterRelsPath,masterRels);
   if(template)content=content.replace('application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml','application/vnd.openxmlformats-officedocument.presentationml.template.main+xml');
   zip.file('[Content_Types].xml',content);
-  await embedPptxFonts(zip,deck,fontLoader);
+  await bindPptxEastAsianFonts(zip,deck,imported?.han);
+  await embedPptxFonts(zip,deck,fontLoader,imported);
   // Loading the fidelity ZIP resets per-file compression options. Preserve
   // already-compressed media through the additional template pass as well.
   for(const [path,file] of Object.entries(zip.files))if(/^ppt\/media\/[^/]+\.(jpe?g|gif|webp)$/i.test(path))file.options.compression='STORE';
+  await refreshPptxTextMetadata(zip);
   return zip.generateAsync({type:'uint8array',compression:'DEFLATE',compressionOptions:{level:3}});
 }

@@ -1,7 +1,9 @@
 import {Undo2,Redo2,Scissors,Copy,ClipboardPaste,TextSelect} from '@lucide/svelte';
-import type { ContextActions, ContextMenuItem } from './context-menu';
+import {registeredContext,type ContextActions,type ContextMenuItem} from './context-menu';
 
 export function textContext(target: HTMLElement, report: (message: string) => void): ContextActions | undefined {
+  const managed=target.closest<HTMLElement>('.body-text-editor'),custom=managed&&registeredContext(managed);
+  if(custom){const icons:Record<string,ContextMenuItem['icon']>={Undo:Undo2,Redo:Redo2,Cut:Scissors,Copy,Paste:ClipboardPaste,'Select all':TextSelect};return {...custom,items:custom.items.map(item=>({...item,icon:icons[item.label]??item.icon}))};}
   const field = target.closest<HTMLInputElement | HTMLTextAreaElement | HTMLElement>('input,textarea,[contenteditable="true"]');
   if (!field) return;
   const input = field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement ? field : undefined;

@@ -53,6 +53,13 @@ toolbars, and More stays visible while content scrolls and opens the full Dialog
   removed. An already-open dialog keeps ownership of focus during rapid changes.
 - Header and footer stay in the frame. Long content scrolls inside the body;
   workspace dialogs use their own internal columns without changing the frame.
+- Reveal the complete focused control within its actual scroll container after
+  focus or body resizing. Inner workspace scrollers reserve a focus gutter;
+  open popovers keep ownership of their own placement.
+- Modal notifications occupy layout space and reserve a usable editing area.
+  If the complete notice cannot fit, collapse it and pause its remaining lifetime
+  until space returns. Recent notifications remains the untimed alternative.
+  Deferring a focused notice returns focus to the last body control.
 - UI motion and reduced-motion behavior are shared through `uiPresence` and
   `uiIndicator`. Document animation retains its own contract.
 
@@ -171,7 +178,7 @@ use quiet command buttons; their arrow keys move focus without invoking actions.
 `editorToolbar` uses one Tab stop for three or more controls and ordinary grouped
 buttons for smaller sets. Only real toggles expose `aria-pressed` and persistent
 state. Tabs are reserved for switching associated content panels, not commands.
-The editor header retains its compact identity lockup. Toolbar-end panel
+The editor has no global header. Document navigation occupies the top of the slide rail, with workspace tools and presentation at the top of the inspector. The canvas reaches the top edge. On compact screens or with hidden panes, these controls remain in small floating surfaces; source/editable switching lives beside Notes. Toolbar-end panel
 visibility toggles live in Settings > Appearance > Workspace panels, with native
 checkboxes and browser-local preferences. Presentation uses an outline icon. Scrollbar thumbs reveal on hover/focus for fine
 pointers, retain their width, and remain available on touch and forced colors.
@@ -190,12 +197,14 @@ WCAG conformance or external conversion fidelity.
 
 | Role | Size at 16px base | Weight | Line height | Color |
 | --- | --- | --- | --- | --- |
-| Compact control | 13px / .8125rem | 500 | 1.4 | primary; semantic action foreground |
+| Compact control | 13px / .8125rem | 400; selected or primary 500 | 1.4 | primary; semantic action foreground |
 | Reading paragraph | 14px / .875rem | 400 | 1.6 | primary or readable secondary |
 | Field label | 12px / .75rem | 400 | 1.5 | secondary |
 | Metadata / status | 12px / .75rem | 400 | 1.5 | secondary |
-| Section heading | 13px / .8125rem | 600 | 1.5 | primary |
+| Inspector section heading | 12px / .75rem | 500 | 1.5 | primary |
 | Dialog title | 18px / 1.125rem | 600 | 1.4 | primary |
+
+Utility and section glyphs use 16px, canvas creation glyphs use 18px, and small disclosures use 14px. Lucide UI glyphs use a 1.5-unit stroke. The navigation logo remains 24px with an independent 44px phone target. Document SVG artwork retains its own styling.
 
 `src/design-system.css` owns size/weight/line-height tokens. Application controls
 consume them; `src/typography.css` completes reading roles and allows controls,
@@ -278,13 +287,13 @@ its internal reflow. Use available container space for content layouts, and
 | --- | --- |
 | Above 1100px | Slide rail, canvas, inspector; saved widths remain adjustable |
 | 761–1100px | Canvas and inspector; horizontal slide rail below the canvas |
-| At most 760px | Canvas first; inspector opens on demand with an explicit close action |
+| At most 760px | Canvas above a docked inspector; expand for detailed editing or close to return to the full canvas |
 | At most 1100px wide and 520px high | Temporarily hide the slide rail; retain previous/next page actions |
 
 Resizing changes the displayed inspector width, preserving its saved desktop
 width and pane visibility. Compact canvas docks participate in footer layout
 instead of overlapping utilities. Hidden panel views are `hidden` and `inert`;
-background footer actions are inert while the phone inspector owns that space.
+the docked phone inspector keeps the canvas available. Focus on editing panel hides the background; toggle it off or close the panel to return to the canvas.
 Short touch workspaces also keep the labeled dock in normal flow: two rows of
 tools determine the footer height rather than overflowing an 80px desktop frame.
 

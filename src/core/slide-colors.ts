@@ -1,3 +1,4 @@
+import {automaticShapeTextColor} from './shape-label-color';
 import {cloneDocumentData} from './document-data';
 import {elementCorners,selectionBounds,type Bounds} from './interactions';
 import {contrastRatio, readableTextColor, normalizeColor as hex, compositeColor as composite, mixColors as mix} from './color-contrast';
@@ -19,6 +20,7 @@ function restoreElement(e:SlideElement):SlideElement {
     const f=field(result,path);if(!f||f.object[f.key]!==color.adapted)continue;
     if(color.original===undefined)delete f.object[f.key];else f.object[f.key]=color.original;
   }
+  if(e.contrastColors['shapeText.color']?.created&&result.shapeText&&!Object.keys(result.shapeText).length)delete result.shapeText;
   delete result.contrastColors;
   if(result.tableStyle&&!Object.keys(result.tableStyle).length)delete result.tableStyle;
   return result;
@@ -65,21 +67,23 @@ export function adaptSlideColors(slide:Slide,system:DesignSystem):Slide {
     function set(path:string,value:string){
       const before=field(e,path);if(before&&before.object[before.key]===value)return;
       if(e===original)e=cloneDocumentData(e);
+      const created=path==='shapeText.color'&&!e.shapeText;
+      if(created)e.shapeText={};
       if(path.startsWith('tableStyle.'))e.tableStyle??={};
       const f=field(e,path);if(!f)return;
       const previous=e.contrastColors?.[path];
       const originalColor=previous?previous.original:f.object[f.key] as string|undefined;
-      (e.contrastColors??={})[path]={original:originalColor,adapted:value};f.object[f.key]=value;
+      (e.contrastColors??={})[path]={original:originalColor,adapted:value,...(created||previous?.created?{created:true}:{})};f.object[f.key]=value;
     }
-    function readable(path:string,back:string,target=4.5,role?:string){
+    function readable(path:string,back:string,target=4.5,role?:string,backdrop?:string){
       const f=field(e,path),value=f?.object[f.key];if(typeof value!=='string')return;
       const normalized=hex(value);
       if(!normalized||normalized.slice(7)==='00')return;
-      const visible=composite(value,back,e.opacity);
-      if(contrastRatio(visible,back)>=target)return;
+      const visible=backdrop?composite(composite(value,back),backdrop,e.opacity):composite(value,back,e.opacity);
+      if(contrastRatio(visible,backdrop?composite(back,backdrop,e.opacity):back)>=target)return;
       role??=Object.entries(system.colors).find(([,color])=>color.toLowerCase()===value.toLowerCase())?.[0];
       const preferred=role==='ink'||role==='onDark'?system.colors.onDark:role==='muted'?mix(back,system.colors.onDark,.72):normalized.slice(0,7);
-      set(path,readableTextColor(preferred+normalized.slice(7),back,target,e.opacity));
+      set(path,readableTextColor(preferred+normalized.slice(7),back,target,e.opacity,backdrop));
     }
     if(shapes.has(e.type)){
       const alpha=hex(e.fill)?.slice(7)??'';
@@ -90,7 +94,7 @@ export function adaptSlideColors(slide:Slide,system:DesignSystem):Slide {
     }else if(e.type==='line'){
       readable('stroke',background,3,e.design?.stroke);
     }
-    let textBackground=shapes.has(e.type)?composite(e.fill,background):background;
+    let textBackground=e.type==='line'?slide.background:shapes.has(e.type)?composite(e.fill,background):background;
     if(e.type==='table'){
       if(e===original)e=cloneDocumentData(e);
       const style=e.tableStyle??{};
@@ -114,15 +118,21 @@ export function adaptSlideColors(slide:Slide,system:DesignSystem):Slide {
       for(const [i,cell] of (table.cellStyles??[]).entries()){
         const isHeader=cell.row===0&&table.headerRow!==false,striped=table.banded&&(cell.row-(table.headerRow===false?0:1))%2===1;
         const back=composite(cell.fill??(isHeader?header:striped?table.stripeFill!:table.bodyFill!),background),inherited=isHeader?table.headerText!:e.fill;
+        for(const [j,run]of(cell.runs??[]).entries())if(run.color)readable(`tableStyle.cellStyles.${i}.runs.${j}.color`,back);
         if(cell.color)readable(`tableStyle.cellStyles.${i}.color`,back);
         else if(contrastRatio(composite(inherited,back),back)<4.5)set(`tableStyle.cellStyles.${i}.color`,readableTextColor(composite(inherited,back),back));
       }
     }else if(e.type==='text')readable('fill',background,4.5,e.design?.fill);
-    if(e.shapeText?.color)readable('shapeText.color',textBackground);
-    for(const [i] of (e.runs??[]).entries())readable(`runs.${i}.color`,textBackground);
+    if((shapes.has(e.type)||e.type==='line')&&e.text&&!e.shapeText?.color){
+      const automatic=e.type==='line'?(e.stroke==='transparent'?e.fill:e.stroke):automaticShapeTextColor(e.fill);
+      const color=readableTextColor(automatic,textBackground,4.5,e.opacity,background);
+      if(color!==automatic)set('shapeText.color',color);
+    }
+    if(e.shapeText?.color)readable('shapeText.color',textBackground,4.5,undefined,background);
+    for(const [i] of (e.runs??[]).entries())readable(`runs.${i}.color`,textBackground,4.5,undefined,background);
     for(const [i,p] of (e.paragraphs??[]).entries()){
-      for(const [j] of p.runs.entries())readable(`paragraphs.${i}.runs.${j}.color`,textBackground);
-      if(p.endStyle)readable(`paragraphs.${i}.endStyle.color`,textBackground);
+      for(const [j] of p.runs.entries())readable(`paragraphs.${i}.runs.${j}.color`,textBackground,4.5,undefined,background);
+      if(p.endStyle)readable(`paragraphs.${i}.endStyle.color`,textBackground,4.5,undefined,background);
     }
     if(e.chart){
       readable('fill',background,3,e.design?.fill);

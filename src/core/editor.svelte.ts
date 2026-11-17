@@ -3,13 +3,14 @@ import {savedDocumentLabel} from './runtime';
 import { applyImmutableOperations, type Operation, type Proposal, type AlignmentReference } from './operations';
 import { uid, type Deck, type SlideElement, type Slide, type GroupLayout, type SlideGroup } from './model';
 import { selectedLayout,dragLayoutMember } from './object-layout';
-import { draftRecord, readDraft, resolveDraft, saveImmutableDraft } from './drafts';
+import { draftRecord, readDraft, saveImmutableDraft } from './drafts';
 import {slideGroups,descendants,ancestorIds,treeSelection,selectionRoots,selectionTarget,editingSelectionScope,individualSelectionScope,createContainerTree,type ContainerTree} from './container-tree';
 import { resolveDeckTextSizing, resolveDeckTextSizingAsync, resolveSlideTextSizing,textSizeEpoch } from './text-layout';
 import { cloneDocumentData as clone } from './document-data';
 import {adoptDeckRevision,takeDeckRevision,validateDeckRevision} from './document-revision';
-import { jsonRequest } from './json-request';
+import { jsonRequest, workspaceDocumentRequest } from './client-json';
 import type {LayerDrop} from './layer-move';
+import type {SavedMediaBase} from './document-media-update';
 import type {NoticeTone} from '../notification-lifetime';
 import {captureClipboardContent,clipboardContent,clipboardSlides,clipboardFonts,portableMembers,pasteOffset,detachClipboardStyles,type ClipboardContent,type PastePlacement} from './clipboard';
 import {orderedSlideSelection,selectSlideRange,type SlideSelectionIntent} from './slide-selection';
@@ -20,8 +21,8 @@ import {selectedSlideOrder,reorderSelectedSlides,moveSelectedSlides,type SlideMo
 
 type EditorContext = {activeId: string; selected: string[]; selectedGroup?:string; editingGroup?:string; individualSelection?:boolean; sourceMode: boolean; selectedSlides?:string[]; slideAnchor?:string; slideSelectionMode?:boolean};
 
-export async function api<T = any>(url: string, method = 'GET', body?: unknown): Promise<T> {
-  return jsonRequest<T>(url, method, body);
+export async function api<T = any>(url: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
+  return jsonRequest<T>(url, method, body, fetch, {signal});
 }
 export class Editor {
   // Model operations replace the whole document. Nested proxying is unnecessary
@@ -46,7 +47,9 @@ export class Editor {
   snapToIncrement = $state(true);
   layoutGuides = $state(false);
   alignmentReference = $state<AlignmentReference>('auto');
-  sourceMode = $state(false);
+  preferredSourceMode = $state(false);
+  get sourceMode():boolean{return Boolean(this.preferredSourceMode&&this.slide?.source?.render);}
+  set sourceMode(value:boolean){this.preferredSourceMode=value;}
   past = $state.raw<Deck[]>([]);
   future = $state.raw<Deck[]>([]);
   pastContext: EditorContext[] = [];
@@ -66,6 +69,7 @@ export class Editor {
   }
   saving = $state(false);
   savedRevision = $state(0);
+  private savedMediaBase?: SavedMediaBase;
   recoveries = $state.raw<Deck[]>([]);
   recoveryIndex = $state(0);
   pending = $state<Proposal | null>(null);
@@ -77,6 +81,15 @@ export class Editor {
   private pastedCopies:{deckId:string;slideId:string;ids:string[];step:number}[]=[];
   timer: ReturnType<typeof setTimeout> | undefined;
   private flushPromise: Promise<void> | undefined;
+  private openSequence = 0;
+  get navigationVersion(){return this.openSequence;}
+  private openController?: AbortController;
+  private positions?:typeof import('./workspace-position');
+  rememberPosition(){
+    if(!this.deck||!this.positions)return;
+    const index=Math.max(0,this.deck.slides.findIndex(s=>s.id===this.activeId));
+    this.positions.writeWorkspacePosition(this.deck.id,{slideId:this.deck.slides[index].id,index,sourceMode:this.preferredSourceMode});
+  }
   lastMerge = ''; lastMergeTime = 0;
   propertyGesture = '';
   private measuredView?:{onlineFonts:Deck['onlineFonts'];source:Slide;elements:Slide['elements'];groups:Slide['groups'];layouts:Slide['autoLayouts'];epoch:number;value:Slide};
@@ -119,50 +132,73 @@ export class Editor {
     const slides=[...base.slides];slides[index]=slide;
     return validateDeckRevision(base,{...base,slides});
   }
-  context(): EditorContext { return {activeId:this.activeId,selected:[...this.selected],selectedGroup:this.selectedContainer,editingGroup:this.editingGroup,individualSelection:this.individualSelection,sourceMode:this.sourceMode,selectedSlides:[...this.selectedSlides],slideAnchor:this.slideAnchor,slideSelectionMode:this.slideSelectionMode}; }
+  context(): EditorContext { return {activeId:this.activeId,selected:[...this.selected],selectedGroup:this.selectedContainer,editingGroup:this.editingGroup,individualSelection:this.individualSelection,sourceMode:this.preferredSourceMode,selectedSlides:[...this.selectedSlides],slideAnchor:this.slideAnchor,slideSelectionMode:this.slideSelectionMode}; }
   restoreContext(context?: EditorContext) {
     if(context&&this.deck?.slides.some(s=>s.id===context.activeId))this.activeId=context.activeId;
     else if(!this.deck?.slides.some(s=>s.id===this.activeId))this.activeId=this.deck?.slides[0].id||'';
     this.selectedSlides=context?.selectedSlides??[this.activeId];this.slideAnchor=context?.slideAnchor??this.activeId;this.slideSelectionMode=context?.slideSelectionMode??false;this.pruneSlideSelection();
     this.selectedGroup=context?.selectedGroup??'';this.individualSelection=context?.individualSelection??false;this.editingGroupId=context?.editingGroup??'';if(!this.editingGroup)this.editingGroupId='';
     this.selected=(context?.selected||[]).filter(id=>this.slide?.elements.some(e=>e.id===id));
-    this.sourceMode=Boolean(context?.sourceMode&&this.slide?.source?.render);
+    this.sourceMode=Boolean(context?.sourceMode);
     this.editingId='';this.hovered='';this.layerPickerId='';this.lastMerge='';this.lastMergeTime=0;
+    this.rememberPosition();
   }
-  async open(id: string) {
-    if (this.deck) { await this.flush(); if (this.deck.revision > this.savedRevision) throw new Error('These changes have not been saved to the document library. Export a copy or retry saving.'); }
+  async open(id: string, canOpen = () => true, justCreated?: Deck) {
+    if (!canOpen()) return false;
+    this.rememberPosition();
+    const request = ++this.openSequence;
+    this.openController?.abort();
+    const controller = this.openController = new AbortController();
+    if (this.deck) { await this.flush(); if (request !== this.openSequence || !canOpen()) return false; if (this.deck.revision > this.savedRevision) throw new Error('These changes have not been saved to the document library. Export a copy or retry saving.'); }
+    const current = this.deck;
     // Disk transport and the local recovery read are independent. Recovery read
     // failures stay recoverable and never hide a failed document request.
-    const [d, draftRead] = await Promise.all([
-      api<Deck>(`/api/decks/${id}`),
+    let mediaToken: string | null = null;
+    const loaded = await Promise.all([
+      justCreated?.id === id ? justCreated : workspaceDocumentRequest<Deck>(`/api/decks/${id}`, 'GET', undefined, fetch, {signal:controller.signal,documentRevision:true,onMediaToken:token=>mediaToken=token}),
       readDraft(id).then(value => ({value, failed: false}), () => ({value: undefined, failed: true})),
-    ]);
+      import('./draft-resolution'),
+      import('./workspace-position').catch(()=>undefined),
+    ]).catch(error => { if (request === this.openSequence) throw error; });
+    if (!loaded || request !== this.openSequence || !canOpen()) return false;
+    if (this.deck?.id !== current?.id || this.deck?.revision !== current?.revision) throw new Error('The current document changed while opening another. Save your changes and try again.');
+    const [d, draftRead, {resolveDraft},positions] = loaded;
+    if(positions)this.positions=positions;
     let draft: ReturnType<typeof resolveDraft> = {}, draftError = '';
     try { if (draftRead.failed) throw new Error('Recovery read failed'); draft = resolveDraft(draftRead.value, d); } catch { draftError = 'Could not read the browser recovery draft. The saved document is open. Try reopening it or export a copy before leaving.'; }
     this.deck = adoptDeckRevision(draft.restore ?? d); this.recoveries = draft.conflicts ?? []; this.recoveryIndex = 0;
-    this.savedRevision = d.revision; this.activeId = this.deck.slides[0].id;
+    this.savedMediaBase = mediaToken ? {deck: adoptDeckRevision(d), token: mediaToken} : undefined;
+    const position=this.positions?.readWorkspacePosition(this.deck.id);
+    this.savedRevision = d.revision; this.activeId = this.positions?.workspaceSlideId(this.deck.slides,position)??this.deck.slides[0].id;
     this.selectedSlides=[this.activeId];this.slideAnchor=this.activeId;this.slideSelectionMode=false;
     this.selected = []; this.selectedGroup=''; this.individualSelection=false; this.editingGroupId=''; this.hovered = ''; this.editingId = ''; this.past = []; this.future = []; this.pending = null; this.pendingId = ''; this.error = ''; this.notice = draftError; this.saveState = savedDocumentLabel;
-    try{const modes=JSON.parse(localStorage.getItem('deck-studio-view-modes')||'{}');this.sourceMode=typeof modes[this.deck!.id]==='boolean'?modes[this.deck!.id]:Boolean(this.slide?.source?.render);}catch{this.sourceMode=Boolean(this.slide?.source?.render);}
+    try{const modes=JSON.parse(localStorage.getItem('deck-studio-view-modes')||'{}');this.sourceMode=position?.sourceMode??(typeof modes?.[this.deck!.id]==='boolean'?modes[this.deck!.id]:Boolean(this.slide?.source?.render));}catch{this.sourceMode=position?.sourceMode??Boolean(this.slide?.source?.render);}
     this.pastContext=[];this.futureContext=[];this.futureBeforeContext=[];this.additiveSelection=false;this.layerPickerId='';this.lastMerge='';this.lastMergeTime=0;
     this.saveFailed = false;
     if (draftError) this.notify(draftError, 'warning');
     if (draft.restore) { this.notify('Recovered unsaved changes from this browser'); this.scheduleSave(); }
+    this.rememberPosition();
     const opened = this.deck;
     if (opened.slides.some(s => s.elements.some(e => e.type === 'text' && e.textSizing && e.textSizing !== 'fixed'))) void import('./text-layout-fonts').then(({prepareTextSizing}) => prepareTextSizing(opened, () => this.deck === opened)).then(measured => { if (this.deck === opened) this.deck = validateDeckRevision(opened,measured); }).catch(() => { /* Keep the document usable with the current font fallback. */ });
+    return true;
   }
   async create(d: Deck) {
+    const request = ++this.openSequence;
+    this.openController?.abort();
     await this.flush();
+    if (request !== this.openSequence) throw new Error('The document selection changed. Try creating the document again.');
     if (this.deck && this.deck.revision > this.savedRevision) throw new Error('Export the current recovery draft before continuing.');
-    await (await import('./background-document-save')).createDocumentInBackground('/api/decks',d,true); await this.open(d.id);
+    const current = this.deck;
+    await (await import('./background-document-save')).createDocumentInBackground('/api/decks',d,true);
+    if (request !== this.openSequence || this.deck?.id !== current?.id || this.deck?.revision !== current?.revision || !await this.open(d.id)) throw new Error('The document was created in the library. Open it there when you are ready to switch.');
   }
-  replace(next: Deck) {
+  replace(next: Deck, recordHistory = true) {
     if (!this.deck) return;
     next = adoptDeckRevision({...next,id:this.deck.id,revision:this.deck.revision+1,updatedAt:new Date().toISOString()});
-    this.past = [...this.past.slice(-49), this.operationDocument()]; this.future = [];
-    this.pastContext=[...this.pastContext.slice(-49),this.context()];this.futureContext=[];this.futureBeforeContext=[];
+    if(recordHistory){this.past = [...this.past.slice(-49), this.operationDocument()]; this.future = [];
+    this.pastContext=[...this.pastContext.slice(-49),this.context()];this.futureContext=[];this.futureBeforeContext=[];}
     this.lastMerge='';this.lastMergeTime=0;
-    this.deck = next; this.pruneSlideSelection(); this.scheduleSave();
+    this.deck = next; this.pruneSlideSelection(); this.rememberPosition();this.scheduleSave();
   }
   chooseSlide(id: string, preserveSlideSelection = false) {
     if(!this.deck?.slides.some(slide=>slide.id===id))return;
@@ -185,8 +221,8 @@ export class Editor {
       if(this.deck.slides.length+order.length>500)throw new Error('A document can contain up to 500 slides.');
       const originals=new Map(this.deck.slides.map(slide=>[slide.id,slide])),copies=order.map(id=>({...clone(originals.get(id)!),id:uid('slide')}));
       let afterId=order.at(-1)!;const ops:Operation[]=copies.map(slide=>{const op:Operation={op:'add_slide',slide,afterId};afterId=slide.id;return op;});
-      const revision=this.deck.revision,sourceMode=this.sourceMode;this.commit(ops);if(this.deck.revision===revision)return [];
-      this.chooseSlide(copies[0].id,true);this.selectedSlides=copies.map(slide=>slide.id);this.slideAnchor=copies[0].id;this.sourceMode=Boolean(sourceMode&&this.slide?.source?.render);
+      const revision=this.deck.revision,sourceMode=this.preferredSourceMode;this.commit(ops);if(this.deck.revision===revision)return [];
+      this.chooseSlide(copies[0].id,true);this.selectedSlides=copies.map(slide=>slide.id);this.slideAnchor=copies[0].id;this.sourceMode=sourceMode;
       this.notify(`${copies.length===1?'Slide':`${copies.length} slides`} duplicated · Undo available`);return this.selectedSlides;
     }catch(error){this.error=(error as Error).message;return [];}
   }
@@ -197,8 +233,8 @@ export class Editor {
       if(selected.length===order.length){this.notify('Keep at least one slide. Deselect a slide before deleting.','warning');return false;}
       const removed=new Set(selected),active=order.indexOf(this.activeId),remaining=order.filter(id=>!removed.has(id));
       const next=removed.has(this.activeId)?order.slice(Math.max(0,active)).find(id=>!removed.has(id))??remaining.at(-1)!:this.activeId;
-      const revision=this.deck.revision,sourceMode=this.sourceMode;this.commit(selected.map(slideId=>({op:'delete_slide',slideId})));if(this.deck.revision===revision)return false;
-      this.chooseSlide(next,true);this.selectedSlides=[next];this.slideAnchor=next;this.sourceMode=Boolean(sourceMode&&this.slide?.source?.render);
+      const revision=this.deck.revision,sourceMode=this.preferredSourceMode;this.commit(selected.map(slideId=>({op:'delete_slide',slideId})));if(this.deck.revision===revision)return false;
+      this.chooseSlide(next,true);this.selectedSlides=[next];this.slideAnchor=next;this.sourceMode=sourceMode;
       this.notify(`${selected.length===1?'Slide':`${selected.length} slides`} deleted · Undo available`);return true;
     }catch(error){this.error=(error as Error).message;return false;}
   }
@@ -284,6 +320,7 @@ export class Editor {
       this.selected = this.selected.filter(id => this.slide?.elements.some(e => e.id === id));
       if (!this.deck.slides.some(s => s.id === this.activeId)) this.activeId = this.deck.slides[0].id;
       this.pruneSlideSelection();
+      if(operations.some(op=>['add_slide','delete_slide','reorder_slides'].includes(op.op)))this.rememberPosition();
       this.scheduleSave();
     } catch (e: any) { this.error = e.message; }
   }
@@ -392,8 +429,8 @@ export class Editor {
     const selected=orderedSlideSelection(this.deck.slides.map(slide=>slide.id),this.selectedSlides);
     let afterId=selected.at(-1)??this.slide.id;
     const operations:Operation[]=slides.map(slide=>{const op:Operation={op:'add_slide',slide,afterId};afterId=slide.id;return op;});
-    const revision=this.deck.revision,sourceMode=this.sourceMode;this.commit([...prepared.operations,...operations]);
-    if(this.deck.revision!==revision){this.chooseSlide(slides[0].id,true);this.selectedSlides=slides.map(slide=>slide.id);this.slideAnchor=slides[0].id;this.sourceMode=Boolean(sourceMode&&this.slide?.source?.render);this.notify(`${slides.length===1?'Slide':`${slides.length} slides`} pasted · Undo available`);}
+    const revision=this.deck.revision,sourceMode=this.preferredSourceMode;this.commit([...prepared.operations,...operations]);
+    if(this.deck.revision!==revision){this.chooseSlide(slides[0].id,true);this.selectedSlides=slides.map(slide=>slide.id);this.slideAnchor=slides[0].id;this.sourceMode=sourceMode;this.notify(`${slides.length===1?'Slide':`${slides.length} slides`} pasted · Undo available`);}
   }
   paste(placement:PastePlacement={}){
     if(!this.deck||!this.slide||!this.clipboard.length&&(!this.clipboardContent||this.clipboardContent.kind==='objects'))return;
@@ -482,7 +519,8 @@ export class Editor {
           const baseRevision = this.savedRevision;
           const captured = this.deck;
           const d = validateDeckRevision(captured,await resolveDeckTextSizingAsync(captured));
-          await (await import('./background-document-save')).saveDocumentInBackground(`/api/decks/${d.id}`,{deck:d,expectedRevision:baseRevision},true);
+          const receipt = await (await import('./background-document-save')).saveDocumentInBackground(`/api/decks/${d.id}`, {deck:d,expectedRevision:baseRevision}, this.savedMediaBase);
+          this.savedMediaBase = receipt?.id === d.id && receipt.revision === d.revision && receipt.mediaToken ? {deck:d,token:receipt.mediaToken} : undefined;
           // The durable draft must agree with the fully measured disk revision.
           // Never replace edits made while measurement or transport was pending.
           if (this.deck.id === d.id && this.deck.revision === d.revision) this.deck = d;

@@ -9,7 +9,7 @@
 .editor-app .text-btn.primary:not(:disabled):active{background:var(--action-solid-bg-active)}
 .editor-app .text-btn.danger:not(:disabled):active{background:var(--action-danger-bg-active)}
 .editor-app :is(button,a):focus-visible{outline:2px solid var(--accent-line);outline-offset:2px}
-.field-inline:focus-within{border-color:var(--accent);box-shadow:none}
+.field-inline:focus-within{box-shadow:none}
 .field-inline input:focus-visible{outline:none}
 /* Row feedback fills the surface; keep its rounded edges inside the scrollport. */
 .layer-row{position:relative;gap:2px;margin:0;box-shadow:none}
@@ -28,8 +28,6 @@
 .slide-thumb.current .thumb-image{outline-offset:-2px}
 .slide-thumb.current:hover .thumb-image{outline-color:var(--accent)}
 @media(hover:hover) and (pointer:fine){
-  .editor-app :is(input,textarea,select):not(:disabled):hover,.field-inline:not(:has(input:disabled)):hover{border-color:var(--border-strong)}
-  .field-inline:focus-within:hover{border-color:var(--accent)}
   .layer-name:hover{color:var(--text-primary)}
   .slide-thumb:not(.current):hover .thumb-image{box-shadow:0 0 0 1px var(--border-strong)}
 }
@@ -39,7 +37,7 @@
   
   .canvas-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 }
-@media(max-width:1100px){.editor-app .topbar .save-state{display:none}}
+@media(max-width:1100px){}
 @media(pointer:coarse){
   .stage-footer{height:44px}
   .stage-footer :is(.icon-btn.small,.text-btn){min-width:36px;height:36px}

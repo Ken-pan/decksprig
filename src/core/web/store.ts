@@ -1,5 +1,8 @@
+import {BRAND_NAME} from '../../brand-name.js';
 import {validateDeck, type Deck} from '../model';
 import {summarizeDeck, requirePreviewRevision, type LibrarySummary, type LibraryPreview} from '../library-summary';
+import {readHistorySummaries} from './history';
+import {withBrowserMediaLock,canOptimizeStorage,mediaMode,prepareBrowserRecord,persistMedia,decodeBrowserRecord,migrateBrowserRecord,requestValue,complete,storedDocumentMetadata} from '../browser-media-store';
 
 const stores = ['documents', 'history', 'proposals', 'sources', 'metadata', 'library'] as const;
 let opening: Promise<IDBDatabase> | undefined;
@@ -12,14 +15,15 @@ function storageError(error: unknown): Error {
 export function webDatabase(): Promise<IDBDatabase> {
   if (opening) return opening;
   const promise = new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open('deck-studio-web-documents', 2);
+    const request = indexedDB.open('deck-studio-web-documents', 3);
     let blocked = false;
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = event => {
       for (const name of stores) {
         if (request.result.objectStoreNames.contains(name)) continue;
         const store = request.result.createObjectStore(name, {keyPath: name === 'history' ? ['deckId','revision'] : 'id'});
         if (name === 'history' || name === 'proposals') store.createIndex('byDocument', 'deckId');
       }
+      if((event as IDBVersionChangeEvent).oldVersion>=2)return;
       // Upgrade existing installations once, with bounded cursor ownership.
       // Originals are untouched; malformed documents remain available for recovery.
       const tx = request.transaction!;
@@ -27,7 +31,7 @@ export function webDatabase(): Promise<IDBDatabase> {
       cursor.onsuccess = () => {
         const record = cursor.result;
         if (!record) return;
-        try { tx.objectStore('library').put(summarizeDeck(validateDeck(record.value))); }
+        try { tx.objectStore('library').put(summarizeDeck(record.value.schema==='deck-studio/storage-1'?record.value.deck:validateDeck(record.value))); }
         catch { /* Match the local library's malformed-document behavior. */ }
         record.continue();
       };
@@ -40,7 +44,7 @@ export function webDatabase(): Promise<IDBDatabase> {
       resolve(db);
     };
     request.onerror = () => reject(storageError(request.error));
-    request.onblocked = () => { blocked = true; reject(failure('Close older Decksprig tabs, then reload to open browser storage.')); };
+    request.onblocked = () => { blocked = true; reject(failure(`Close older ${BRAND_NAME} tabs, then reload to open browser storage.`)); };
   });
   opening = promise;
   void promise.catch(() => { if (opening === promise) opening = undefined; });
@@ -70,7 +74,7 @@ export function validateBrowserSave(old: Deck | undefined, deck: Deck, expectedR
   if (old && (expectedRevision === null || old.revision !== expectedRevision || deck.revision <= old.revision)) throw failure('This document was updated in another tab. Your changes are retained. Export a copy before continuing.');
   if (!old && expectedRevision !== null) throw failure('This document no longer exists. Export a copy of your changes.');
 }
-export async function saveWebDeck(raw: unknown, expectedRevision: number | null): Promise<Deck> {
+async function saveLegacyWebDeck(raw: unknown, expectedRevision: number | null): Promise<Deck> {
   const deck = validateDeck(raw); id(deck.id);
   const db = await webDatabase();
   return new Promise((resolve,reject) => {
@@ -91,10 +95,21 @@ export async function saveWebDeck(raw: unknown, expectedRevision: number | null)
     tx.onerror = () => {};
   });
 }
+export async function saveWebDeck(raw:unknown,expectedRevision:number|null):Promise<Deck>{
+ const deck=validateDeck(raw);id(deck.id);return withBrowserMediaLock(async()=>{
+  if(!canOptimizeStorage()||await mediaMode()==='legacy')return saveLegacyWebDeck(deck,expectedRevision);
+  const db=await webDatabase(),oldRaw=await read<any>('documents',deck.id),old=oldRaw?await decodeBrowserRecord(oldRaw):undefined;
+  validateBrowserSave(old,deck,expectedRevision);
+  const next=await prepareBrowserRecord(deck),prior=old?await prepareBrowserRecord(old):undefined;
+  if(prior)for(const item of prior.media)next.media.set(...item);
+  await persistMedia(next.media,prior?{id:`${db.name}:documents:${deck.id}:${old!.revision}`,record:{database:db.name,store:'documents',key:deck.id,value:prior.record}}:undefined);
+  const tx=db.transaction(['documents','history','library'],'readwrite'),done=complete(tx);
+  if(prior)tx.objectStore('history').put({deckId:deck.id,revision:old!.revision,deck:prior.record});
+  tx.objectStore('documents').put(next.record);tx.objectStore('library').put(summarizeDeck(deck));await done;return deck;
+ });
+}
 export async function readWebDeck(key: string): Promise<Deck> {
-  const deck = await read<Deck>('documents',id(key));
-  if (!deck) throw failure('Document not found in this browser.',404);
-  return validateDeck(deck);
+  return withBrowserMediaLock(async()=>{const db=await webDatabase(),raw=await read<any>('documents',id(key));if(!raw)throw failure('Document not found in this browser.',404);return migrateBrowserRecord(db,'documents',key,raw);});
 }
 export async function readWebLibraryPreview(key: string, expectedRevision?: number): Promise<LibraryPreview> {
   const deck = await readWebDeck(key);
@@ -122,7 +137,7 @@ export async function listWebDecks(includePreview=true): Promise<LibraryPreview[
   return previews;
 }
 export async function webHistory(key:string, revision?:number) {
-  await readWebDeck(key); const db=await webDatabase();
-  if(revision!==undefined){const value=await read<{deck:Deck}>('history',[key,revision]);if(!value)throw failure('Version not found.',404);return validateDeck(value.deck);}
-  return new Promise<{revision:number;title:string;updatedAt:string;count:number}[]>((resolve,reject)=>{const r=db.transaction('history').objectStore('history').index('byDocument').getAll(key);r.onsuccess=()=>resolve(r.result.sort((a,b)=>b.revision-a.revision).slice(0,50).map(({deck}: {deck:Deck})=>({revision:deck.revision,title:deck.title,updatedAt:deck.updatedAt,count:deck.slides.length})));r.onerror=()=>reject(storageError(r.error));});
+  const current=await read<any>('documents',id(key));if(!current)throw failure('Document not found in this browser.',404);storedDocumentMetadata(current);const db=await webDatabase();
+  if(revision!==undefined)return withBrowserMediaLock(async()=>{const value=await read<any>('history',[key,revision]);if(!value)throw failure('Version not found.',404);return (await migrateBrowserRecord(db,'history',[key,revision],value)).deck;});
+  return readHistorySummaries(db.transaction('history').objectStore('history'),key).catch(error=>{throw storageError(error);});
 }

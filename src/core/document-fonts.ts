@@ -1,4 +1,5 @@
 import type {Deck} from './model';
+import {fontFamilyKey,sameFontFamily} from './font-stack';
 type DocumentFont=NonNullable<Deck['fonts']>[number];
 type Entry={font:DocumentFont;face:FontFace;ready:Promise<void>;pins:number;removed:boolean};
 
@@ -10,7 +11,7 @@ export class DocumentFontRegistry {
   private deferred=false;
   constructor(private faces:Pick<FontFaceSet,'add'|'delete'>,private create:(font:DocumentFont)=>FontFace=font=>new FontFace(font.family,`url(${font.data})`,{weight:font.weight,style:font.style})){}
   private get(font:DocumentFont):Entry {
-    const existing=[...this.entries].find(e=>e.font.family===font.family&&e.font.weight===font.weight&&e.font.style===font.style&&e.font.data===font.data);
+    const existing=[...this.entries].find(e=>sameFontFamily(e.font.family,font.family)&&e.font.weight===font.weight&&e.font.style===font.style&&e.font.data===font.data);
     if(existing)return existing;
     const face=this.create(font),entry:Entry={font,face,ready:Promise.resolve(),pins:0,removed:false};
     this.entries.add(entry);this.faces.add(face);

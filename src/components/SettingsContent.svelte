@@ -1,5 +1,7 @@
 <script lang="ts">
   import Notice from './ui/Notice.svelte';
+  let StorageSettings=$state<typeof import('./StorageSettings.svelte').default>();
+  $effect(()=>{if(settingsTab==='storage'&&!StorageSettings)void import('./StorageSettings.svelte').then(m=>StorageSettings=m.default);});
   import { Monitor, ChevronDown, PanelLeft, PanelRight, Sparkles, AppWindow, Link2, Info, Check, BookOpen, ExternalLink, ArrowRight } from '@lucide/svelte';
   import BrandLockup from './BrandLockup.svelte';
   import { isBrowserEdition } from '../core/runtime';
@@ -17,13 +19,16 @@
     prototypeClientId: string; onPrototypeClientId: (value: string) => void; onPrototype: () => void;
     hasDocument: boolean; previewing: boolean; onLibrary: () => void; onHelp: () => void;
   } = $props();
-  const mcpConfig = isBrowserEdition ? null : {mcpServers:{'deck-studio':{command:'npm',args:['--prefix','/absolute/path/to/deck-studio','run','--silent','mcp'],env:{DECK_STUDIO_DATA:'/absolute/path/to/deck-studio/.data'}}}};
+  const mcpConfig = isBrowserEdition ? null : {mcpServers:{'deck-studio':{command:'npm',args:['--prefix','/absolute/path/to/decksprig','run','--silent','mcp'],env:{DECK_STUDIO_DATA:'/absolute/path/to/decksprig/.data'}}}};
   const appearances = [{id: 'light', label: 'Light'}, {id: 'dark', label: 'Dark'}, {id: 'system', label: 'System'}];
   const palettes = [
-    {id: 'forest', label: 'Forest', color: '#055841'}, {id: 'graphite', label: 'Graphite', color: '#555a60'},
-    {id: 'paper', label: 'Paper', color: '#957049'}, {id: 'indigo', label: 'Indigo', color: '#6556bb'},
-    {id: 'ocean', label: 'Ocean', color: '#3978a1'}, {id: 'violet', label: 'Violet', color: '#9454ab'},
-    {id: 'rose', label: 'Rose', color: '#b65378'},
+    {id: 'indigo', label: 'Indigo', color: '#4f63e7'},
+    {id: 'ocean', label: 'Ocean', color: '#0073d9'},
+    {id: 'violet', label: 'Violet', color: '#894ed6'},
+    {id: 'rose', label: 'Rose', color: '#bf3584'},
+    {id: 'paper', label: 'Paper', color: '#b75400'},
+    {id: 'forest', label: 'Forest', color: '#055841'},
+    {id: 'graphite', label: 'Graphite', color: '#1f1f1f'},
   ];
 
 </script>
@@ -50,7 +55,7 @@
     <div class="quick-settings-more ui-popover-more"><Button variant="quiet" onclick={onMoreSettings}>More settings…<ArrowRight size={16} /></Button></div>
   </div>
 {:else}
-<div class="settings-layout ui-control-surface ui-property-surface"><nav aria-label="Settings categories">{#each [{id:'appearance',label:'Interface',icon:Monitor},{id:'ai',label:'AI models',icon:Sparkles},{id:'embeds',label:'Prototypes',ariaLabel:'Prototypes and embed settings',icon:AppWindow},...(isBrowserEdition?[]:[{id:'agents',label:'Agents',ariaLabel:'Agents and MCP connection settings',icon:Link2}]),{id:'about',label:'About',icon:Info}] as tab}<button class:active={settingsTab===tab.id} aria-pressed={settingsTab===tab.id} aria-label={tab.ariaLabel ?? tab.label} title={tab.ariaLabel} onclick={()=>onTab(tab.id)}><tab.icon size={16} />{tab.label}</button>{/each}</nav><div class="settings-body" use:uiChange={settingsTab}>
+<div class="settings-frame"><div class="settings-layout ui-control-surface ui-property-surface"><nav aria-label="Settings categories">{#each [{id:'appearance',label:'Interface',icon:Monitor},{id:'ai',label:'AI models',icon:Sparkles},{id:'embeds',label:'Prototypes',ariaLabel:'Prototypes and embed settings',icon:AppWindow},...(isBrowserEdition?[]:[{id:'agents',label:'Agents',ariaLabel:'Agents and MCP connection settings',icon:Link2}]),{id:'storage',label:'Storage',icon:BookOpen},{id:'about',label:'About',icon:Info}] as tab}<button class:active={settingsTab===tab.id} aria-pressed={settingsTab===tab.id} aria-label={tab.ariaLabel ?? tab.label} title={tab.ariaLabel} onclick={()=>onTab(tab.id)}><tab.icon size={16} />{tab.label}</button>{/each}</nav><div class="settings-body" use:uiChange={settingsTab}>
         {#if settingsTab==='appearance'}
           <h3>Interface and workspace</h3>
           <section class="appearance-section"><h4 id="workspace-panes-label">Workspace panels</h4><div class="workspace-pane-options" role="group" aria-labelledby="workspace-panes-label"><label class="ui-property-check"><span><PanelLeft size={16}/>Slides</span><input type="checkbox" checked={leftOpen} onchange={event=>setPaneVisibility('left',event.currentTarget.checked)}/></label><label class="ui-property-check"><span><PanelRight size={16}/>Editing panel</span><input type="checkbox" checked={rightOpen} onchange={event=>setPaneVisibility('right',event.currentTarget.checked)}/></label></div></section>
@@ -74,10 +79,12 @@
           <details class="settings-disclosure ui-control-disclosure" open={Boolean(prototypeClientId)}><summary><span>Figma controls</span><small>Optional</small><ChevronDown size={14}/></summary><div class="settings-disclosure-body"><p class="hint">To enable restart controls, enter your Figma app’s public client ID.</p><label class="field-label">Figma client ID<input class="ui-property-input" aria-label="Figma client ID" value={prototypeClientId} onchange={event=>onPrototypeClientId(event.currentTarget.value)} placeholder="Public Figma OAuth client ID" spellcheck="false"/></label><p class="hint">Allow this site as an embed domain in your Figma app.</p><div class="settings-site"><span>Current site</span><code>{window.location.origin}</code></div><p class="hint">Use Reload if Figma does not report that it is ready. Exported pages need their own allowed domain.</p><a class="settings-help-link" href="https://developers.figma.com/docs/embeds/embed-api/" target="_blank" rel="noopener noreferrer">Figma Embed API setup <ExternalLink size={16} /></a></div></details>
         {:else if settingsTab==='agents'}
           <h3>Agent connection</h3><p class="hint">Review agent changes in the AI panel.</p><details class="settings-disclosure ui-control-disclosure"><summary><span>MCP connection settings</span><ChevronDown size={14}/></summary><div class="settings-disclosure-body"><p class="hint">Replace the project path, then add this configuration to your agent client.</p><pre class="code-block">{JSON.stringify(mcpConfig,null,2)}</pre><p class="hint">Reconnect your agent after changing this configuration.</p></div></details>
+        {:else if settingsTab==='storage'}
+          {#if StorageSettings}<StorageSettings />{/if}
         {:else if settingsTab==='about'}
           <div class="brand-about"><BrandLockup size="large" caption={BRAND.description}/><p class="brand-about-intro">{isBrowserEdition?'A browser editor':'A local editor'} for portfolios, reviews, and presentations.</p><dl class="brand-facts"><div><dt>Version</dt><dd>{BRAND.version}</dd></div><div><dt>Workspace</dt><dd>{isBrowserEdition?'Documents and history in this browser':'Local documents and version history'}</dd></div></dl><div class="brand-about-actions"><Button variant="primary" onclick={onLibrary}><BookOpen size={16}/>Open document library</Button><Button variant="secondary" onclick={onHelp}>Keyboard shortcuts</Button></div><p class="brand-about-footnote">{isBrowserEdition?'Export a Deck file (.deck.json) before switching browsers or clearing site data. Documents do not sync automatically.':'Documents are saved on this device.'}</p><div class="brand-about-actions brand-legal-links"><a href="/privacy.html" target="_blank" rel="noopener noreferrer">Data and privacy<ExternalLink size={16}/></a><a href="/licenses.html" target="_blank" rel="noopener noreferrer">Licenses and credits<ExternalLink size={16}/></a></div></div>
         {/if}
-      </div></div>
+      </div></div></div>
 {/if}
 
 <style>
@@ -91,9 +98,11 @@
 .quick-pane-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 .quick-pane-options label { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px; font-size: var(--ui-text); cursor: pointer; border-radius: var(--r-control); }
 .quick-pane-options label:hover { background: var(--state-hover); }
-.settings-layout{container-type:inline-size}
+.settings-frame{container:settings-content / inline-size;min-width:0}
+.settings-layout{align-items:start}
 .settings-body .field-label { margin: 0; }
-@container(max-width:30rem){
+@container settings-content (max-width:30rem){
+  .settings-layout{grid-template-columns:minmax(0,1fr);gap:24px}
   .settings-layout nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,7.5rem),1fr));gap:4px}
   .settings-layout nav button{min-width:0;min-height:44px;padding:8px;justify-content:center;white-space:normal;overflow-wrap:anywhere}
   .settings-body .palette-options{grid-template-columns:repeat(2,minmax(0,1fr))}

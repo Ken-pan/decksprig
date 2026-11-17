@@ -273,7 +273,7 @@
   },
   {
     "name": "@hono/node-server",
-    "version": "2.1.4",
+    "version": "2.1.9",
     "license": "MIT",
     "dev": false,
     "optional": false,
@@ -931,6 +931,17 @@
     ]
   },
   {
+    "name": "@streamparser/json",
+    "version": "0.0.26",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/juanjoDiaz/streamparser-json.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "@sveltejs/acorn-typescript",
     "version": "1.0.13",
     "license": "MIT",
@@ -964,6 +975,39 @@
     ]
   },
   {
+    "name": "@tanstack/virtual-core",
+    "version": "3.19.11",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://github.com/TanStack/virtual.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@types/color-name",
+    "version": "2.0.0",
+    "license": "MIT",
+    "dev": true,
+    "optional": false,
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@types/css-tree",
+    "version": "3.2.0",
+    "license": "MIT",
+    "dev": true,
+    "optional": false,
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "@types/estree",
     "version": "1.0.9",
     "license": "MIT",
@@ -992,6 +1036,39 @@
     "dev": true,
     "optional": false,
     "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@types/proper-lockfile",
+    "version": "4.1.4",
+    "license": "MIT",
+    "dev": true,
+    "optional": false,
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@types/retry",
+    "version": "0.12.5",
+    "license": "MIT",
+    "dev": true,
+    "optional": false,
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@xmldom/xmldom",
+    "version": "0.8.15",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/xmldom/xmldom.git",
     "noticeFiles": [
       "LICENSE"
     ]
@@ -1096,6 +1173,17 @@
     ]
   },
   {
+    "name": "boolbase",
+    "version": "2.0.0",
+    "license": "ISC",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/fb55/boolbase",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "buffer-from",
     "version": "1.1.2",
     "license": "MIT",
@@ -1159,6 +1247,17 @@
     "repository": "lukeed/clsx",
     "noticeFiles": [
       "license"
+    ]
+  },
+  {
+    "name": "color-name",
+    "version": "2.1.1",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://github.com/colorjs/color-name.git",
+    "noticeFiles": [
+      "LICENSE"
     ]
   },
   {
@@ -1316,6 +1415,17 @@
     ]
   },
   {
+    "name": "css-select",
+    "version": "7.0.0",
+    "license": "BSD-2-Clause",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/fb55/css-select.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "css-tree",
     "version": "2.2.1",
     "license": "MIT",
@@ -1330,7 +1440,7 @@
     "name": "css-tree",
     "version": "3.2.1",
     "license": "MIT",
-    "dev": true,
+    "dev": false,
     "optional": false,
     "repository": "csstree/csstree",
     "noticeFiles": [
@@ -1342,6 +1452,17 @@
     "version": "7.0.0",
     "license": "BSD-2-Clause",
     "dev": true,
+    "optional": false,
+    "repository": "https://github.com/fb55/css-what",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "css-what",
+    "version": "8.0.0",
+    "license": "BSD-2-Clause",
+    "dev": false,
     "optional": false,
     "repository": "https://github.com/fb55/css-what",
     "noticeFiles": [
@@ -1426,10 +1547,32 @@
     ]
   },
   {
+    "name": "dom-serializer",
+    "version": "3.1.1",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/cheeriojs/dom-serializer.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "domelementtype",
     "version": "2.3.0",
     "license": "BSD-2-Clause",
     "dev": true,
+    "optional": false,
+    "repository": "git://github.com/fb55/domelementtype.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "domelementtype",
+    "version": "3.0.0",
+    "license": "BSD-2-Clause",
+    "dev": false,
     "optional": false,
     "repository": "git://github.com/fb55/domelementtype.git",
     "noticeFiles": [
@@ -1448,10 +1591,32 @@
     ]
   },
   {
+    "name": "domhandler",
+    "version": "6.0.1",
+    "license": "BSD-2-Clause",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/fb55/domhandler.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "domutils",
     "version": "3.2.2",
     "license": "BSD-2-Clause",
     "dev": true,
+    "optional": false,
+    "repository": "git://github.com/fb55/domutils.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "domutils",
+    "version": "4.0.2",
+    "license": "BSD-2-Clause",
+    "dev": false,
     "optional": false,
     "repository": "git://github.com/fb55/domutils.git",
     "noticeFiles": [
@@ -1510,6 +1675,28 @@
     "dev": true,
     "optional": false,
     "repository": "git://github.com/fb55/entities.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "entities",
+    "version": "8.1.0",
+    "license": "BSD-2-Clause",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/fb55/entities.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "entities",
+    "version": "9.0.0",
+    "license": "BSD-2-Clause",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/fb55/entities.git",
     "noticeFiles": [
       "LICENSE"
     ]
@@ -1659,7 +1846,7 @@
   },
   {
     "name": "fast-uri",
-    "version": "3.1.8",
+    "version": "3.1.9",
     "license": "BSD-3-Clause",
     "dev": false,
     "optional": false,
@@ -1670,7 +1857,7 @@
   },
   {
     "name": "fast-xml-builder",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "license": "MIT",
     "dev": false,
     "optional": false,
@@ -1681,7 +1868,7 @@
   },
   {
     "name": "fast-xml-parser",
-    "version": "5.11.2",
+    "version": "5.12.1",
     "license": "MIT",
     "dev": false,
     "optional": false,
@@ -1708,6 +1895,17 @@
     "dev": false,
     "optional": false,
     "repository": "pillarjs/finalhandler",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "fonteditor-core",
+    "version": "2.6.3",
+    "license": "UNDECLARED",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/kekee000/fonteditor-core.git",
     "noticeFiles": [
       "LICENSE"
     ]
@@ -1790,6 +1988,29 @@
     ]
   },
   {
+    "name": "graceful-fs",
+    "version": "4.2.11",
+    "license": "ISC",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/isaacs/node-graceful-fs",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "harfbuzzjs",
+    "version": "1.6.4",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://github.com/harfbuzz/harfbuzzjs.git",
+    "noticeFiles": [
+      "LICENSE",
+      "public/licenses/upstream/font-runtime-harfbuzz.txt"
+    ]
+  },
+  {
     "name": "has-symbols",
     "version": "1.1.0",
     "license": "MIT",
@@ -1813,7 +2034,7 @@
   },
   {
     "name": "hono",
-    "version": "4.13.13",
+    "version": "4.13.19",
     "license": "MIT",
     "dev": false,
     "optional": false,
@@ -1944,7 +2165,7 @@
   },
   {
     "name": "is-unsafe",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "license": "MIT",
     "dev": false,
     "optional": false,
@@ -2211,7 +2432,7 @@
     "name": "mdn-data",
     "version": "2.27.1",
     "license": "CC0-1.0",
-    "dev": true,
+    "dev": false,
     "optional": false,
     "repository": "https://github.com/mdn/data.git",
     "noticeFiles": [
@@ -2318,6 +2539,17 @@
     ]
   },
   {
+    "name": "nth-check",
+    "version": "3.0.1",
+    "license": "BSD-2-Clause",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/fb55/nth-check",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "object-assign",
     "version": "4.1.1",
     "license": "MIT",
@@ -2373,6 +2605,17 @@
     ]
   },
   {
+    "name": "orderedmap",
+    "version": "2.1.1",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://github.com/marijnh/orderedmap.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "package-manager-detector",
     "version": "1.9.0",
     "license": "MIT",
@@ -2390,6 +2633,17 @@
     "dev": false,
     "optional": false,
     "repository": "nodeca/pako",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "parse5",
+    "version": "8.1.1",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/inikulin/parse5.git",
     "noticeFiles": [
       "LICENSE"
     ]
@@ -2527,6 +2781,94 @@
     ]
   },
   {
+    "name": "proper-lockfile",
+    "version": "4.1.2",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git@github.com:moxystudio/node-proper-lockfile.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-commands",
+    "version": "1.7.2",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-commands.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-history",
+    "version": "1.5.1",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-history.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-keymap",
+    "version": "1.2.3",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/prosemirror/prosemirror-keymap.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-model",
+    "version": "1.25.13",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-model.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-state",
+    "version": "1.4.4",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/prosemirror/prosemirror-state.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-transform",
+    "version": "1.12.5",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-transform.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "prosemirror-view",
+    "version": "1.42.9",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-view.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "proxy-addr",
     "version": "2.0.8",
     "license": "MIT",
@@ -2604,12 +2946,34 @@
     ]
   },
   {
+    "name": "retry",
+    "version": "0.12.0",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git://github.com/tim-kos/node-retry.git",
+    "noticeFiles": [
+      "License"
+    ]
+  },
+  {
     "name": "rolldown",
     "version": "1.2.13",
     "license": "MIT",
     "dev": true,
     "optional": false,
     "repository": "git+https://github.com/rolldown/rolldown.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "rope-sequence",
+    "version": "1.3.4",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://github.com/marijnh/rope-sequence.git",
     "noticeFiles": [
       "LICENSE"
     ]
@@ -2780,6 +3144,17 @@
     ]
   },
   {
+    "name": "signal-exit",
+    "version": "3.0.7",
+    "license": "ISC",
+    "dev": false,
+    "optional": false,
+    "repository": "https://github.com/tapjs/signal-exit.git",
+    "noticeFiles": [
+      "LICENSE.txt"
+    ]
+  },
+  {
     "name": "source-map",
     "version": "0.6.1",
     "license": "BSD-3-Clause",
@@ -2794,7 +3169,7 @@
     "name": "source-map-js",
     "version": "1.2.2",
     "license": "BSD-3-Clause",
-    "dev": true,
+    "dev": false,
     "optional": false,
     "repository": "7rulnik/source-map-js",
     "noticeFiles": [
@@ -3033,6 +3408,17 @@
     ]
   },
   {
+    "name": "w3c-keyname",
+    "version": "2.2.8",
+    "license": "MIT",
+    "dev": false,
+    "optional": false,
+    "repository": "git+https://github.com/marijnh/w3c-keyname.git",
+    "noticeFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "which",
     "version": "2.0.2",
     "license": "ISC",
@@ -3041,6 +3427,17 @@
     "repository": "git://github.com/isaacs/node-which.git",
     "noticeFiles": [
       "LICENSE"
+    ]
+  },
+  {
+    "name": "woff2-codec-wasm",
+    "version": "0.3.2",
+    "license": "MIT and bundled compiler runtime notices",
+    "repository": "https://github.com/jlarmstrongiv/web-font-codecs",
+    "dev": false,
+    "optional": false,
+    "noticeFiles": [
+      "public/licenses/upstream/font-runtime-woff2-codec.txt"
     ]
   },
   {

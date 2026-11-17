@@ -17,3 +17,17 @@ test('JPEG bytes remain stored without recompression while editable XML stays co
   const encoded=methods(bytes);assert.equal(encoded.get(images[0]),0);assert.equal(encoded.get('ppt/slides/slide1.xml'),8);assert.equal(JSON.stringify(deck),before);
   assert((await zip.file('ppt/slides/slide1.xml')!.async('string')).includes('Editable source text'));
 });
+
+test('PPTX deduplicates raster data before initial ZIP generation while retaining crops and objects',async()=>{
+  const {default:PptxGenJS}=await import('pptxgenjs'),write=PptxGenJS.prototype.write;
+  let generatedMedia=0;
+  PptxGenJS.prototype.write=async function(this:InstanceType<typeof PptxGenJS>,...args:Parameters<typeof write>){const bytes=await write.apply(this,args),zip=await JSZip.loadAsync(bytes as Uint8Array);generatedMedia=Object.values(zip.files).filter(f=>!f.dir&&f.name.startsWith('ppt/media/')).length;return bytes;} as typeof write;
+  try {
+    const jpeg=await readFile('public/examples/template-assets/paper-study.jpg'),src='data:image/jpeg;base64,'+jpeg.toString('base64'),slide=blankSlide();
+    slide.elements=Array.from({length:12},(_,i)=>element('image',{src,fit:'fill',x:i*30,crop:{left:.1,top:.05,right:.2,bottom:.1}}));
+    const deck=newDeck('Repeated original',[slide]),before=JSON.stringify(deck),zip=await JSZip.loadAsync(await buildPptx(deck));
+    assert.equal(generatedMedia,1);const images=Object.values(zip.files).filter(f=>!f.dir&&f.name.startsWith('ppt/media/'));assert.equal(images.length,1);assert.deepEqual(Buffer.from(await images[0].async('uint8array')),jpeg);
+    const xml=await zip.file('ppt/slides/slide1.xml')!.async('string');assert.equal((xml.match(/<p:pic>/g)||[]).length,12);assert.equal((xml.match(/<a:srcRect /g)||[]).length,12);assert.equal(JSON.stringify(deck),before);
+    const {importPptx}=await import('../src/importers/pptx');const imported=await importPptx(await zip.generateAsync({type:'uint8array'}),'repeat.pptx');assert.equal(imported.slides[0].elements.length,12);assert(imported.slides[0].elements.every(e=>e.src===src&&e.crop?.left===.1));
+  }finally {PptxGenJS.prototype.write=write;}
+});

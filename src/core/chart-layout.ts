@@ -8,7 +8,7 @@ export function chartLabelLayout(e:SlideElement,c:Chart){
   const fontSize=Math.max(18,Math.min(28,e.fontSize)),horizontal=c.type==='bar';
   const pad=e.w<420||e.h<250?12:24,automatic=Boolean(c.visual);
   const categoryWidth=Math.max(...c.labels.map(label=>inlineTextWidth(label,fontSize,e.fontFamily)));
-  const values=[0,...c.series.flatMap(series=>series.values),...(c.axisRange?[c.axisRange.min,c.axisRange.max]:[])];
+  const values=[0,...c.series.flatMap(series=>series.values),...[c.axisRange?.min,c.axisRange?.max].filter((v):v is number=>v!==undefined)];
   const valueWidth=Math.max(...values.map(value=>inlineTextWidth(formatChartValue(c,value),fontSize,e.fontFamily)));
   const negativeLabelGutter=automatic&&horizontal&&c.showValues&&!c.stacked&&values.some(v=>v<0)?Math.min(e.w*.15,valueWidth+fontSize*.5):0;
   const baseLabelWidth=automatic?Math.min(e.w*(horizontal?.4:.34),Math.max(48,(horizontal?categoryWidth:valueWidth)+16)):horizontal?Math.min(e.w*.46,Math.max(200,categoryWidth+16)):80;

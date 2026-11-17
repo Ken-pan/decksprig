@@ -29,7 +29,10 @@ const welcome = manifest['src/components/WorkspaceWelcome.svelte'];
 if (welcome && [...welcome.imports || [], ...welcome.dynamicImports || []].includes('src/core/templates.ts')) {
   throw new Error('Welcome previews must use generated covers instead of generating full template stories. Run npm run build:previews.');
 }
-const deferred = /(?:ObjectInspector|ResourceLibrary|CharacterLibrary|AutoLayoutDialog|Presentation|FontLibrary|FidelityReview|AIPanel|MotionPanel|PrintDocument|CanvasLayoutGuides|CanvasContainerDrop|proposal-copy|arrangement-operations|pptx|pdf|export|google-native)/i;
+if (welcome?.imports?.some(key => /SlideCanvas|template-covers/.test(manifest[key].name ?? key))) {
+  throw new Error('The welcome screen must defer the live template renderer.');
+}
+const deferred = /(?:SlideRail|SlideCanvas|ObjectInspector|ResourceLibrary|CharacterLibrary|AutoLayoutDialog|Presentation|FontLibrary|FidelityReview|VersionHistory|AIPanel|MotionPanel|PrintDocument|CanvasLayoutGuides|CanvasContainerDrop|proposal-copy|arrangement-operations|pptx|pdf|export|google-native)/i;
 // Match the stable chunk name. A content hash may coincidentally contain
 // "pdf" or another feature name even when the chunk is editor infrastructure.
 const eagerFeatures = [...visited].filter(key => deferred.test(manifest[key].name ?? key.replace(/-[\w-]{8}\.(?:js|css)$/, ''))).map(key => manifest[key].file);

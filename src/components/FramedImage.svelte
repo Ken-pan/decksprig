@@ -2,6 +2,6 @@
   import type {SlideElement} from '../core/model';
   import {imageStyle} from '../core/image-style';
   import ResourceImage from './ResourceImage.svelte';
-  let {image,src}:{image:SlideElement;src?:string}=$props();
+  let {image,src,thumbnail=false}:{image:SlideElement;src?:string;thumbnail?:boolean}=$props();
 </script>
-<ResourceImage {src} alt={image.name} draggable="false" style={imageStyle(image)}/>
+<ResourceImage {src} {thumbnail} alt={image.name} draggable="false" style={imageStyle(image)}/>

@@ -1,8 +1,8 @@
-# Decksprig template artwork
+# Deckleaf template artwork
 
-All visual assets used inside the six template collections are Decksprig's own AI-generated media. No third-party photos, illustrations, icon packs, or decorative assets are imported into the template pages.
+All visual assets used inside the six template collections are Deckleaf's own AI-generated media. No third-party photos, illustrations, icon packs, or decorative assets are imported into the template pages.
 
-The 11 PNG illustrations are byte-identical copies from our Duoquill AI library. Original pixels, transparency, attribution, and SHA-256 values are preserved. The full library and its generation notes remain at `/resources/blue-black-v1/`.
+The 11 PNG illustrations are byte-identical copies from our Blue & Black AI library. Original pixels, transparency, attribution, and SHA-256 values are preserved. The full library and its generation notes remain at `/resources/blue-black-v1/`.
 
 The five photographic studies were generated with the built-in ImageGen tool. Original PNGs are preserved in `originals/`; the JPEG files are compressed opaque presentation copies. The paper study predates this refinement. Generation prompts for the new coast, material, and glass studies are recorded in `docs/reviews/templates-20261013/refinement/artwork.json` in the source workspace.
 

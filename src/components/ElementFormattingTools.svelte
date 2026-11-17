@@ -12,13 +12,13 @@
   import {isRegionFill} from '../core/resource-purpose';
   import Notice from './ui/Notice.svelte';
   import {onMount,tick} from 'svelte';
-  import {SlidersHorizontal,Replace,Crop,PaintBucket,Square,Minus,Paintbrush,Table2,Play,Settings2,ChevronDown,Check,X} from '@lucide/svelte';
+  import {SlidersHorizontal,Replace,Crop,Square,Minus,Paintbrush,Table2,Play,Settings2,ChevronDown,Check,X} from '@lucide/svelte';
   import {Button,DialogFooter} from './ui';
   import AsyncFeature from './AsyncFeature.svelte';
   let chartOpen = $state(false), tableOpen = $state(false), dataTab=$state<'data'|'style'>('data');
   import {deckDesignSystem,COLOR_LABELS} from '../core/deck-design-system';
   import {objectColorStyleOperations} from '../core/object-style-operations';
-  import type {ColorRole} from '../core/design-system-schema';
+  import {COLOR_ROLES,type ColorRole} from '../core/design-system-schema';
   import DocumentColorChoices from './DocumentColorChoices.svelte';
   import {swatchInk} from '../selection-color';
   import {positionFloating} from '../ui-viewport';
@@ -26,7 +26,7 @@
   import {editor} from '../core/editor.svelte';
   import type {SlideElement} from '../core/model';
   import {isFigmaPrototype,normalizePrototypeUrl} from '../core/prototype';
-  type Menu='color'|'border'|'appearance'|'prototype'|'';
+  type Menu='border'|'appearance'|'prototype'|'';
   let {onresources,onprototype,ondraw}:{ondraw:()=>void;onresources:(id:string,anchor:HTMLElement)=>void;onprototype:(e:SlideElement)=>void}=$props();
   const id=$props.id();
   const editable=$derived(editor.selection.filter(e=>!e.locked)), e=$derived(editable[0]);
@@ -36,6 +36,8 @@
   const radiusAllowed=$derived(single&&inspectorCapabilities(editable).radius);
   const colorLabel=$derived(e?.type==='table'?'Text color':e?.type==='chart'?'Series color':'Fill color');
   const system=$derived(deckDesignSystem(editor.deck??{}));
+  const colorRoles=$derived(COLOR_ROLES.map(value=>({value,label:COLOR_LABELS[value],color:system.colors[value]})));
+  const fillRole=$derived(editable.every(item=>(item.design?.fill??'')===(e?.design?.fill??''))?e?.design?.fill??'':'mixed');
   const styleTargets=$derived(editable.filter(e=>!e.resource&&!e.sourceRegion&&!['image','prototype'].includes(e.type)));
   const colors=$derived([...new Set((editor.slide?.elements.flatMap(e=>[e.fill,e.stroke])??[]).filter(c=>/^#[\da-f]{6}$/i.test(c)&&!Object.values(system.colors).some(v=>v.toLowerCase()===c.toLowerCase())))].slice(0,14));
   const opacity=$derived(editable.some(v=>v.opacity!==e?.opacity)?'Mixed':`${Number(((e?.opacity??1)*100).toFixed(1))}%`);
@@ -46,7 +48,7 @@
   let width=$state<number|string|undefined>(''),error=$state('');
   let link=$state(''),scaling=$state('contain'),responsive=$state(false),deviceFrame=$state(false),chrome=$state(false);
   let frame=0;
-  const title=$derived(menu==='color'?colorLabel:menu==='border'?e?.type==='line'?'Line style':'Border':menu==='appearance'?'Appearance':'Prototype settings');
+  const title=$derived(menu==='border'?e?.type==='line'?'Line style':'Border':menu==='appearance'?'Appearance':'Prototype settings');
   function position(){
     if(!popup?.matches(':popover-open')||!origin)return;
     const body=popup.querySelector<HTMLElement>('form'),header=popup.querySelector<HTMLElement>('header');
@@ -67,18 +69,18 @@
   function apply(patch:Partial<SlideElement>){editor.patch(patch);close();}
   function chooseColor(role:ColorRole){
     pendingRole=role;hex=system.colors[role];error='';
-    if(menu==='border'){if(!Number(width))width=e.type==='line'?2:1;return;}
-    if(editor.deck&&editor.slide){editor.commit(objectColorStyleOperations(editor.operationDocument(),editor.slide.id,styleTargets.map(e=>e.id),'fill',role));close();}
+    if(!Number(width))width=e.type==='line'?2:1;
   }
+  function chooseFillRole(role:string){if(editor.deck&&editor.slide)editor.commit(objectColorStyleOperations(editor.operationDocument(),editor.slide.id,styleTargets.map(item=>item.id),'fill',role?role as ColorRole:undefined));}
   function number(value:number|string|undefined,min:number,max:number,label:string){const n=Number(value);if(!String(value??'').trim()||!Number.isFinite(n)||n<min||n>max)throw new Error(`${label}: enter a number from ${min} to ${max}.`);return n;}
   function save(event:SubmitEvent){
     event.preventDefault();if(!e||!numericFields.valid||!colorValid)return;error='';
     try{
-      if(menu==='color'||menu==='border'){
+      if(menu==='border'){
         if(!/^(#[\da-f]{6}(?:[\da-f]{2})?|transparent)$/i.test(hex))throw new Error('Enter a hex color or transparent.');
-        const strokeWidth=menu==='border'?(hex==='transparent'?0:number(width,e.type==='line'?1:0,100,'Line width')):0;
-        if(pendingRole&&editor.deck&&editor.slide){const ops=objectColorStyleOperations(editor.operationDocument(),editor.slide.id,styleTargets.map(e=>e.id),menu==='border'?'stroke':'fill',pendingRole);if(menu==='border')for(const op of ops)if(op.op==='update_element')op.patch.strokeWidth=strokeWidth;editor.commit(ops);close();}
-        else apply(menu==='border'?{stroke:hex,strokeWidth}:{fill:hex});
+        const strokeWidth=hex==='transparent'?0:number(width,e.type==='line'?1:0,100,'Line width');
+        if(pendingRole&&editor.deck&&editor.slide){const ops=objectColorStyleOperations(editor.operationDocument(),editor.slide.id,styleTargets.map(e=>e.id),'stroke',pendingRole);for(const op of ops)if(op.op==='update_element')op.patch.strokeWidth=strokeWidth;editor.commit(ops);close();}
+        else apply({stroke:hex,strokeWidth});
       }else if(menu==='appearance'){
         const patch:Partial<SlideElement>={opacity:number(amount,0,100,'Opacity')/100};
         if(radiusAllowed)patch.radius=number(radius,0,500,'Corner radius');
@@ -115,7 +117,7 @@
       <button class="icon-btn" aria-label="Prototype settings" title="Prototype settings" aria-haspopup="dialog" aria-controls={id} aria-expanded={opened&&menu==='prototype'} onclick={ev=>open('prototype',ev)}><Settings2 size={16}/></button>
     {/if}
     {#if (shape&&e.type!=='line')||e.type==='table'||e.type==='chart'}
-      <button class="text-btn quick-color" aria-label={colorLabel} title={colorLabel} aria-haspopup="dialog" aria-controls={id} aria-expanded={opened&&menu==='color'} onclick={ev=>open('color',ev)}><span class="selection-color-glyph" aria-hidden="true"><PaintBucket size={16}/><span class="selection-color-mark" class:clear={e.fill==='transparent'} style:background={e.fill==='transparent'?undefined:e.fill}></span></span></button>
+      {#key `${editor.deck?.id}:${editor.activeId}:${editor.selected.join(',')}:${editor.selectedContainer}`}<ColorField toolbar label={colorLabel} value={e.fill} mixed={editable.some(item=>item.fill!==e.fill)} roles={colorRoles} roleValue={fillRole} onrole={styleTargets.length?chooseFillRole:undefined} allowClear={e.type!=='table'&&e.type!=='chart'} clearLabel="Remove fill" onchange={fill=>editor.patch({fill},'color')}/>{/key}
     {/if}
     {#if shape}<button class="text-btn" aria-label={e.type==='line'?'Line style':'Stroke style'} title={e.type==='line'?'Line color and width':'Stroke color and width'} aria-haspopup="dialog" aria-controls={id} aria-expanded={opened&&menu==='border'} onclick={ev=>open('border',ev)}><span class="selection-color-glyph" aria-hidden="true">{#if e.type==='line'}<Minus size={16}/>{:else}<Square size={16}/>{/if}<span class="selection-color-mark" class:clear={e.type!=='line'&&(e.stroke==='transparent'||!e.strokeWidth)} style:background={e.type==='line'?(e.stroke==='transparent'?e.fill:e.stroke):e.stroke!=='transparent'&&e.strokeWidth?e.stroke:undefined}></span></span><span class="selection-secondary-label">{e.type==='line'?`${e.strokeWidth||2} px`:'Stroke'}</span></button>{/if}
   {/if}
@@ -125,10 +127,10 @@
   <div bind:this={popup} id={id} use:popoverFocus={{close:()=>popup?.hidePopover(), origin:()=>origin}} popover="auto" class="element-format-popover selection-tools-popover ui-property-surface canvas-controls-popover" class:wide={menu==='prototype'} role="dialog" tabindex="-1" aria-label={title} onbeforetoggle={ev=>opened=ev.newState==='open'} onkeydown={key}>
     <header><strong>{title}</strong><button class="icon-btn" aria-label="Close object formatting" onclick={close}><X size={16}/></button></header>
     <form class="selection-format-body" onsubmit={save}>
-      {#if menu==='color'||menu==='border'}
+      {#if menu==='border'}
         <DocumentColorChoices value={pendingRole} disabled={!styleTargets.length} onchoose={chooseColor}/>
-        <p class="hint">{pendingRole?`${COLOR_LABELS[pendingRole]} · ${menu==='border'?'Apply to follow document':'Follows document colors'}`:'Custom color'}</p>
-        <details class="format-custom-options"><summary><span>Custom color</span><ChevronDown size={14} aria-hidden="true"/></summary>{#if colors.length}<div class="color-presets">{#each colors as value}<button type="button" class="color-swatch" style:background={value} style:color={swatchInk(value)} aria-label={`${menu==='border'?'Stroke color':colorLabel} ${value}`} aria-pressed={hex.toLowerCase()===value.toLowerCase()} onclick={()=>{pendingRole=undefined;hex=value;if(menu==='color')apply({fill:value});else if(!Number(width))width=e.type==='line'?2:1;}}>{#if hex.toLowerCase()===value.toLowerCase()}<Check size={16}/>{/if}</button>{/each}</div>{/if}<ColorField label={menu==='border'?'Stroke color':colorLabel} value={hex} allowClear={e.type!=='line'&&e.type!=='table'&&e.type!=='chart'} onvaliditychange={valid=>colorValid=valid} onchange={value=>{pendingRole=undefined;hex=value;if(menu==='border')width=value==='transparent'?0:Number(width)||1;}}/></details>
+        <p class="hint">{pendingRole?`${COLOR_LABELS[pendingRole]} · Apply to follow document`:'Custom color'}</p>
+        <details class="format-custom-options"><summary><span>Custom color</span><ChevronDown size={14} aria-hidden="true"/></summary>{#if colors.length}<div class="color-presets">{#each colors as value}<button type="button" class="color-swatch" style:background={value} style:color={swatchInk(value)} aria-label={`Stroke color ${value}`}  aria-pressed={hex.toLowerCase()===value.toLowerCase()} onclick={()=>{pendingRole=undefined;hex=value;if(!Number(width))width=e.type==='line'?2:1;}}>{#if hex.toLowerCase()===value.toLowerCase()}<Check size={16}/>{/if}</button>{/each}</div>{/if}<ColorField label="Stroke color" value={hex} allowClear={e.type!=='line'&&e.type!=='table'&&e.type!=='chart'} onvaliditychange={valid=>colorValid=valid} onchange={value=>{pendingRole=undefined;hex=value;width=value==='transparent'?0:Number(width)||1;}}/></details>
         {#if menu==='border'}<NumberField label="Line width" prefix="Width" preset="stroke" unit="px" min={e.type==='line'?1:0} max={100} step="any" value={width} oninput={raw=>width=raw} onchange={value=>width=value}/>{/if}
       {:else if menu==='appearance'}
         <NumberField label="Object opacity" prefix="Opacity" preset="percent" unit="%" min={0} max={100} step="any" mixed={opacity==='Mixed'&&!String(amount??'').trim()} value={amount} oninput={raw=>amount=raw} onchange={value=>amount=value}/>

@@ -19,3 +19,13 @@ test('SVG backgrounds use the DOM export path without starting a worker',async()
   assert.deepEqual(result,new Uint8Array([8]));assert.equal(workers,0);assert.equal(fallbacks,1);assert.equal(JSON.stringify(job.deck),before);
  }
 });
+
+
+test('canceling PPTX before or after dispatch terminates the worker without a fallback export',async()=>{
+ for(const dispatched of [false,true]){
+  const controller=new AbortController(),worker=new WorkerFixture();let fallbacks=0;
+  const pending=buildPptxInBackground(request(),async()=>{fallbacks++;return new Uint8Array([9]);},()=>worker as unknown as Worker,controller.signal);
+  if(dispatched)worker.reply({type:'ready'});controller.abort();await assert.rejects(pending,{name:'AbortError'});
+  assert(worker.terminated);assert.equal(worker.onmessage,null);assert.equal(fallbacks,0);
+ }
+});

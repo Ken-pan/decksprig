@@ -1,9 +1,9 @@
 <script lang="ts">
   import { ChevronDown, FileText, Presentation, Globe, EyeOff } from '@lucide/svelte';
   import { Button, SegmentedControl } from './ui';
-  let {exportView, hiddenCount = 0, slideCount, referenceComplete, hasGoogleSource, hasKeynote, hasNativeSource, busy, exportKind, onView, onExport}: {
+  let {exportView, hiddenCount = 0, slideCount, referenceComplete, hasGoogleSource, hasKeynote, hasNativeSource, busy, exportKind, onView, onExport, onCancel}: {
     exportView: 'editable' | 'reference'; hiddenCount?: number; slideCount?: number; referenceComplete: boolean; hasGoogleSource: boolean; hasKeynote: boolean; hasNativeSource: boolean;
-    busy: string; exportKind: string; onView: (value: 'editable' | 'reference') => void; onExport: (kind: string) => void;
+    busy: string; exportKind: string; onView: (value: 'editable' | 'reference') => void; onExport: (kind: string) => void; onCancel: () => void;
   } = $props();
   type Format = {id: string; title: string; detail: string; suffix: string; logo?: string};
   const reference = $derived(exportView === 'reference');
@@ -11,20 +11,23 @@
   const visibilityId = $props.id();
   const formats: Format[] = $derived([
     {id: 'json', title: 'Deck file', detail: 'Full document', suffix: '.deck.json'},
+    ...(!reference?[{id:'figma',title:'Figma Slides',detail:'Native plugin handoff',suffix:'.figma.deck.json'}]:[]),
     {id: 'pptx', title: 'PowerPoint', detail: reference ? 'Source images' : 'Editable objects', suffix: '.pptx'},
-    ...(!reference?[{id:'potx',title:'PowerPoint template',detail:'Layouts & placeholders',suffix:'.potx'}]:[]),
+    ...(!reference?[{id:'potx',title:'PowerPoint template',detail:'Reusable presentation',suffix:'.potx'}]:[]),
     ...(hasGoogleSource && !reference ? [{id: 'google', title: 'Google Slides', detail: 'Text & slide visibility', suffix: 'Copy'}] : []),
     ...(hasKeynote ? [{id: 'keynote', title: 'Keynote', detail: reference ? 'Source images' : hasNativeSource ? 'Text edits' : 'Presentation', suffix: '.key'}] : []),
     {id: 'pdf', title: 'PDF', detail: reference ? 'Source images' : 'Print dialog', suffix: '.pdf'},
     {id: 'html', title: 'Web page', detail: reference ? 'Source images' : 'Motion & prototypes', suffix: '.html'},
   ]);
   const moreFormats: Format[] = [
+    {id: 'json-legacy', title: 'Legacy Deck file', detail: 'For older versions', suffix: '.deck.json'},
     {id: 'broadser', title: 'Broadser board', detail: 'Note cards', suffix: '.json', logo: 'broadser.svg'},
     {id: 'markdown', title: 'Text and notes', detail: 'Markdown', suffix: '.md'},
   ];
 </script>
 
 <div class="export-options ui-control-surface ui-property-surface">
+  {#if exportKind}<Button variant="secondary" onclick={onCancel}>Cancel export</Button>{/if}
   <div class="export-version">
     <SegmentedControl label="Export version" value={exportView} disabled={Boolean(busy)} options={[
       {value: 'editable', label: 'Editable version'},
@@ -65,7 +68,7 @@
   <Button class="export-format" busy={exportKind === format.id} aria-describedby={hiddenCount && ['pdf','html','json','pptx','potx'].includes(format.id) ? visibilityId : undefined} disabled={Boolean(busy) && exportKind !== format.id || (reference && ['broadser', 'markdown'].includes(format.id)) || visibleCount===0 && ['pdf','html'].includes(format.id)} onclick={() => onExport(format.id)}>
     <span class="export-logo" aria-hidden="true">
       {#if format.logo}<img src="/export-icons/{format.logo}" alt="" width="24" height="24" />
-      {:else if format.id === 'json'}<span class="brand-mark"></span>
+      {:else if format.id === 'json' || format.id === 'json-legacy'}<span class="brand-mark"></span>
       {:else if format.id === 'html'}<Globe />
       {:else if ['pptx','potx','google','keynote'].includes(format.id)}<Presentation />
       {:else}<FileText />{/if}

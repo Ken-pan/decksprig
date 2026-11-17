@@ -2,8 +2,11 @@ import type { SlideElement, TextRun, TextParagraph } from './model';
 import { fontStack } from './font-stack';
 import { scaledTextStyle as resizeTextStyle } from './text-sizing';
 export function createTypography(makeFontStack: (family: string) => string) {
-function runStyle(r: TextRun) {
-  return `font-family:${r.fontFamily ? makeFontStack(r.fontFamily) : 'inherit'};font-size:${r.fontSize ? r.fontSize + 'px' : 'inherit'};font-weight:${r.fontWeight ?? (r.bold === undefined ? 'inherit' : r.bold ? 700 : 400)};font-style:${r.italic === undefined ? 'inherit' : r.italic ? 'italic' : 'normal'};color:${r.color ?? 'inherit'};text-decoration:${r.underline === undefined ? 'inherit' : r.underline ? 'underline' : 'none'};letter-spacing:${r.letterSpacing === undefined ? 'inherit' : r.letterSpacing + 'px'};vertical-align:${r.baseline === 'super' ? 'super' : r.baseline === 'sub' ? 'sub' : 'baseline'};`;
+function caseStyle(value:TextRun['textCase']) {return `text-transform:${value==='upper'?'uppercase':value==='lower'?'lowercase':value==='title'?'capitalize':value==='none'?'none':'inherit'};font-variant-caps:${value==='small-caps'?'small-caps':value?'normal':'inherit'};`;}
+function runStyle(r: TextRun, base?: Pick<SlideElement,'underline'|'strikethrough'>) {
+  const underline=r.underline??base?.underline,strike=r.strikethrough??base?.strikethrough;
+  const decoration=underline===undefined&&strike===undefined?'inherit':`${underline?'underline ':''}${strike?'line-through':''}`.trim()||'none';
+  return `${caseStyle(r.textCase)}font-family:${r.fontFamily ? makeFontStack(r.fontFamily) : 'inherit'};font-size:${r.fontSize ? r.fontSize + 'px' : 'inherit'};font-weight:${r.fontWeight ?? (r.bold === undefined ? 'inherit' : r.bold ? 700 : 400)};font-style:${r.italic === undefined ? 'inherit' : r.italic ? 'italic' : 'normal'};color:${r.color ?? 'inherit'};text-decoration:${decoration};letter-spacing:${r.letterSpacing === undefined ? 'inherit' : r.letterSpacing + 'px'};vertical-align:${r.baseline === 'super' ? 'super' : r.baseline === 'sub' ? 'sub' : 'baseline'};`;
 }
 function paragraphStyle(p: TextParagraph, e: SlideElement, index = e.paragraphs?.indexOf(p) ?? -1) {
   const visible = p.runs.filter(r=>r.text.length);
@@ -15,7 +18,7 @@ function paragraphStyle(p: TextParagraph, e: SlideElement, index = e.paragraphs?
 }
 function textBoxStyle(e: SlideElement) {
   const p = e.padding ?? {left: 0, right: 0, top: 0, bottom: 0};
-  return `padding:${p.top}px ${p.right}px ${p.bottom}px ${p.left}px;display:flex;flex-direction:column;justify-content:${e.verticalAlign === 'middle' ? 'center' : e.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start'};white-space:${e.textSizing === 'auto-width' || !e.wrap ? 'pre' : 'pre-wrap'};overflow:${e.clipText === false ? 'visible' : 'hidden'};`;
+  return `${caseStyle(e.textCase)}padding:${p.top}px ${p.right}px ${p.bottom}px ${p.left}px;display:flex;flex-direction:column;justify-content:${e.verticalAlign === 'middle' ? 'center' : e.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start'};white-space:${e.textSizing === 'auto-width' || !e.wrap ? 'pre' : 'pre-wrap'};overflow:${e.clipText === false ? 'visible' : 'hidden'};`;
 }
 function textFlowStyle(e: SlideElement) {
   const balanced=e.wrap&&e.textSizing!=='auto-width'&&!e.sourceId&&!e.nativeTextLayout&&!e.paragraphs?.length&&['title','heading'].includes(e.design?.text??'');

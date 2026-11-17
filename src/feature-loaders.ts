@@ -1,11 +1,15 @@
 import type { Component, ComponentProps } from 'svelte';
+export const libraryActions=()=>import('./core/document-library-actions');
 
 // Keep optional workspaces outside the editor's startup dependency graph.
 export const loaders = {
+  'canvas-zoom': () => import('./components/CanvasZoom.svelte'),
   notifications: () => import('./components/NotificationContent.svelte'),
   'notification-history': () => import('./components/NotificationHistory.svelte'),
+  'version-history': () => import('./components/VersionHistory.svelte'),
   welcome: () => import('./components/WorkspaceWelcome.svelte'),
   'document-library': () => import('./components/DocumentLibrary.svelte'),
+  'document-rename': () => import('./components/RenameDocument.svelte'),
   templates:()=>import('./components/TemplatePicker.svelte'),
   inspector: () => import('./components/Inspector.svelte'),
   'resource-appearance': () => import('./components/ResourceAppearance.svelte'),
@@ -33,6 +37,7 @@ export const loaders = {
   'page-elements': () => import('./components/PageElementsEditor.svelte'),
   chart: () => import('./components/ChartEditor.svelte'),
   table: () => import('./components/TableEditor.svelte'),
+  'table-visual':()=>import('./components/TableVisual.svelte'),
   'chart-text':()=>import('./components/CanvasChartTextEditor.svelte'),
   'chart-values': () => import('./components/CanvasChartValueEditor.svelte'),
   'table-cell': () => import('./components/CanvasTableCellEditor.svelte'),
@@ -40,6 +45,8 @@ export const loaders = {
   fidelity: () => import('./components/FidelityReview.svelte'),
   'publish': () => import('./components/PublishDialog.svelte'),
   'google-export': () => import('./components/GoogleExportDialog.svelte'),
+  'figma-sync': () => import('./components/FigmaSyncLoader.svelte'),
+  'figma-sync-panel': () => import('./components/FigmaSync.svelte'),
   presentation: () => import('./components/Presentation.svelte'),
   ai: () => import('./components/AIPanel.svelte'),
   'ai-create': () => import('./components/AICreateDialog.svelte'),

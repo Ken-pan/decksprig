@@ -4,6 +4,24 @@ import {canvasOverlayBounds} from './canvas-overlay-layout';
 
 export interface SelectionToolbarOptions { ids: string[]; editingId: string; revision?: number; scale: number; draft?: boolean; docked?: boolean }
 
+/** Use only the footer row's real free space; its size never follows selection. */
+export function selectionDockRow(slot:ScreenRect,footer:ScreenRect,utilities:ScreenRect[]):ScreenRect|null{
+  const left=Math.max(slot.left,footer.left),right=Math.min(slot.right,footer.right);
+  let top=footer.top,bottom=footer.bottom;
+  for(const utility of utilities){
+    if(utility.right<=utility.left||utility.bottom<=utility.top||utility.right<=left||utility.left>=right)continue;
+    if(utility.bottom<=slot.top)top=Math.max(top,utility.bottom+4);
+    else if(utility.top>=slot.bottom)bottom=Math.min(bottom,utility.top-4);
+    else return null;
+  }
+  return right>left&&bottom>top?{left,right,top,bottom}:null;
+}
+
+export function positionDockedSelection(size:{width:number;height:number},boundary:ScreenRect){
+  const width=boundary.right-boundary.left,height=boundary.bottom-boundary.top;
+  return size.width<=width&&size.height<=height?{x:boundary.left+(width-size.width)/2,y:boundary.top+(height-size.height)/2,placement:'dock' as const}:null;
+}
+
 export function selectionToolbar(node: HTMLElement, initial: SelectionToolbarOptions) {
   const stage = node.closest<HTMLElement>('.canvas-stage');
   if (!stage) return;
@@ -31,15 +49,17 @@ export function selectionToolbar(node: HTMLElement, initial: SelectionToolbarOpt
       const leftTools = footer.querySelector<HTMLElement>('.canvas-utility-left')?.getBoundingClientRect();
       const rightTools = footer.querySelector<HTMLElement>('.canvas-utility-right')?.getBoundingClientRect();
       // Phones give the dock a stable row; wide footers share a row with utilities.
-      const area = slotRect.height ? slotRect : {
+      const area = slotRect.height ? selectionDockRow(slotRect,footerRect,[leftTools,rightTools].filter((rect):rect is DOMRect=>Boolean(rect))) : {
         left: Math.max(footerRect.left, leftTools?.right ?? footerRect.left) + 8,
         right: Math.min(footerRect.right, rightTools?.left ?? footerRect.right) - 8,
         top: footerRect.top, bottom: footerRect.bottom,
       };
+      if(!area){hide();return;}
       const viewport = window.visualViewport;
       dockBoundary = intersectRect(area, {left: viewport?.offsetLeft ?? 0, top: viewport?.offsetTop ?? 0,
         right: (viewport?.offsetLeft ?? 0) + (viewport?.width ?? innerWidth),
         bottom: (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight)});
+      if(!dockBoundary){hide();return;}
     }
     const header = surface.querySelector<HTMLElement>('.canvas-overlay-top');
     if (header?.offsetHeight) boundary.top = Math.max(boundary.top, header.getBoundingClientRect().bottom + 8);
@@ -74,10 +94,7 @@ export function selectionToolbar(node: HTMLElement, initial: SelectionToolbarOpt
     if (node.style.maxWidth !== maxWidth) node.style.maxWidth = maxWidth;
     const rect = node.getBoundingClientRect();
     const position = dockBoundary
-      ? rect.height <= boundary.bottom - boundary.top
-        ? {x: boundary.left + (boundary.right - boundary.left - rect.width) / 2,
-          y: boundary.top + (boundary.bottom - boundary.top - rect.height) / 2, placement: 'dock'}
-        : null
+      ? positionDockedSelection(rect,boundary)
       : options.docked
       ? intersectRect(anchor, boundary) && rect.height + 16 <= boundary.bottom - boundary.top
         ? {x: boundary.left + (boundary.right - boundary.left - rect.width) / 2, y: boundary.top + 8, placement: 'dock'}

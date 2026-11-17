@@ -4,10 +4,10 @@ export const ShapeVariantSchema = z.enum(['triangle', 'pentagon', 'hexagon', 'st
 export type ShapeVariant = z.infer<typeof ShapeVariantSchema>;
 export const ElementShadowSchema = z.strictObject({
   color: z.string().check(z.regex(/^#[\da-fA-F]{6}$/)),
-  opacity: z.number().check(z.minimum(0)).check(z.maximum(1)),
-  blur: z.number().check(z.minimum(0)).check(z.maximum(200)),
-  x: z.number().check(z.minimum(-500)).check(z.maximum(500)),
-  y: z.number().check(z.minimum(-500)).check(z.maximum(500)),
+  opacity: z.number().check(z.minimum(0),z.maximum(1)),
+  blur: z.number().check(z.minimum(0),z.maximum(200)),
+  x: z.number().check(z.minimum(-500),z.maximum(500)),
+  y: z.number().check(z.minimum(-500),z.maximum(500)),
 });
 export type ElementShadow = z.infer<typeof ElementShadowSchema>;
 

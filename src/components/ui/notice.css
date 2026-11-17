@@ -32,7 +32,8 @@
 .notification-outlet[data-notification-hidden='true'] { visibility:hidden; pointer-events:none; }
 .notification-feedback.notification-in-dialog { padding:0; max-height:none; overflow:visible; background:none; border:0; margin-bottom:16px; }
 .notification-feedback.notification-in-dialog:empty { margin:0; }
-.notification-outlet.notification-in-dialog { position:static; width:auto; max-width:none; max-height:30%; flex:none; margin:0 var(--dialog-gutter) 16px; box-shadow:none; }
+.notification-outlet.notification-in-dialog { position:static; width:auto; max-width:none; max-height:calc(var(--ui-viewport-height,100dvh) * .3); flex:none; margin:0 var(--dialog-gutter) 16px; box-shadow:none; }
+.notification-outlet.notification-in-dialog[data-notification-hidden='true'] { max-height:0; margin-block:0; }
 .notification-in-dialog .ui-notice { box-shadow:none; }
 .notification-history { display:flex; flex-direction:column; gap:16px; margin-bottom:16px; }
 .notification-history time { display:block; margin:4px 0 0 44px; font-size:var(--ui-meta); color:var(--text-secondary); }

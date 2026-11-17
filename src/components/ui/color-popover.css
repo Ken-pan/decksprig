@@ -1,5 +1,6 @@
 .ui-color-popover { overflow: hidden; }
 .ui-color-popover .ui-popover-body { padding: 0; overflow: visible; flex: none; }
+.ui-color-popover.tokens .ui-popover-body { overflow: auto; flex: 1; min-height: 0; }
 .color-popover-content { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .ui-color-popover button.color-plane { position: relative; display: block; flex: none; width: 100%; height: 128px; min-height: 128px; padding: 0; border: 1px solid var(--border-default); border-radius: var(--r-field); background: linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent),var(--picker-hue); cursor: crosshair; touch-action: none; forced-color-adjust: none; }
 .color-plane:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
@@ -19,7 +20,7 @@
 .picker-channels { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; }
 .picker-channels .number-field { gap: 4px; padding-inline: 4px; }
 .ui-color-popover .picker-hex-input { width: 100%; font-size: var(--ui-text); }
-.picker-hex-input[aria-invalid='true'] { border-color: var(--danger); }
+.picker-hex-input[aria-invalid='true'] { border-color: var(--danger-text); }
 .ui-color-popover.compact .color-popover-content { padding: 8px; }
 .ui-color-popover.compact button.color-plane { height: 80px; min-height: 80px; }
 .ui-color-popover.minimal .color-popover-content { gap: 4px; padding: 6px; }
@@ -40,7 +41,7 @@
 .picker-modes { display:flex; gap:4px; margin:12px 12px 0; padding:4px; background:var(--fill-subtle); border-radius:var(--r-control); }
 .picker-modes button { flex:1; min-width:0; min-height:32px; padding:4px 8px; border-radius:var(--r-item); color:var(--text-secondary); font-size:var(--ui-label); }
 .picker-modes button[aria-selected='true'] { background:var(--state-selected); color:var(--text-primary); }
-.picker-tokens { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; padding:12px; }
+.picker-tokens { display:grid; grid-template-columns:minmax(0,1fr); gap:4px; padding:12px; }
 .picker-token { display:flex; align-items:center; gap:8px; min-width:0; min-height:44px; padding:8px; text-align:left; border-radius:var(--r-control); font-size:var(--ui-label); color:var(--text-primary); }
 .picker-token i { flex:none; width:20px; height:20px; border:1px solid var(--border-default); border-radius:var(--r-item); forced-color-adjust:none; }
 .picker-token span { flex:1; min-width:0; overflow-wrap:anywhere; }

@@ -1,3 +1,4 @@
+import {reconcileTableText} from './table-rich-text';
 import type {SlideElement} from './model';
 import type {CellRange} from './table-grid';
 import {cellBounds} from './table-grid';
@@ -67,5 +68,5 @@ export function autofillTableRange(e:SlideElement,source:CellRange,target:CellRa
     if(format)styles.set(key,{...format,row,column});else styles.delete(key);
   }
   const tableStyle=e.tableStyle?{...e.tableStyle,cellStyles:styles.size?[...styles.values()]:undefined}:undefined;
-  return {cells,tableStyle};
+  return {cells,tableStyle:reconcileTableText(e,cells,tableStyle)};
 }

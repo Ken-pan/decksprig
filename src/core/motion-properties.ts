@@ -6,7 +6,7 @@ export function motionPropertyState<K extends keyof ElementAnimation>(selection:
   const editable=selection.filter(item=>!item.locked),items=editable.length?editable:selection;
   const values=items.map(item=>{
     const animation={...defaultAnimation,...item.animation};
-    return (key==='withTransition'?Boolean(animation.withTransition):animation[key]) as ElementAnimation[K];
+    return (key==='withTransition'?Boolean(animation.withTransition):key==='phase'?animation.phase??'in':animation[key]) as ElementAnimation[K];
   });
-  return {value:values[0]??defaultAnimation[key],mixed:values.some(value=>value!==values[0])};
+  return {value:values[0]??(key==='phase'?'in':defaultAnimation[key]),mixed:values.some(value=>key==='easingBezier'?JSON.stringify(value)!==JSON.stringify(values[0]):value!==values[0])};
 }

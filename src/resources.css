@@ -60,7 +60,7 @@
 .resource-tabs button.active{border-color:var(--accent);color:var(--text-primary);font-weight:var(--ui-weight-semibold)}
 .resource-upload{white-space:nowrap;color:var(--text-secondary);font-size:var(--ui-label)}
 .resource-search{display:flex;gap:12px;align-items:center;flex-shrink:0}
-.resource-query{display:flex;align-items:center;gap:12px;flex:1;min-width:0;border:1px solid var(--border-default);border-radius:var(--r-md);padding:4px 4px 4px 12px;background:var(--surface-base);height:44px}
+.resource-query{display:flex;align-items:center;gap:12px;flex:1;min-width:0;border:1px solid var(--field-border);border-radius:var(--r-md);padding:4px 4px 4px 12px;background:var(--field-surface);height:44px}
 .resource-query input{min-width:0;flex:1;width:100%;border:0;background:transparent;padding:8px 0;box-shadow:none;font-size:var(--ui-text)}
 .resource-query:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .resource-search-submit{font-size:var(--ui-label);color:var(--text-secondary);padding:0 12px;border-left:1px solid var(--border-default);border-radius:0}

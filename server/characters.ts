@@ -1,5 +1,5 @@
 import { characterDisplayLabel, sceneDisplayLabel } from '../src/core/library-copy';
-import {readFile,writeFile,mkdir,readdir,rename,stat,rm} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,readdir,rename,rm} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {z} from '../src/core/schema';
@@ -8,15 +8,16 @@ import {DATA} from './store';
 import {CharacterRecipeSchema,CharacterManifestSchema,CharacterReviewSchema,characterReviewApproved,SavedCharacterVariantSchema,CharacterRequestInputSchema,CharacterGenerationRequestSchema,REGION_NAMES,DEFAULT_CHARACTER_PALETTE,characterVariant,customizeCharacterPixels,measureCharacterAccent,generationPrompt,defaultCharacterRecipe,type CharacterRecipe,type CharacterVariant,type CharacterManifest,type SavedCharacterVariant} from '../src/core/characters';
 import type {EmbeddedResource} from '../src/core/resources';
 import type {ResourceAttribution} from '../src/core/model';
+import {assetPath,assetStamp,readAsset} from './runtime-assets';
 
-const root=resolve('public/resources/characters-v1');
+const root=assetPath('resources/characters-v1');
 const hash=(data:Buffer)=>createHash('sha256').update(data).digest('hex');
 const savedRoot=resolve(DATA,'character-variants'), requestsRoot=resolve(DATA,'character-requests');
 const uuid=(value:string)=>z.string().check(z.guid()).parse(value);
 const file=(path:string)=>{if(!/^(png|masks)\/[a-z][a-z0-9-]*\.png$/.test(path))throw new Error('Invalid character asset path.');return resolve(root,path);};
 export async function characterManifest():Promise<CharacterManifest>{
-  const manifest=CharacterManifestSchema.parse(JSON.parse(await readFile(resolve(root,'manifest.json'),'utf8')));
-  const reviews=CharacterReviewSchema.parse(JSON.parse(await readFile(resolve(root,'reviews.json'),'utf8')));
+  const manifest=CharacterManifestSchema.parse(JSON.parse((await readAsset(resolve(root,'manifest.json'))).toString('utf8')));
+  const reviews=CharacterReviewSchema.parse(JSON.parse((await readAsset(resolve(root,'reviews.json'))).toString('utf8')));
   return {...manifest, characters: manifest.characters.map(c=>({...c,label:characterDisplayLabel(c.id,c.label)})), scenes: manifest.scenes.map(s=>({...s,label:sceneDisplayLabel(s.id,s.label)})), variants:manifest.variants.map(v=>({...v,approved:v.approved&&characterReviewApproved(reviews.variants[v.id],v)}))};
 }
 async function records<T>(directory:string,schema:z.ZodMiniType<T>){
@@ -44,18 +45,17 @@ const preparedCache=new Map<string,Promise<Prepared>>(),renderCache=new Map<stri
 let renderedBytes=0;
 async function prepare(variant:CharacterVariant){
   const paths=[variant.file,...REGION_NAMES.map(region=>variant.masks[region])];
-  const stamps=[];
-  for(const path of paths){const s=await stat(file(path));stamps.push([path,s.size,s.mtimeMs,s.ctimeMs]);}
+  const stamps=await Promise.all(paths.map(async path=>[path,await assetStamp(file(path))]));
   const signature=JSON.stringify([variant.sha256,variant.maskSha256,variant.width,variant.height,stamps]);
   const cached=preparedCache.get(signature);
   if(cached){preparedCache.delete(signature);preparedCache.set(signature,cached);return {data:await cached,signature};}
   const pending=(async()=>{
-    const original=await readFile(file(variant.file));if(hash(original)!==variant.sha256)throw new Error('The original character image has changed. Review the asset again.');
+    const original=await readAsset(file(variant.file));if(hash(original)!==variant.sha256)throw new Error('The original character image has changed. Review the asset again.');
     const image=PNG.sync.read(original);
     if(image.width!==variant.width||image.height!==variant.height)throw new Error('The character image dimensions do not match the catalog.');
     const labels=new Uint8Array(image.width*image.height),coverage=new Uint8Array(labels.length);
     for(const [index,region]of REGION_NAMES.entries()){
-      const bytes=await readFile(file(variant.masks[region]));
+      const bytes=await readAsset(file(variant.masks[region]));
       if(variant.maskSha256 && hash(bytes)!==variant.maskSha256[region])throw new Error('The character mask has changed. Review the asset again.');
       const mask=PNG.sync.read(bytes);if(mask.width!==image.width||mask.height!==image.height)throw new Error('The region mask dimensions do not match.');
       let selected=0;
@@ -92,7 +92,7 @@ function previewImage(image:PNG){
   return output;
 }
 function attribution(recipe:CharacterRecipe,sourceSha256:string,characterLabel:string,sceneLabel:string):ResourceAttribution{
-  return {id:`character:${recipe.variantId}`,kind:'illustration',provider:'Characters and scenes',title:`${characterLabel} · ${sceneLabel}`,creator:'Decksprig · AI-generated',
+  return {id:`character:${recipe.variantId}`,kind:'illustration',provider:'Characters and scenes',title:`${characterLabel} · ${sceneLabel}`,creator:'Deckleaf · AI-generated',
     sourceUrl:'http://127.0.0.1:4310/characters.html',license:'CC0 1.0',licenseUrl:'https://creativecommons.org/publicdomain/zero/1.0/',attributionRequired:false,
     attribution:`${characterLabel} · ${sceneLabel} · AI-generated artwork · CC0 1.0`,originalSha256:sourceSha256,characterRecipe:recipe,color:recipe.clothesColor};
 }

@@ -1,6 +1,7 @@
 import {tick} from 'svelte';
 import {canvasWheel,pagesWithWheel,SlideWheelPager} from './canvas-wheel';
 import {captureViewAnchor,scrollForAnchor,type ViewAnchor,type ViewGeometry} from './canvas-viewport-anchor';
+import {selectionView} from './canvas-selection-view';
 
 export type ViewportOptions = {scale:number; fit:boolean; key:string; slideKey:string; pageBlocked:boolean; page:(direction:number)=>void; zoom:(value:number|'fit')=>void; cancel:()=>void};
 const controls = 'button,a,input,textarea,select,[contenteditable="true"],[popover],.prototype-shell';
@@ -10,6 +11,7 @@ const controls = 'button,a,input,textarea,select,[contenteditable="true"],[popov
 export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
   let anchor:ViewAnchor|undefined, frame=0, touchDriven=false, disposed=false,keepScreenPoint=false;
   let panPending=false,panX=0,panY=0;
+  let selectionPending=false;
   const pager=new SlideWheelPager();
   let pointerViewport:{id:number;width:number;height:number}|undefined;
   const rememberPointer=(event:PointerEvent)=>{
@@ -57,7 +59,7 @@ export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
     else if(!touchDriven&&!node.hasAttribute('data-touch-navigating')) {
       const scroll=scrollForAnchor(anchor,geometry(art),keepScreenPoint);node.scrollTo(scroll.left,scroll.top);
     }
-    touchDriven=false;keepScreenPoint=false;anchor=capture();recoverFocus();
+    touchDriven=false;keepScreenPoint=false;selectionPending=false;anchor=capture();recoverFocus();
   }
   function schedule() {if(!frame)frame=requestAnimationFrame(reconcile);}
   const scrolled=()=>{if(!frame)anchor=capture();};
@@ -97,8 +99,32 @@ export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
     options.zoom(Math.max(.1,Math.min(4,options.scale*Math.exp(-Math.max(-120,Math.min(120,delta))*.002))));
     schedule();
   }
+  function zoomSelection() {
+    if(disposed||options.pageBlocked||pointerViewport||node.hasAttribute('data-touch-navigating')||document.querySelector('dialog:modal'))return false;
+    const art=artwork();if(!art||!options.scale)return false;
+    // Rendered boxes include rotation, resolved text sizing and layout padding.
+    // Both locked and movable objects can be inspected without editing them.
+    const boxes=Array.from(node.querySelectorAll<HTMLElement>('.stage-canvas .slide-element.is-selected:not([aria-hidden="true"]),.stage-canvas [data-container-id][aria-pressed="true"]')).map(el=>el.getBoundingClientRect()).filter(r=>r.width>0&&r.height>0);
+    if(!boxes.length)return false;
+    const rect=art.getBoundingClientRect(),x=Math.min(...boxes.map(r=>r.left)),y=Math.min(...boxes.map(r=>r.top));
+    const view=selectionView({x:(x-rect.left)/options.scale,y:(y-rect.top)/options.scale,w:(Math.max(...boxes.map(r=>r.right))-x)/options.scale,h:(Math.max(...boxes.map(r=>r.bottom))-y)/options.scale},node.clientWidth,node.clientHeight);
+    if(!view)return false;
+    anchor={...capture()!,x:view.x,y:view.y,horizontal:.5,vertical:.5};selectionPending=true;keepScreenPoint=false;
+    options.cancel();options.zoom(view.scale);node.focus({preventScroll:true});schedule();return true;
+  }
   function key(event:KeyboardEvent) {
-    if(event.defaultPrevented||event.isComposing||event.keyCode===229||event.altKey||!(event.ctrlKey||event.metaKey)||!(event.target instanceof Element)||event.target.closest(controls)||document.querySelector('dialog:modal,[popover]:popover-open:not([role="tooltip"])'))return;
+    if(event.defaultPrevented||event.isComposing||event.keyCode===229||!(event.target instanceof Element)||event.target.closest(controls)||document.querySelector('dialog:modal,[popover]:popover-open:not([role="tooltip"])'))return;
+    if(event.shiftKey&&!event.altKey&&!event.ctrlKey&&!event.metaKey&&(event.code==='Digit1'||event.code==='Digit2')){
+      if(options.pageBlocked||pointerViewport||node.hasAttribute('data-touch-navigating'))return;
+      if(event.code==='Digit2'&&!zoomSelection())return;
+      event.preventDefault();event.stopPropagation();if(event.code==='Digit1'){options.cancel();options.zoom('fit');}return;
+    }
+    if(event.key==='PageDown'||event.key==='PageUp'){
+      const typing=document.activeElement instanceof Element&&document.activeElement.closest('input,textarea,[contenteditable="true"]');
+      if(event.altKey||event.ctrlKey||event.metaKey||event.shiftKey||options.pageBlocked||pointerViewport||typing||node.hasAttribute('data-touch-navigating'))return;
+      event.preventDefault();event.stopPropagation();pager.reset();options.cancel();options.page(event.key==='PageDown'?1:-1);return;
+    }
+    if(event.altKey||!(event.ctrlKey||event.metaKey))return;
     if(!['+','=','-','0'].includes(event.key))return;
     event.preventDefault();event.stopPropagation();
     zoomKey(event.key);
@@ -111,11 +137,12 @@ export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
   scope?.addEventListener('pointerdown',interact,true);scope?.addEventListener('keydown',interact,true);
   node.addEventListener('pointerdown',rememberPointer,true);node.addEventListener('pointerup',finishPointer,true);node.addEventListener('pointercancel',cancelPointer,true);
   return {
-    zoomWheel,zoomKey,
+    zoomWheel,zoomKey,zoomSelection,
     async replay(inputs:(WheelEvent|string)[]) {
       for(const input of inputs){
         if(disposed)return;
-        if(typeof input==='string')zoomKey(input);
+        if(input==='selection')zoomSelection();
+        else if(typeof input==='string')zoomKey(input);
         else wheel(input,true);
         await tick();
       }
@@ -129,7 +156,7 @@ export function canvasViewport(node:HTMLElement, options:ViewportOptions) {
       const touch=node.hasAttribute('data-touch-navigating');
       // Entering manual view introduces native scrollbars. Preserve the same
       // screen point for this transition rather than its newly smaller center.
-      keepScreenPoint||=options.fit&&!next.fit;
+      keepScreenPoint||=options.fit&&!next.fit&&!selectionPending;
       if(next.scale!==options.scale&&!touch)options.cancel();
       if(next.key!==options.key)anchor=undefined;
       else if(next.slideKey!==options.slideKey){const art=artwork();anchor=art?{...capture()!,x:art.offsetWidth/options.scale/2,y:art.offsetHeight/options.scale/2}:undefined;}

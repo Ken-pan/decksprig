@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../prototype-embed.css';
   import { onMount, tick } from 'svelte';
   import { Play, RotateCcw, ExternalLink, Maximize2, X } from '@lucide/svelte';
   import type { Prototype } from '../core/model';

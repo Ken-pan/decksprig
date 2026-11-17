@@ -1,16 +1,38 @@
 import { defineConfig } from 'vite';
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {runtimePublicAssets} from './scripts/public-assets.mjs';
+import {browserPreload} from './scripts/browser-preload.mjs';
+import {localDocumentPreload} from './scripts/local-document-preload.mjs';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+
+// These leaf modules already belong to the initial graph in both editions.
+// Merge their small chunks without pulling optional dependencies into startup.
+const corePrimitives = /\/src\/core\/(?:text-editing\.ts|table-rich-text\.ts|text-sizing\.ts|design-system-schema\.ts|chart-schema\.ts|interactions\.ts|table-schema\.ts|document-data\.ts|document-media-transport\.ts|template-scaling\.ts|shapes\.ts|slide-visibility\.ts|shape-schema\.ts|draft-store\.ts|drawing-identity\.ts|resource-purpose\.ts|font-fallbacks\.json|font-stack\.ts|json-request\.ts|chart-caption\.ts|chart-format\.ts|runtime\.ts|container-tree\.ts|inline-text-width\.ts|ui-copy\.ts)$/;
+
+const localPreload=browserPreload();
+const coverSource = new URL('./src/core/template-covers.json', import.meta.url);
+const coverSnapshot = new URL('./src/assets/welcome/source.sha256', import.meta.url);
+
+function currentWelcomeSnapshot() {
+  const sourceHash = createHash('sha256').update(readFileSync(coverSource)).digest('hex');
+  return sourceHash === readFileSync(coverSnapshot, 'utf8').trim();
+}
 
 export default defineConfig(({command}) => ({
   worker: {format: 'es'},
   publicDir: command === 'build' ? false : 'public',
-  plugins: [svelte(), ...(process.env.VITE_DECK_RUNTIME === 'browser' ? [] : [runtimePublicAssets()])],
+  define:{
+    __DECK_NATIVE_FONT_CODECS__:'true',
+    __DECK_STATIC_WELCOME_COVERS__:JSON.stringify(command === 'build' && !process.env.DECK_STUDIO_LIVE_WELCOME && currentWelcomeSnapshot()),
+  },
+  plugins: [svelte(), ...(process.env.VITE_DECK_RUNTIME === 'browser' ? [] : [runtimePublicAssets(),localPreload.plugin,localDocumentPreload()])],
   server: {hmr: false},
   build: {
     outDir: process.env.DECK_STUDIO_BUILD_DIR || 'dist',
     target: 'es2022',
     manifest: true,
-    rollupOptions: {input: {studio: 'index.html', characters: 'characters.html', brand: 'brand.html'},output:{codeSplitting:{groups:[{name:'startup-primitives',test:new RegExp("/(?:src/core/design\\-system\\-schema\\.ts|src/core/chart\\-schema\\.ts|src/core/interactions\\.ts|src/core/table\\-schema\\.ts|src/core/document\\-data\\.ts|src/core/document\\-media\\-transport\\.ts|src/core/template\\-scaling\\.ts|src/core/shapes\\.ts|src/core/slide\\-visibility\\.ts|src/core/shape\\-schema\\.ts|src/core/draft\\-store\\.ts|src/core/drawing\\-identity\\.ts|src/core/resource\\-purpose\\.ts|src/core/font\\-fallbacks\\.json|src/core/font\\-stack\\.ts|src/core/json\\-request\\.ts|src/core/chart\\-caption\\.ts|src/core/chart\\-format\\.ts|src/core/runtime\\.ts|src/core/container\\-tree\\.ts|src/core/inline\\-text\\-width\\.ts)$"),priority:100,includeDependenciesRecursively:false},{name:'line-geometry',test:/\/src\/core\/(?:line-path|hit-testing)\.ts$/,includeDependenciesRecursively:false},...['chart-caption','chart-continuation','template-edit-adaptation','table-fit'].map(name=>({name,test:new RegExp(`/src/core/${name}\\.ts$`),includeDependenciesRecursively:false})),{name:'command-search',test:/\/src\/components\/ui\/(?:CommandSearch|SearchResults|SearchField)\.svelte$/,includeDependenciesRecursively:false}]}}},
+    modulePreload:process.env.VITE_DECK_RUNTIME==='browser'?undefined:{resolveDependencies:localPreload.resolveDependencies},
+    rollupOptions: {input: {studio: 'index.html', characters: 'characters.html', brand: 'brand.html'},output:{codeSplitting:{groups:[{name:'core-primitives',test:(id:string)=>corePrimitives.test(id)||id.endsWith('/src/brand-name.js'),priority:100,includeDependenciesRecursively:false},{name:'line-geometry',test:/\/src\/core\/(?:line-path|hit-testing)\.ts$/,includeDependenciesRecursively:false},...['chart-caption','chart-continuation','template-edit-adaptation','table-fit'].map(name=>({name,test:new RegExp(`/src/core/${name}\\.ts$`),includeDependenciesRecursively:false})),{name:'command-search',test:/\/src\/components\/ui\/(?:CommandSearch|SearchResults|SearchField)\.svelte$/,includeDependenciesRecursively:false}]}}},
   },
 }));

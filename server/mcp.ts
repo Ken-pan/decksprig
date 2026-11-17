@@ -1,3 +1,4 @@
+import {BRAND_NAME} from '../src/brand-name.js';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {z} from '../src/core/schema';
@@ -69,5 +70,5 @@ server.registerTool('get_editor_context',{title:'Read current editor context',de
 server.registerTool('list_proposals',{description:'Check pending proposal status without repeating a write. Proposal summaries only; media stays local.',inputSchema:{deckId:z.string()},annotations},async({deckId})=>{try{return result((await proposals(deckId)).map(p=>({id:p.id,baseRevision:p.proposal.baseRevision,summary:p.proposal.summary,changes:p.proposal.operations.length})));}catch(error){return failure(error);}});
 server.registerTool('list_history',{description:'Read saved revision summaries. Recovery is owned by the editor; never overwrite a document silently.',inputSchema:{deckId:z.string()},annotations},async({deckId})=>{try{return result(await listHistory(deckId));}catch(error){return failure(error);}});
 server.registerResource('editing-guide','deck-studio://guide',{description:'Capability discovery and safe editing contract',mimeType:'text/plain'},async uri=>({contents:[{uri:uri.href,text:EDITING_GUIDE}]}));
-server.registerPrompt('edit_document',{description:'Start a scoped, source-preserving Decksprig edit',argsSchema:{deckId:z.string(),request:z.string()}},async({deckId,request})=>({messages:[{role:'user',content:{type:'text',text:`Edit local document ${deckId}: ${request}\nRead its current revision and stable IDs. Discover only the schemas/resources needed, then propose one atomic change for editor review. ${EDITING_GUIDE}`}}]}));
+server.registerPrompt('edit_document',{description:`Start a scoped, source-preserving ${BRAND_NAME} edit`,argsSchema:{deckId:z.string(),request:z.string()}},async({deckId,request})=>({messages:[{role:'user',content:{type:'text',text:`Edit local document ${deckId}: ${request}\nRead its current revision and stable IDs. Discover only the schemas/resources needed, then propose one atomic change for editor review. ${EDITING_GUIDE}`}}]}));
 await server.connect(new StdioServerTransport());

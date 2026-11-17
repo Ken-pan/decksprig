@@ -2,31 +2,32 @@ import {z} from './schema';
 import {COLOR_ROLES} from './design-system-schema';
 
 export const CHART_TYPES = ['column', 'bar', 'line', 'area', 'pie', 'donut'] as const;
-const label = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100));
-const color=z.string().check(z.regex(/^#[\da-fA-F]{6}$/)),flag=z.boolean();
-const number=(min:number,max:number)=>z.optional(z.number().check(z.minimum(min)).check(z.maximum(max)));
+const label = z.string().check(z.minLength(1),z.maxLength(100)).check(z.refine(value=>value.trim().length>0));
+const color=z.string().check(z.regex(/^(?:#[\da-fA-F]{6}(?:[\da-fA-F]{2})?|transparent)$/)),flag=z.boolean();
+const number=(min:number,max:number)=>z.optional(z.number().check(z.minimum(min),z.maximum(max)));
 const optionalFlag=z.optional(flag),text=(max:number)=>z.string().check(z.maxLength(max));
 export const ChartSchema = z.strictObject({
   type: z.enum(CHART_TYPES),
-  labels: z.array(label).check(z.minLength(1)).check(z.maxLength(100)),
-  series: z.array(z.strictObject({name: label, values: z.array(z.number().check(z.minimum(-1e12)).check(z.maximum(1e12))).check(z.minLength(1)).check(z.maxLength(100))})).check(z.minLength(1)).check(z.maxLength(8)),
+  labels: z.array(label).check(z.minLength(1),z.maxLength(100)),
+  series: z.array(z.strictObject({name: label, values: z.array(z.number().check(z.minimum(-1e12),z.maximum(1e12))).check(z.minLength(1),z.maxLength(100))})).check(z.minLength(1),z.maxLength(8)),
   title: text(200), subtitle: text(300), source: text(300),
-  colors: z.array(color).check(z.minLength(1)).check(z.maxLength(8)),
+  colors: z.array(color).check(z.minLength(1),z.maxLength(100)),
   textColor: color,
   legend: flag, grid: flag, showValues: flag, stacked: flag,
   categoryTitle: text(80), valueTitle: text(80),
   prefix: text(12), suffix: text(12),
-  visual:z.optional(z.strictObject({preset:z.optional(z.enum(['clean','report','bold','minimal'])),cornerRadius:number(0,16),lineWidth:number(1,8),pointSize:number(0,16),smooth:optionalFlag,areaOpacity:number(0,1),donutHole:number(30,80)})),
-  numberFormat:z.optional(z.strictObject({notation:z.optional(z.enum(['standard','compact'])),grouping:optionalFlag,decimals:z.optional(z.number().check(z.int()).check(z.minimum(0)).check(z.maximum(4)))})),
+  categoryReverse:optionalFlag,valueReverse:optionalFlag,
+  visual:z.optional(z.strictObject({preset:z.optional(z.enum(['clean','report','bold','minimal'])),cornerRadius:number(0,16),lineWidth:number(1,8),pointSize:number(0,16),smooth:optionalFlag,areaOpacity:number(0,1),donutHole:number(10,90),pieRotation:number(0,360)})),
+  numberFormat:z.optional(z.strictObject({notation:z.optional(z.enum(['standard','compact'])),grouping:optionalFlag,percent:optionalFlag,decimals:z.optional(z.number().check(z.int(),z.minimum(0),z.maximum(4)))})),
   legendPosition:z.optional(z.enum(['auto','top','right','bottom','left'])),
   axisStyle:z.optional(z.strictObject({fontSize:number(12,40),rotation:number(-90,90),showLabels:optionalFlag})),
-  dataLabels:z.optional(z.strictObject({position:z.optional(z.enum(['auto','inside','outside'])),fontSize:number(10,48),color:z.optional(color),bold:optionalFlag})),
-  pieSeries: z.optional(z.number().check(z.int()).check(z.minimum(0)).check(z.maximum(7))),
-  forecastFrom: z.optional(z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(99))),
+  dataLabels:z.optional(z.strictObject({position:z.optional(z.enum(['auto','inside','outside'])),fontSize:number(10,48),color:z.optional(color),bold:optionalFlag,percentDecimals:z.optional(z.number().check(z.int(),z.minimum(0),z.maximum(4))),valueMode:z.optional(z.enum(['value','percent','both']))})),
+  pieSeries: z.optional(z.number().check(z.int(),z.minimum(0),z.maximum(7))),
+  forecastFrom: z.optional(z.number().check(z.int(),z.minimum(1),z.maximum(99))),
   adaptive: optionalFlag,
   sourceDisplay:z.optional(z.enum(['chart','caption'])),
-  colorRoles:z.optional(z.array(z.enum(COLOR_ROLES)).check(z.minLength(1)).check(z.maxLength(8))),
-  axisRange:z.optional(z.strictObject({min:z.number(),max:z.number()}).check(z.refine(v=>v.max>v.min, 'Max must exceed min.'))),
+  colorRoles:z.optional(z.array(z.enum(COLOR_ROLES)).check(z.minLength(1),z.maxLength(8))),
+  axisRange:z.optional(z.strictObject({min:z.optional(z.number()),max:z.optional(z.number())}).check(z.refine(v=>v.min!==undefined||v.max!==undefined,'Set at least one axis bound.')).check(z.refine(v=>v.min===undefined||v.max===undefined||v.max>v.min, 'Max must exceed min.'))),
 });
 export type Chart = z.infer<typeof ChartSchema>;
 

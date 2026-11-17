@@ -1,4 +1,5 @@
 import {chartPresetPatch} from './chart-style';
+import {formatChartValue} from './chart-format';
 import {delimitedRows} from './delimited-data';
 export {decodeDataFile as decodeChartFile} from './delimited-data';
 import type { SlideElement } from './model';
@@ -25,7 +26,7 @@ export function sampleChart(): Chart {
 }
 /** Old single-series chart objects remain readable without a document migration. */
 export function chartFromElement(element: SlideElement): Chart {
-  if (element.chart) return validateChart({...element.chart, colors: [/^#[\da-fA-F]{6}$/.test(element.fill) ? element.fill : element.chart.colors[0], ...element.chart.colors.slice(1)]});
+  if (element.chart) return validateChart({...element.chart, colors: [/^(?:#[\da-fA-F]{6}(?:[\da-fA-F]{2})?|transparent)$/.test(element.fill) ? element.fill : element.chart.colors[0], ...element.chart.colors.slice(1)]});
   return validateChart({...sampleChart(),visual:undefined,numberFormat:undefined, textColor:/^#[\da-fA-F]{6}$/.test(element.stroke)?element.stroke:sampleChart().textColor, labels: (element.values ?? []).map(v => v.label), series: [{name: element.name || 'Series 1', values: (element.values ?? []).map(v => v.value)}], colors: /^#[\da-fA-F]{6}$/.test(element.fill) ? [element.fill] : chartPalettes[0].colors, source: '', showValues: true, legend: false});
 }
 export function chartNumber(raw: string): number {
@@ -74,7 +75,7 @@ export function chartCsv(chart: Chart): string {
   return '\uFEFF' + [['Category', ...chart.series.map(s => s.name)], ...chart.labels.map((label, i) => [label, ...chart.series.map(s => s.values[i])])].map(row => row.map(quote).join(',')).join('\r\n');
 }
 export function chartDescription(chart: Chart): string {
-  return `${chart.title || chartTypes.find(t => t.id === chart.type)!.label + ' chart'}. ${displayedChartSeries(chart).map(s => `${s.name}: ${chart.labels.map((label, i) => `${label} ${chart.prefix}${s.values[i]}${chart.suffix}`).join(', ')}`).join('; ')}.${chart.source ? ' Source: ' + chart.source : ''}`;
+  return `${chart.title || chartTypes.find(t => t.id === chart.type)!.label + ' chart'}. ${displayedChartSeries(chart).map(s => `${s.name}: ${chart.labels.map((label, i) => `${label} ${formatChartValue(chart,s.values[i])}`).join(', ')}`).join('; ')}.${chart.source ? ' Source: ' + chart.source : ''}`;
 }
 
 export const isRoundChart = (chart: Pick<Chart, 'type'>) => chart.type === 'pie' || chart.type === 'donut';

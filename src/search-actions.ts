@@ -16,22 +16,41 @@ export type SearchAction = {
 };
 export const QUICK_SEARCH_LIMIT = 4;
 const normalize = (value: string) => value.normalize('NFKC').toLocaleLowerCase().replace(/\s+/g, ' ').trim();
+// Weak ownership releases an old document's index when its actions are retired.
+// Compare source fields so callers may update an action without stale matches.
+const searchIndex = new WeakMap<SearchAction, {label: string; detail?: string; searchText?: string; normalizedLabel: string; text: string}>();
+function indexedText(action: SearchAction) {
+  const {label, detail, searchText} = action;
+  let entry = searchIndex.get(action);
+  if (!entry || entry.label !== label || entry.detail !== detail || entry.searchText !== searchText) {
+    entry = {label, detail, searchText, normalizedLabel: normalize(label), text: normalize(`${label} ${detail ?? ''} ${searchText ?? ''}`)};
+    searchIndex.set(action, entry);
+  }
+  return entry;
+}
 
 export function findSearchActions(actions: readonly SearchAction[], query: string, scope: SearchScope = 'all', suggestedOnly = false): SearchAction[] {
   const term = normalize(query), words = term.split(' ').filter(Boolean);
-  return actions.flatMap((action, index) => {
-    if (scope !== 'all' && action.kind !== scope || !term && suggestedOnly && !action.suggested) return [];
-    const label = normalize(action.label), text = normalize(`${action.label} ${action.detail ?? ''} ${action.searchText ?? ''}`);
-    if (!words.every(word => text.includes(word))) return [];
-    const rank = !term ? 0 : label === term ? 0 : label.startsWith(term) ? 1 : label.includes(term) ? 2 : 3;
-    return [{action, rank, index}];
-  }).sort((a, b) => a.rank - b.rank || a.index - b.index).map(item => item.action);
+  if (!term) return actions.filter(action => (scope === 'all' || action.kind === scope) && (!suggestedOnly || action.suggested));
+  const ranks: SearchAction[][] = [[], [], [], []];
+  for (const action of actions) {
+    if (scope !== 'all' && action.kind !== scope) continue;
+    const {normalizedLabel: label, text} = indexedText(action);
+    if (!words.every(word => text.includes(word))) continue;
+    const rank = label === term ? 0 : label.startsWith(term) ? 1 : label.includes(term) ? 2 : 3;
+    ranks[rank].push(action);
+  }
+  return ranks.flat();
 }
 
 export function documentSearchActions(deck: Deck | null | undefined, navigate: (slideId: string, objectId?: string) => void, disabled = false): SearchAction[] {
   return (deck?.slides ?? []).flatMap((slide, index) => {
     const location = slideLabel(index);
-    return [{id: `slide:${slide.id}`, kind: 'slide' as const, label: location, searchText: `${slide.notes} ${slide.elements.map(object => object.text).join(' ')}`, disabled, run: () => navigate(slide.id)},
+    const heading = slide.elements.filter(object => !object.hidden && object.type === 'text' && object.text.trim())
+      .reduce<(typeof slide.elements)[number] | undefined>((best, object) => !best || object.fontSize > best.fontSize ? object : best, undefined)
+      ?.text.replace(/\s+/g, ' ').trim().slice(0, 100);
+    const detail = [heading, slide.hidden ? 'Hidden from presentation' : ''].filter(Boolean).join(' · ') || undefined;
+    return [{id: `slide:${slide.id}`, kind: 'slide' as const, label: location, detail, searchText: `${slide.notes} ${slide.elements.map(object => object.text).join(' ')}`, disabled, run: () => navigate(slide.id)},
       ...slide.elements.map(object => ({id: JSON.stringify(['object', slide.id, object.id]), kind: 'object' as const,
         label: object.type === 'text' && object.text.trim() ? object.text.replace(/\s+/g, ' ').trim().slice(0, 100) : object.name || 'Object',
         detail: `Object · ${location}${object.hidden ? ' · Hidden' : ''}${object.locked ? ' · Locked' : ''}`,

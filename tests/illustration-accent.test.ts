@@ -44,7 +44,17 @@ test('local catalog includes current assets, search tags, color metadata, favori
   const original = await loadResource(item.id,ORIGINAL_ACCENT); assert.deepEqual(original.bytes,await readFile(`public/resources/blue-black-v1/${first.file}`));
   const green = await loadResource(item.id,'#35664d'); assert.equal(green.resource.color,'#35664d'); assert.equal(green.resource.originalSha256,first.sha256);
   const decoded = PNG.sync.read(green.bytes); assert.equal(decoded.width,first.width); assert.equal(decoded.height,first.height);
-  const thumb = await loadResource(item.id,'#35664d',true); assert(Math.max(PNG.sync.read(thumb.bytes).width,PNG.sync.read(thumb.bytes).height)<=480);
+  // Concurrent previews reuse one source but must keep their colors independent.
+  const [thumb, cobalt, repeat] = await Promise.all([
+    loadResource(item.id,'#35664d',true),
+    loadResource(item.id,ORIGINAL_ACCENT,true),
+    loadResource(item.id,'#35664d',true),
+  ]);
+  assert.deepEqual(thumb.bytes,repeat.bytes);
+  const preview = PNG.sync.read(thumb.bytes);
+  const uncolored = PNG.sync.read(cobalt.bytes);
+  assert(Math.max(preview.width,preview.height)<=480);
+  assert.deepEqual(preview.data,recolorAccentPixels(uncolored.data,'#35664d'));
   await assert.rejects(loadResource('blue-black:../../.env'));
 });
 test('batch recoloring is atomic, skips locks, preserves layout and provenance and persists document default', async () => {

@@ -1,5 +1,6 @@
 import {element, PageElementsSchema, type Deck, type Slide, type SlideElement, type PageElements} from './model';
 import {deckDesignSystem} from './deck-design-system';
+import {isOwnedDocumentData} from './document-revision';
 
 export const DEFAULT_PAGE_ELEMENTS: PageElements = {
   header: '', footer: '', date: '', pageNumbers: true,
@@ -90,12 +91,24 @@ export function setSlidePageElements(deck: Deck, original: Slide, raw: PageEleme
 }
 
 /** Refresh fields after insert, delete, reorder, rename and table continuation without moving authored objects. */
+const pageFieldIndices = new WeakMap<SlideElement[], number[]>();
+function fieldIndices(elements: SlideElement[]): number[] {
+  const cached = pageFieldIndices.get(elements);
+  if (cached) return cached;
+  const indices: number[] = [];
+  for (let i = 0; i < elements.length; i++) if (elements[i].pageElement) indices.push(i);
+  // A new revision replaces its element array. Mutable import/SDK input always
+  // scans again; only canonical immutable arrays have stable field membership.
+  if (isOwnedDocumentData(elements)) pageFieldIndices.set(elements, indices);
+  return indices;
+}
 export function refreshPageElements(deck: Deck): Deck {
   let changed = false;
   const slides = deck.slides.map((slide, index) => {
     const settings = slide.pageElements ?? deck.pageElements;
     let elements: SlideElement[] | undefined;
-    slide.elements.forEach((e, i) => {
+    fieldIndices(slide.elements).forEach(i => {
+      const e = slide.elements[i];
       if (!e.pageElement || e.locked) return;
       const text = pageElementText(e.pageElement.value ?? e.text, deck, slide, index, settings);
       const coverHidden = settings ? hidePageElements(slide, index, settings) : false;

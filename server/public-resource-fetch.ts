@@ -1,3 +1,4 @@
+import {BRAND_NAME} from '../src/brand-name.js';
 import {lookup} from 'node:dns/promises';
 import type {LookupAddress} from 'node:dns';
 import {isIP, type LookupFunction} from 'node:net';
@@ -31,7 +32,7 @@ export async function fetchPublicResource(raw:string,limit=12_000_000):Promise<{
   for(let hops=0;hops<4;hops++){
     const {url,addresses}=await publicImageTarget(destination);
     // Preserve normal TLS hostname/certificate checks; disable connection reuse.
-    const response=await new Promise<IncomingMessage>((resolve,reject)=>{const req=request(url,{agent:false,lookup:pinnedLookup(addresses),signal:AbortSignal.timeout(15000),headers:{'User-Agent':'Decksprig/0.1 (open-resource browser)','Accept-Encoding':'identity'}},resolve);req.once('error',reject);req.end();});
+    const response=await new Promise<IncomingMessage>((resolve,reject)=>{const req=request(url,{agent:false,lookup:pinnedLookup(addresses),signal:AbortSignal.timeout(15000),headers:{'User-Agent':`${BRAND_NAME}/0.1 (open-resource browser)`,'Accept-Encoding':'identity'}},resolve);req.once('error',reject);req.end();});
     const status=response.statusCode??502;
     if([301,302,303,307,308].includes(status)){const location=response.headers.location;response.destroy();if(!location)throw new Error('The resource source redirect failed.');destination=new URL(location,url).href;continue;}
     if(status<200||status>=300){response.destroy();throw Object.assign(new Error(status===429?'Too many resource requests. Try again later.':'The resource source is unavailable. Try again or choose another resource.'),{status:status===429?429:502});}
