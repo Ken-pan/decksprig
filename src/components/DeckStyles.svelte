@@ -77,6 +77,7 @@
   function preset(system:DesignSystem,id=''){draft=mergeStylePreset(draft,system,presetScope);savedId=id;libraryNotice='';fileError='';resetFields();}
   function custom(){draft.name=customizeStyleName(draft.name);savedId='';}
   function setFont(roles:(typeof TEXT_ROLES[number])[],family:string){if(family==='__mixed__')return;for(const role of roles){draft.typography[role].fontFamily=family;draft.typography[role].fontWeight=nearestWeight(fontWeights(family,base.fonts,base.onlineFonts),draft.typography[role].fontWeight);}custom();}
+  const previewStatus=$derived(changed ? `Preview · Applies to all ${base.slides.length} ${base.slides.length===1?'slide':'slides'}` : 'Current style · No changes');
   const scopeSummary=$derived(`${coverage.objects} linked ${coverage.objects===1?'object':'objects'} · ${coverage.slides} of ${base.slides.length} ${base.slides.length===1?'background':'backgrounds'}`);
   let preparingArtwork=$state(false),artworkError=$state(''),active=true;
   onDestroy(()=>active=false);
@@ -172,7 +173,7 @@
       </section>
     </div>
     <div class="style-preview" inert={compact&&!mobilePreview} role="region" aria-label="Style preview" tabindex="-1" bind:this={previewPane}>
-      <div class="preview-heading"><div><strong>{draft.name || 'Custom'}</strong><span>Preview · Not applied</span></div><Button variant="quiet" aria-label="Reset document style changes" onclick={reset}><RotateCcw size={14}/>Reset</Button></div>
+      <div class="preview-heading"><div><strong>{draft.name || 'Custom'}</strong><span role="status">{previewStatus}</span></div><Button variant="quiet" aria-label="Reset document style changes" disabled={!changed&&!invalidDraft} onclick={reset}><RotateCcw size={14}/>Reset</Button></div>
       <div class="style-preview-canvas"><SlideCanvas deck={preview.deck} slide={preview.deck.slides[previewIndex]}/></div>
       <div class="preview-navigation"><button class="icon-btn" aria-label="Previous style preview slide" disabled={previewIndex===0} onclick={()=>previewIndex--}><ArrowLeft size={16}/></button><span>{previewIndex+1} / {base.slides.length}</span><button class="icon-btn" aria-label="Next style preview slide" disabled={previewIndex===base.slides.length-1} onclick={()=>previewIndex++}><ArrowRight size={16}/></button></div>
       <div class="preview-thumbnails">{#each preview.deck.slides.slice(Math.max(0,previewIndex-1),Math.max(0,previewIndex-1)+3) as slide}<button aria-pressed={slide.id===preview.deck.slides[previewIndex].id} onclick={()=>previewIndex=preview.deck.slides.indexOf(slide)}><span class="sr-only">Preview styles on </span><div aria-hidden="true"><SlideCanvas deck={preview.deck} {slide}/></div><span>{slideLabel(preview.deck.slides.findIndex(s=>s.id===slide.id))}</span></button>{/each}</div>

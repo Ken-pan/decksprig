@@ -1,5 +1,23 @@
 /* Workspace composition. Controls and dialog frames live in components/ui. */
 .resource-popover .ui-popover-body { overflow: hidden; padding: var(--popover-gutter); }
+@media (min-width:961px) {
+  .workspace:not(.right-hidden):has(> .resource-popover:popover-open) > .property-panel { visibility:hidden; }
+  .workspace:not(.right-hidden) > .resource-popover {
+    inset: var(--navigation-height) 0 0 auto !important;
+    width: var(--ui-panel-width);
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0;
+    box-shadow: none;
+    border-width: 0 0 0 1px;
+    background: var(--surface-chrome);
+  }
+  .workspace:not(.right-hidden) > .resource-popover .resource-library.compact .resource-grid:not(.icon-grid) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+.resource-popover .resource-library.compact .resource-workspace { flex:1; }
+.resource-popover .resource-library.compact .resource-preview-button strong { white-space:normal; overflow-wrap:anywhere; }
+
 @media (max-width: 760px) {
   .resource-library.compact .resource-grid.icon-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .resource-library.compact .resource-tile-actions button { min-height: 40px; }

@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { ArrowUpRight, BookOpen, LayoutTemplate, Plus, Upload, Sparkles } from '@lucide/svelte';
   import { Button } from './ui';
   import type { Deck } from '../core/model';
@@ -19,6 +20,15 @@
     onai: () => void;
     aiReady?: boolean;
   } = $props();
+
+  onMount(() => {
+    const url = new URL(location.href);
+    const template = url.searchParams.get('template') as CollectionId | null;
+    if (!template || url.searchParams.has('document')) return;
+    url.searchParams.delete('template');
+    history.replaceState(null, '', url);
+    ontemplates(template);
+  });
 
   const starters = [
     { id: 'portfolio', name: 'Editorial', category: 'Portfolio', cover: editorialCover },
