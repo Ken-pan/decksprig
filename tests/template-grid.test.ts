@@ -37,6 +37,23 @@ test('long cover artwork clears the persistent review and pitch footer rules',()
  for(const collection of ['review','pitch']){const s=createLayout('cover',1,collection),d=resolveDeckTextSizing(newDeck('Cover',[s]),measure),title=s.elements.find(e=>e.type==='text'&&e.fontSize>=56&&e.y>110&&e.y<340)!,text='A coordinated release, grounded in evidence and an explicit next decision.';
   const changed=applyOperations(d,[{op:'update_element',slideId:s.id,elementId:title.id,patch:{text}}],d.revision,'manual',measure).slides[0],art=changed.elements.find(e=>e.type==='image')!,rule=changed.elements.find(e=>e.type==='line'&&e.y>600&&e.w>1000)!;assert.ok(art.y+art.h+24<=rule.y);}
 });
+test('a long CJK cover heading uses the full grid in both template creation and direct editing',()=>{
+ const heading='为跨团队协作建立统一的交付节奏并通过真实用户反馈持续验证关键决策与项目成果的长期';
+ for(const collection of COLLECTIONS){
+  const initial=createLayout('cover',1,collection.id),d=newDeck('Cover',[initial]);
+  const original=initial.elements.find(e=>e.design?.text==='title')!;
+  const edited=applyOperations(d,[{op:'update_element',slideId:initial.id,elementId:original.id,patch:{text:heading}}],d.revision,'manual',measure).slides[0];
+  const customized=createLayout('cover',1,collection.id,{heading});
+  for(const slide of [edited,customized]){
+   assert.equal(slide.template?.variant,'long-title',collection.id);
+   const title=slide.elements.find(e=>e.text===heading)!;
+   const art=slide.elements.find(e=>e.type==='image')!;
+   near(title.w,templatePageGrid(collection.id,'cover').full.w);
+   assert.ok(title.y+title.h<art.y,collection.id+' title clears artwork');
+  }
+  assert.equal(edited.elements.find(e=>e.type==='image')!.src,initial.elements.find(e=>e.type==='image')!.src);
+ }
+});
 test('generic layout proposals use the saved content area instead of a separate percentage margin',()=>{
  const s=blankSlide();s.layout={margins:{left:160,right:120,top:150,bottom:100},columns:3,gutter:40};s.elements=[element('text',{text:'A clear point',x:10,y:20,w:450,h:90,fontSize:60}),element('text',{text:'Evidence for a coordinated decision',x:10,y:180,w:420,h:120,fontSize:30}),element('text',{text:'An explicit next action',x:10,y:380,w:420,h:120,fontSize:30})];const d=newDeck('Layout',[s]),a=createLayoutCandidate(d,s.id,'grid'),changed={...d,slides:[{...s,layout:{...s.layout,margins:{...s.layout.margins,left:240}}}]},b=createLayoutCandidate(changed,s.id,'grid');assert.ok(a.operations.length);assert.notDeepEqual(a.operations,b.operations);for(const e of b.slide.elements){assert.ok(e.x>=240-.01);assert.ok(e.x+e.w<=1320+.01);}
 });

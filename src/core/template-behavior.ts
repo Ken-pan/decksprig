@@ -1,6 +1,7 @@
 import {uid,type Slide,type SlideElement,type GroupLayout,type SlideTransition} from './model';
 import type {CollectionId,LayoutId} from './template-collections';
 import {resolveGroupLayouts} from './object-layout';
+import {templatePageGrid} from './template-grid-metrics';
 
 type Frame={x:number;y:number;w:number;h:number};
 type StackOptions=Partial<Frame>&{gap?:number;parent?:string;distributed?:boolean};
@@ -59,9 +60,16 @@ export function configureTemplateBehavior(s:Slide,collection:CollectionId,page:L
     if(page==='cover')textStack('Cover introduction',76,200,660,470,126);
     else if(page==='facts'){textStack('Project introduction',80,150,750,480,64);fieldColumn('Project facts',858,190,502,462,[190,354,518],140,22);}
     else if(page==='statement')textStack('Design challenge',76,170,1284,564,32,true);
-    else if(page==='split')fieldColumn('Finding and response',84,320,470,356,[320,510],154,20);
+    else if(page==='split'){
+      textStack('Research introduction',80,146,480,316,36);
+      textStack('Research method',84,520,470,174,14);
+      for(let i=0;i<3;i++)textStack(`Research observation ${i+1}`,752,188+i*158,608,124,10);
+    }
     else if(page==='process')for(const g of [...groups].filter(g=>g.id.startsWith('decision-'))){const es=s.elements.filter(e=>e.group===g.id&&e.type==='text'&&e.fontSize<50);stack(`${g.name} explanation`,es,{gap:18,parent:g.id,h:726-es[0].y});}
-    else if(page==='evidence')textStack('Project showcase introduction',80,180,420,440,112);
+    else if(page==='evidence'){
+      textStack('Project showcase introduction',80,180,420,440,112);
+      textStack('Project showcase detail',500,522,940,178,14);
+    }
     else if(page==='close'){textStack('Reflection',76,190,770,520,90);textStack('Contact details',904,180,456,360,40);}
   }else if(collection==='review'){
     if(page==='cover')textStack('Review introduction',76,180,650,440,46);
@@ -88,7 +96,13 @@ export function configureTemplateBehavior(s:Slide,collection:CollectionId,page:L
     else if(page==='before-after')textStack('Product distinction',1110,370,220,286,42);
     else if(page==='process')for(const [i,[x,y]] of [[84,334],[772,334],[428,548]].entries())textStack(`Business stage ${i+1}`,x,y,478,164,20);
     else if(page==='roadmap')for(let i=0;i<3;i++)textRow(`Market stage ${i+1}`,108+i*82,335+i*122,1188-i*164,82);
-    else if(page==='facts')for(let i=0;i<3;i++)textStack(`Capability ${i+1}`,84+i*432,560,392,160,22);
+    else if(page==='facts'){
+      const grid=templatePageGrid('pitch','facts');
+      for(let i=0;i<3;i++){
+        const column=grid.span(i*4,4);
+        textStack(`Capability ${i+1}`,column.x,378,column.w,324,18);
+      }
+    }
     else if(page==='close'){textStack('The ask',76,170,920,322,42);for(let i=0;i<3;i++)textStack(`Ask detail ${i+1}`,302,523+i*72,644,50,0);}
   }else if(collection==='report'){
     if(page==='cover')textStack('Report introduction',84,170,614,494,56,true);
@@ -112,7 +126,7 @@ export function configureTemplateBehavior(s:Slide,collection:CollectionId,page:L
     e.textSizing='auto-height';stack('Heading frame',[e],{w:e.w,h:Math.max(60,(next?.y??736)-e.y-16),gap:0});
   }
   const effects:Partial<Record<CollectionId,Partial<Record<LayoutId,SlideTransition['effect']>>>>={
-    portfolio:{'before-after':'smart'},
+    portfolio:{},
     review:{},
     // The principle changes from a light cover to an ink field. A dissolve
     // keeps that tonal handoff legible while the material photograph changes crop.

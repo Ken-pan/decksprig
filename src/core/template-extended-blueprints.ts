@@ -86,6 +86,9 @@ export function extendedBlueprints(id:CollectionId):Record<string,TemplatePage>{
   const t=topics[id],fields=[t.agenda,t.agenda,[['Friction','Describe the current difficulty'],['Consequence','Explain its practical cost'],['Opportunity','Name the change worth making']] as Pair[],t.audience,t.insights,t.solution,t.solution,t.milestones,t.team,t.risks,t.takeaways,t.questions];
   const out:Record<string,TemplatePage>={};
   ids.forEach((key,i)=>{out[key]={name:names[i],section:names[i],heading:t.titles[i],body:i===1?'Add a short introduction to this chapter.':i===2?'Describe the situation in one clear sentence.':'',purpose:purposes[i],fields:fields[i],columns:fields[i]};});
+  if(id==='minimal'){
+    out.gallery={...out.gallery,heading:'Three ways to shape a plane.',fields:[['Fold','One continuous edge'],['Balance','A deliberate shift in weight'],['Void','An opening shapes the whole']]};
+  }
   if(id==='report')out.gallery={...out.gallery,name:'Supporting charts',fields:[['Completion','42% → 68% over the period'],['Active use','55% → 62% for the same population'],['Trend','29% → 68% across four quarters']],purpose:'Compare supporting metrics with editable example data'};
   if(id==='pitch')out.gallery={...out.gallery,name:'Product states',fields:[['Starting point','Show how the customer begins'],['Core task','Demonstrate the critical action'],['Outcome','Make the delivered value visible']],purpose:'Explain three product states with editable interface examples'};
   // Original patterns not present in the shorter collections now have native,

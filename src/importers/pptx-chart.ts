@@ -96,7 +96,11 @@ export function importPptxChart(raw:string,frame:Partial<SlideElement>,context:C
     const fallback=(i:number)=>color({schemeClr:{val:`accent${i%6+1}`}},palette[i%6]);
     const fill=(props:any)=>props&&(props.solidFill!==undefined||props.noFill!==undefined)?props:undefined;
     const seriesColor=(s:any,i:number)=>color((type==='line'||type==='area')?fill(s.spPr?.ln)??fill(s.spPr):fill(s.spPr),fallback(i));
-    const colors=round?labels.map((_,i)=>{const point=arr(seriesNodes[0].dPt).find(p=>Number(p.idx?.val)===i);return color(fill(point?.spPr),yes(body.varyColors?.val,true)?fallback(i):seriesColor(seriesNodes[0],0));}):seriesNodes.map(seriesColor);
+    const categoryPaint=seriesNodes.length===1&&(type==='bar'||type==='column')&&arr(seriesNodes[0].dPt).some(point=>fill(point.spPr));
+    const colors=round||categoryPaint?labels.map((_,i)=>{
+      const point=arr(seriesNodes[0].dPt).find(p=>Number(p.idx?.val)===i);
+      return color(fill(point?.spPr),yes(body.varyColors?.val,round)?fallback(i):seriesColor(seriesNodes[0],0));
+    }):seriesNodes.map(seriesColor);
     const alpha=(value:string)=>value==='transparent'?0:value.length===9?parseInt(value.slice(7),16)/255:1;
     let areaOpacity=1;
     if(type==='area'){
@@ -105,7 +109,7 @@ export function importPptxChart(raw:string,frame:Partial<SlideElement>,context:C
       if(fills.some((value,i)=>value.toLowerCase().slice(0,7)!==colors[i].toLowerCase().slice(0,7)&&alpha(value)>0)||ratios.some(ratio=>ratio>1||!Number.isFinite(ratio))||ratios.some(ratio=>Math.abs(ratio-ratios[0])>1/255))warn('Review distinct area fill and line paints against the source reference.');
       areaOpacity=Math.max(0,Math.min(1,ratios[0]));
     }
-    if(!round&&seriesNodes.some((series,i)=>arr(series.dPt).some(point=>fill(point.spPr)&&color(fill(point.spPr),colors[i]).toLowerCase()!==colors[i].toLowerCase())))warn('Review custom point paints against the source reference.');
+    if(!round&&!categoryPaint&&seriesNodes.some((series,i)=>arr(series.dPt).some(point=>fill(point.spPr)&&color(fill(point.spPr),colors[i]).toLowerCase()!==colors[i].toLowerCase())))warn('Review custom point paints against the source reference.');
     const cat=arr(plot.catAx)[0],val=arr(plot.valAx)[0],labelsNode=dataLabels(body,seriesNodes,labels.length,round),globalStyle=rPr(space.txPr),axisStyle=rPr(cat?.txPr??val?.txPr),labelStyle=rPr(labelsNode?.txPr);
     const chartTitle=title(source.title),categoryTitle=title(cat?.title),valueTitle=title(val?.title);
     if(chartTitle.length>200||categoryTitle.length>80||valueTitle.length>80)unsupported('Chart titles exceed the editable text limits.');
@@ -113,7 +117,7 @@ export function importPptxChart(raw:string,frame:Partial<SlideElement>,context:C
     const valueMode=round?(yes(labelsNode?.showVal?.val)?yes(labelsNode?.showPercent?.val)?'both':'value':'percent'):undefined;
     const formatCode=round&&valueMode==='percent'?valueCaches[0]?.format:val?.numFmt?.formatCode??labelsNode?.numFmt?.formatCode??valueCaches[0]?.format;
     const percentFormat=round&&valueMode!=='value'?format(labelsNode?.numFmt?.formatCode,warn).numberFormat:undefined;
-    const c:Chart={type,labels,series,colors,textColor:color(globalStyle,'#26362c'),title:chartTitle,subtitle:'',source:'',legend:Boolean(source.legend)&&!yes(source.legend?.delete?.val),legendPosition:({t:'top',b:'bottom',l:'left',r:'right'} as const)[source.legend?.legendPos?.val as 't']??'auto',grid:!round&&arr(plot.valAx).some(a=>a.majorGridlines!==undefined),showValues:!yes(labelsNode?.delete?.val)&&(yes(labelsNode?.showVal?.val)||round&&yes(labelsNode?.showPercent?.val)),stacked:body.grouping?.val==='stacked',categoryTitle,valueTitle,...format(formatCode,warn),adaptive:false,
+    const c:Chart={type,labels,series,colors,textColor:color(globalStyle,'#26362c'),title:chartTitle,subtitle:'',source:'',legend:Boolean(source.legend)&&!yes(source.legend?.delete?.val),legendPosition:({t:'top',b:'bottom',l:'left',r:'right'} as const)[source.legend?.legendPos?.val as 't']??'auto',grid:!round&&arr(plot.valAx).some(a=>a.majorGridlines!==undefined),showValues:!yes(labelsNode?.delete?.val)&&(yes(labelsNode?.showVal?.val)||round&&yes(labelsNode?.showPercent?.val)),stacked:body.grouping?.val==='stacked',categoryTitle,valueTitle,...format(formatCode,warn),adaptive:false,...(categoryPaint?{colorCategories:labels}:{}),
       ...(!round?{categoryReverse:type==='bar'?cat?.scaling?.orientation?.val!=='maxMin':cat?.scaling?.orientation?.val==='maxMin',valueReverse:val?.scaling?.orientation?.val==='maxMin'}:{}),
       axisStyle:!round?{fontSize:clamped(points(Number(axisStyle.sz??globalStyle.sz??1200)/100),12,40),rotation:clamped(Number(cat?.txPr?.bodyPr?.rot??0)/60000,-90,90),showLabels:cat?.tickLblPos?.val!=='none'&&val?.tickLblPos?.val!=='none'}:undefined,
       visual:{cornerRadius:0,...(round?{donutHole:clamped(Number(body.holeSize?.val??60),10,90),pieRotation:Number(body.firstSliceAng?.val??0)}:{lineWidth:clamped(Number(seriesNodes[0].spPr?.ln?.w??25400)/12700*points(1),1,8),pointSize:seriesNodes[0].marker?.symbol?.val==='none'?0:clamped(points(Number(seriesNodes[0].marker?.size?.val??5)),0,16),smooth:yes(seriesNodes[0].smooth?.val??body.smooth?.val),areaOpacity})},

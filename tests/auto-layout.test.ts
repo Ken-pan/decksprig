@@ -132,7 +132,7 @@ test('comparison, staggered process and editorial evidence preserve their conten
   assert.equal(evidence.elements.filter(e=>e.name==='Updated sample interface').length,1,'The full native sample interface remains one grouped evidence object.');
   const c = createLayoutCandidate(deck, evidence.id, analysis.recommended);
   assert.equal(c.issues.length, 0);
-  const source = evidence.elements.find(e => e.text === 'Source and context')!;
+  const source = evidence.elements.find(e => e.text.startsWith('Illustrative product state'))!;
   assert.deepEqual(c.slide.elements.find(e => e.id === source.id), source);
   assert.deepEqual(c.slide.autoLayouts,evidence.autoLayouts);
   assert.ok(!c.operations.some(op=>op.op==='update_element'&&flow.order.includes(op.elementId)));

@@ -85,20 +85,45 @@ export function adaptTemplateText(slide:Slide,changed:Set<string>,deletedImage:b
   const detailed=adaptNativeDetails(slide,changed);if(detailed!==slide)return detailed;
   if(!slide.template||slide.source||!['cover','split'].includes(slide.template.prototype))return slide;
   const title=slide.elements.find(e=>e.type==='text'&&e.fontSize>=56&&e.y>110&&e.y<340&&!/^\d+$/.test(e.text));
-  const missing=deletedImage&&!slide.elements.some(e=>e.type==='image'),long=slide.template.prototype==='cover'&&title&&changed.has(title.id)&&title.text.length>52&&slide.template.variant==='standard';
+  const missing=deletedImage&&!slide.elements.some(e=>e.type==='image'),long=slide.template.prototype==='cover'&&title&&changed.has(title.id)&&(title.text.length>52||title.text.split('\n').some(line=>inlineTextWidth(line,title.layoutItem?.basisFontSize??title.fontSize,title.fontFamily)>title.w*2.5))&&slide.template.variant==='standard';
   if(!missing&&!long||slide.elements.some(e=>e.locked))return slide;
   const next={...slide,elements:slide.elements.map(e=>({...e,layoutItem:e.layoutItem?{...e.layoutItem}:undefined})),groups:slide.groups?.map(g=>({...g})),autoLayouts:slide.autoLayouts?.map(l=>({...l,padding:{...l.padding},order:[...l.order]})),template:{...slide.template,variant:missing?'no-image':'long-title'},layout:templatePageGrid(slide.template.collection??'portfolio',slide.template.prototype as LayoutId).layout};
   const removeGroups=new Set(next.autoLayouts?.filter(l=>missing&&l.name==='Visual source').map(l=>l.id));
   if(missing)next.elements=next.elements.filter(e=>!removeGroups.has(e.group??'')&&!['Artwork mount','Illustration mount'].includes(e.name));
   const introGroups=new Set(next.autoLayouts?.filter(l=>/introduction|author|promise|Heading frame/.test(l.name)).map(l=>l.id));
   const texts=next.elements.filter(e=>e.type==='text'&&!e.pageElement&&e.y>110&&e.y<736&&e.fontSize>=24&&e.x<950&&!/^0[123] \/ /.test(e.text)&&(slide.template!.prototype!=='cover'||!e.group||introGroups.has(e.group)));
-  const grid=templatePageGrid(slide.template.collection??'portfolio',slide.template.prototype as LayoutId),area=grid.span(0,missing?12:8),group=uid('flow'),x=area.x,y=176,w=area.w,h=slide.template.collection==='review'?472:504;
+  const grid=templatePageGrid(slide.template.collection??'portfolio',slide.template.prototype as LayoutId);
   const oldGroups=new Set(texts.flatMap(e=>e.group?[e.group]:[]));
   for(const id of oldGroups)if(!next.elements.some(e=>e.group===id&&!texts.includes(e)))removeGroups.add(id);
-  for(const e of texts){e.group=group;e.x=x;e.w=w;e.textSizing='auto-height';if(e.fontSize>=56){e.fontSize=76;if(e.design)e.design={...e.design,textScale:76/104};}e.layoutItem={widthMode:'fill',heightMode:'fixed',maxWidth:e.w,basisFontSize:e.fontSize};}
-  next.groups=[...(next.groups??[]).filter(g=>!removeGroups.has(g.id)),{id:group,name:'Adaptive introduction'}];
-  next.autoLayouts=[...(next.autoLayouts??[]).filter(l=>!removeGroups.has(l.id)),{id:group,name:'Adaptive introduction',direction:'vertical',gap:32,padding:{top:0,right:0,bottom:0,left:0},align:'start',justify:'start',columns:1,x,y,w,h,textFitHeight:h,widthMode:'fixed',heightMode:'hug',order:texts.map(e=>e.id)}];
-  if(long){const art=grid.span(9,3),artY=['review','pitch'].includes(slide.template.collection??'')?400:506,mount=next.elements.find(e=>e.name==='Artwork mount');for(const e of next.elements)if(e.type==='image'||e.name==='Artwork mount'||e.name==='Illustration mount'){const inset=e.type==='image'&&mount?12:0;e.x=art.x+inset;e.y=artY+inset;e.w=art.w-inset*2;e.h=180-inset*2;}}
+  next.groups=(next.groups??[]).filter(g=>!removeGroups.has(g.id));
+  next.autoLayouts=(next.autoLayouts??[]).filter(l=>!removeGroups.has(l.id));
+  const reflow=(name:string,members:typeof texts,area:{x:number;w:number},y:number,h:number,gap:number)=>{
+    if(!members.length)return;
+    const group=uid('flow'),{x,w}=area;
+    for(const e of members){
+      e.group=group;e.x=x;e.y=y;e.w=w;e.textSizing='auto-height';
+      if(e.id===title?.id&&e.fontSize>76){
+        if(e.design?.textScale)e.design={...e.design,textScale:e.design.textScale*76/e.fontSize};
+        e.fontSize=76;
+      }
+      e.layoutItem={widthMode:'fill',heightMode:'fixed',maxWidth:w,basisFontSize:e.fontSize};
+    }
+    next.groups!.push({id:group,name});
+    next.autoLayouts!.push({id:group,name,direction:'vertical',gap,padding:{top:0,right:0,bottom:0,left:0},align:'start',justify:'start',columns:1,x,y,w,h,textFitHeight:h,widthMode:'fixed',heightMode:'hug',order:members.map(e=>e.id)});
+  };
+  if(long){
+    reflow('Adaptive title',texts.filter(e=>e.id===title.id),grid.full,132,322,0);
+    reflow('Adaptive context',texts.filter(e=>e.id!==title.id),grid.span(0,8),502,174,10);
+    for(const e of next.elements){
+      if(e.type==='line'&&e.y>600&&e.w>1000)e.y=710;
+      if(e.type==='text'&&/^0[123] \/ /.test(e.text))e.y=728;
+    }
+    const art=grid.span(9,3),mount=next.elements.find(e=>e.name==='Artwork mount');
+    for(const e of next.elements)if(e.type==='image'||e.name==='Artwork mount'||e.name==='Illustration mount'){
+      const inset=e.type==='image'&&mount?12:0;
+      Object.assign(e,{x:art.x+inset,y:490+inset,w:art.w-inset*2,h:186-inset*2});
+    }
+  }else reflow('Adaptive introduction',texts,grid.full,176,slide.template.collection==='review'?472:504,32);
   return next;
 }
 
@@ -108,7 +133,7 @@ export function adaptTemplateTable(slide:Slide,changed:Set<string>,pageSize={wid
  if(slide.source||slide.template?.prototype!=='table'||slide.elements.some(e=>e.locked))return slide;
  const table=slide.elements.find(e=>e.type==='table'&&e.tableFit&&changed.has(e.id));if(!table||Math.max(...(table.cells??[]).map(r=>r.length))<5)return slide;
  const elements=slide.elements.map(e=>({...e,layoutItem:e.layoutItem?{...e.layoutItem}:undefined,design:e.design?{...e.design}:undefined}));
- const removed=new Set(elements.filter(e=>e.x<328&&e.type==='text'&&!e.runs&&!e.paragraphs&&(e.name==='Current result'&&e.text==='68%'||e.text==='CURRENT RESULT\nExample completion.')).map(e=>e.id));
+ const removed=new Set(elements.filter(e=>e.x<328&&e.type==='text'&&!e.runs&&!e.paragraphs&&(e.name==='Current result'&&e.text==='68%'||(e.name==='Report result context'||e.text==='CURRENT RESULT\nExample completion.'))).map(e=>e.id));
  const nextElements=elements.filter(e=>!removed.has(e.id)),metric=nextElements.find(e=>e.name==='Current result');
  const title=nextElements.find(e=>e.type==='text'&&e.fontSize>=56&&e.y>110&&e.y<280&&e!==metric);
  const layouts=slide.autoLayouts?.map(l=>({...l,padding:{...l.padding},order:l.order.filter(id=>!removed.has(id))})).filter(l=>l.order.length);

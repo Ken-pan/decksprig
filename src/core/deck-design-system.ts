@@ -69,8 +69,10 @@ export function styledElement(e:SlideElement,system:DesignSystem,deck:Pick<Deck,
   if(b.fill){result.fill=system.colors[b.fill];for(const run of runs)if(run.color?.toLowerCase()===e.fill.toLowerCase())run.color=result.fill;}
   if(b.stroke)result.stroke=system.colors[b.stroke];
   if(result.chart){
-    if(result.chart.colorRoles)result.chart.colors=result.chart.colorRoles.map(role=>system.colors[role]);
-    if(b.fill)result.chart.colors=result.chart.colors.map(color=>color.toLowerCase()===e.fill.toLowerCase()?result.fill:color);
+    const {colorRoles}=result.chart;
+    result.chart.colors=result.chart.colors.map((color,i)=>colorRoles?.[i]
+      ?system.colors[colorRoles[i]]
+      :b.fill&&color.toLowerCase()===e.fill.toLowerCase()?result.fill:color);
     if(b.stroke&&result.chart.textColor.toLowerCase()===e.stroke.toLowerCase())result.chart.textColor=result.stroke;
   }
   return result;
