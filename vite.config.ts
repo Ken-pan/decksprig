@@ -9,7 +9,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 // These leaf modules already belong to the initial graph in both editions.
 // Merge their small chunks without pulling optional dependencies into startup.
 const corePrimitives = /\/src\/core\/(?:text-editing\.ts|table-rich-text\.ts|text-sizing\.ts|design-system-schema\.ts|chart-schema\.ts|interactions\.ts|table-schema\.ts|document-data\.ts|document-media-transport\.ts|template-scaling\.ts|shapes\.ts|slide-visibility\.ts|shape-schema\.ts|draft-store\.ts|drawing-identity\.ts|resource-purpose\.ts|font-fallbacks\.json|font-stack\.ts|json-request\.ts|chart-caption\.ts|chart-format\.ts|runtime\.ts|container-tree\.ts|inline-text-width\.ts|ui-copy\.ts)$/;
-const startupUI = /\/src\/(?:core\/(?:slide-label|shape-label-color|page-layout-geometry|color-contrast)|clipboard-context|pointer-cursor|ui-viewport)\.ts$/;
+const startupUI = /\/src\/(?:core\/(?:slide-label|shape-label-color|page-layout-geometry|color-contrast)|pointer-cursor|ui-viewport)\.ts$/;
 const startupIcons = /\/node_modules\/@lucide\/svelte\/dist\/icons\/(?:arrow-left|arrow-right|book-open|check|chevron-down|copy|eye-off|plus)\.svelte$/;
 
 const localPreload=browserPreload();
