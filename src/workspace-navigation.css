@@ -17,7 +17,7 @@
    its accessible name and tooltip in the compact icon treatment. */
 @media(min-width:761px) {
  .workspace:not(.right-hidden)>.workspace-tools { container:workspace-actions / inline-size; }
- @container workspace-actions (max-width:15.5rem) {
+ @container workspace-actions (max-width:19rem) {
   .workspace-tools .present-entry > span { display:none; }
   .workspace-tools .present-entry { min-width:36px; padding-inline:8px; }
  }
@@ -25,7 +25,7 @@
 /* Touch targets retain 44px without pushing the panel picker over its edge. */
 @media(min-width:761px) and (any-pointer:coarse) {
  .workspace-tools { padding-inline:4px; gap:0; }
- @container workspace-actions (max-width:16.5rem) {
+ @container workspace-actions (max-width:20rem) {
   .workspace-tools .present-entry > span { display:none; }
   .workspace-tools .present-entry { min-width:44px; padding-inline:8px; }
  }
