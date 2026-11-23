@@ -330,11 +330,10 @@
     } catch (e:any) { return {opened:false,error:`Saved in the document library. ${e.message}`}; }
     finally { request.activating = false; }
   }
-  type SourceAttachmentRequest = {id:number;documentId:string;revision:number;navigation:number};
+  type SourceAttachmentRequest = {modal: Modal; documentId: string; revision: number; navigation: number};
   let sourceAttachment = $state.raw<SourceAttachmentRequest>();
-  let sourceAttachmentSequence = 0;
   function sourceAttachmentCurrent(request:SourceAttachmentRequest) {
-    return sourceAttachment === request && editor.deck?.id === request.documentId
+    return sourceAttachment === request && modal === request.modal && editor.deck?.id === request.documentId
       && editor.deck.revision === request.revision && editor.navigationVersion === request.navigation;
   }
   function cancelSourceAttachment() {
@@ -343,8 +342,8 @@
   }
   $effect(() => {
     const request = sourceAttachment;
-    if (request && (modal !== 'fidelity' || !sourceAttachmentCurrent(request))) {
-      const edited = modal === 'fidelity' && editor.deck?.id === request.documentId && editor.deck.revision !== request.revision;
+    if (request && !sourceAttachmentCurrent(request)) {
+      const edited = modal === request.modal && editor.deck?.id === request.documentId && editor.deck.revision !== request.revision;
       cancelSourceAttachment();
       if (edited) editor.notify('The document changed. Attach the source PDF again.', 'warning');
     }
@@ -730,7 +729,7 @@
   async function attachSource(file: File) {
     if (!editor.deck || busy && !sourceAttachment) return;
     cancelSourceAttachment();
-    const request:SourceAttachmentRequest = {id:++sourceAttachmentSequence,documentId:editor.deck.id,revision:editor.deck.revision,navigation:editor.navigationVersion};
+    const request:SourceAttachmentRequest = {modal,documentId:editor.deck.id,revision:editor.deck.revision,navigation:editor.navigationVersion};
     sourceAttachment = request; busy = 'Attaching source reference…'; error = '';
     try {
       const bytes = await file.arrayBuffer();
@@ -1091,7 +1090,7 @@
     <span id="slide-rail-help" hidden>Arrows/Home/End navigate slides. Shift extends selection; Command or Control click toggles slides; Space toggles the focused slide; Command or Control A selects all. Command or Control D duplicates; Delete removes selected slides. Alt and arrows move the selection; Alt Home or End moves it to either end. On touch, use Slide actions or drag the selection grip. Hidden slides stay editable and are skipped in presentation.</span>
     <span id="editor-toolbar-help" hidden>Tab enters/leaves; arrows navigate buttons; Home/End jump to ends.</span>
     {#snippet editingPanelPicker()}<ActionMenu class="editing-panel-picker" label={`Editing panel · ${panelOptions.find(option=>option.id===panel)?.label}`} items={panelOptions.map(option=>({label:option.label,checked:panel===option.id,onselect:()=>choosePanel(option.id)}))}><span>{panelOptions.find(option=>option.id===panel)?.label}</span></ActionMenu>{/snippet}
-    <div class="workspace" class:selecting-slides={slideSelecting} class:left-hidden={!editor.deck || slidesHidden || canvasFocus} class:right-hidden={!editor.deck || !rightOpen && (!resourceOpen || viewportWidth <= 960) || canvasFocus} class:is-resizing={resizing} class:inspector-expanded={compactPanelOpen&&phoneInspectorExpanded} style:--ui-rail-width={`${leftWidth}px`} style:--ui-panel-width={`${displayedRightWidth()}px`}>
+    <div class="workspace" class:selecting-slides={slideSelecting} class:left-hidden={!editor.deck || slidesHidden || canvasFocus} class:right-hidden={!editor.deck || !rightOpen && (!resourceOpen || viewportWidth <= 760) || canvasFocus} class:is-resizing={resizing} class:inspector-expanded={compactPanelOpen&&phoneInspectorExpanded} style:--ui-rail-width={`${leftWidth}px`} style:--ui-panel-width={`${displayedRightWidth()}px`}>
     <div class="document-navigation" inert={canvasFocus} role="group" aria-label="Document navigation"><button class="icon-btn brand-button" onclick={openLibrary} aria-label={`${BRAND.name} · Open document library`} data-tooltip="Open library"><BrandLockup /></button>{#if editor.deck}<div class="document-controls"><div class="document-title-field"><span class="document-title-size" aria-hidden="true">{documentTitleDraft || 'Document title'}</span><input class="document-name" aria-label="Document title" title={editor.deck?.title} bind:value={documentTitleDraft} placeholder="Document title" maxlength="300" disabled={!editor.deck||Boolean(proposalDeck)} onfocus={event=>event.currentTarget.select()} onchange={event=>{renameCurrent(event.currentTarget);documentTitleDraft=event.currentTarget.value;}} onkeydown={event=>{if(event.isComposing||event.keyCode===229)return;if(event.key==='Enter'||event.key==='Escape'){event.preventDefault();event.stopPropagation();if(event.key==='Escape'){documentTitleDraft=editor.deck?.title||'';event.currentTarget.value=documentTitleDraft;}event.currentTarget.blur();void focusCanvasSelection();}}}/></div><ActionMenu label="Document menu" disabled={!editor.deck||Boolean(proposalDeck)} items={[{label:'Open document library',icon:BookOpen,onselect:openLibrary},{label:'New document from template',icon:LayoutTemplate,onselect:()=>modal='templates'},{label:'Rename document',onselect:()=>document.querySelector<HTMLInputElement>('.document-name')?.focus()},{label:'Duplicate document',icon:Copy,onselect:()=>void duplicateDocument()},{label:'Import document',icon:Upload,divider:true,onselect:()=>modal='import'},{label:'Export document',icon:Download,onselect:openExport},{label:'Figma Slides sync',icon:ExternalLink,onselect:openFigmaSync},{label:'Publish presentation website',icon:ExternalLink,onselect:()=>{hostingConnectOnly=false;publishIncludeNotes=false;modal='publish';}},...(hasImportReport?[{label:'Import report',icon:Info,onselect:()=>modal='fidelity'}]:[]),{label:'Undo',shortcut:'⌘Z',disabled:!editor.past.length,onselect:event=>historyAction('undo',event)},{label:'Redo',shortcut:'⇧⌘Z',disabled:!editor.future.length,onselect:event=>historyAction('redo',event)},{label:'Slide details',icon:FileText,divider:true,onselect:openPageElements},{label:'Document styles',icon:DocumentStylesIcon,onselect:()=>openDocumentStyles()},...(editor.deck?.slides.some(s=>s.elements.some(e=>isThemedIllustration(e.resource)))?[{label:'Illustration colors',onselect:()=>modal='illustration-colors'}]:[]),{label:'Document fonts',icon:Type,onselect:()=>{fontLibraryTab='document';modal='fonts';}},{label:'Version history',icon:History,onselect:()=>void openHistory()},{label:'Recent notifications',icon:History,onselect:()=>modal='notifications'},...(slidesHidden?[{label:'Open slides panel',icon:Layers,divider:true,onselect:()=>void openSlidesPanel()}]:[]),...(!rightOpen?[{label:'Open editing panel',icon:PanelRight,divider:!slidesHidden,onselect:()=>void openEditingPanel()}]:[]),{label:'Search and commands',icon:Search,divider:true,onselect:()=>expandSearch('')},{label:'Open AI editor',icon:Sparkles,divider:true,onselect:()=>showPanel('ai')}]} /></div>{/if}</div>
       <div class="workspace-tools" inert={canvasFocus} role="group" aria-label="Workspace actions">{#if editor.deck&&viewportWidth>760}{@render editingPanelPicker()}{/if}
 

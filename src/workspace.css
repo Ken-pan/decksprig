@@ -1,6 +1,6 @@
 /* Workspace composition. Controls and dialog frames live in components/ui. */
 .resource-popover .ui-popover-body { overflow: hidden; padding: var(--popover-gutter); }
-@media (min-width:961px) {
+@media (min-width:761px) {
   .workspace:not(.right-hidden):has(> .resource-popover:popover-open) > .property-panel { visibility:hidden; }
   .workspace:not(.right-hidden) > .resource-popover {
     inset: var(--navigation-height) 0 0 auto !important;
