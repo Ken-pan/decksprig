@@ -24,7 +24,7 @@ export const ChartSchema = z.strictObject({
   dataLabels:z.optional(z.strictObject({position:z.optional(z.enum(['auto','inside','outside'])),fontSize:number(10,48),color:z.optional(color),bold:optionalFlag,percentDecimals:z.optional(z.number().check(z.int(),z.minimum(0),z.maximum(4))),valueMode:z.optional(z.enum(['value','percent','both']))})),
   pieSeries: z.optional(z.number().check(z.int(),z.minimum(0),z.maximum(7))),
   forecastFrom: z.optional(z.number().check(z.int(),z.minimum(1),z.maximum(99))),
-  adaptive: optionalFlag,
+  adaptive: optionalFlag, colorCategories:z.optional(z.array(label).check(z.maxLength(100))),
   sourceDisplay:z.optional(z.enum(['chart','caption'])),
   colorRoles:z.optional(z.array(z.enum(COLOR_ROLES)).check(z.minLength(1),z.maxLength(8))),
   axisRange:z.optional(z.strictObject({min:z.optional(z.number()),max:z.optional(z.number())}).check(z.refine(v=>v.min!==undefined||v.max!==undefined,'Set at least one axis bound.')).check(z.refine(v=>v.min===undefined||v.max===undefined||v.max>v.min, 'Max must exceed min.'))),

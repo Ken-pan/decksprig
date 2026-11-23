@@ -64,7 +64,7 @@ export function composeExpanded(c:TemplateCollection,p:TemplatePage,id:LayoutId,
       else if(report)image(keys[i],x,y,392,248,'contain');
       else if(minimal)image(keys[i],x,y,392,248,'cover');
       else image(keys[i],x,y,392,248,review?'contain':'cover');
-      flow(`Study caption ${i+1}`,[label(`0${i+1} / ${(pitch?a:report?['Open folio','Binding detail','Closed edition'][i]:review?['Context','Discussion','Iteration'][i]:['Light and color','Form and balance','Space and rhythm'][i]).toUpperCase()}`,x,y+270,392,'accent'),t(pitch?b:report?'AI print and material concept · Decorative study':review?['Illustrative scene for the working context.','Illustrative scene for a team review.','Illustrative concept for iteration.'][i]:['Study lighting, texture and the color relationship.','Compare proportions and visual weight.','Inspect rhythm, contrast and negative space.'][i],x,y+317,392,27,'muted')],x,y+270,392,132,16);
+      flow(`Study caption ${i+1}`,[label(`0${i+1} / ${(pitch?a:report?['Open folio','Binding detail','Closed edition'][i]:review?['Context','Discussion','Iteration'][i]:minimal?a:['Light and color','Form and balance','Space and rhythm'][i]).toUpperCase()}`,x,y+270,392,'accent'),t(pitch?b:report?'AI print and material concept · Decorative study':review?['Illustrative scene for the working context.','Illustrative scene for a team review.','Illustrative concept for iteration.'][i]:minimal?b:['Study lighting, texture and the color relationship.','Compare proportions and visual weight.','Inspect rhythm, contrast and negative space.'][i],x,y+317,392,27,'muted')],x,y+270,392,132,16);
     });
   }else if(id==='timeline'){
     title();rule(84,446,1276);
@@ -91,8 +91,8 @@ export function composeExpanded(c:TemplateCollection,p:TemplatePage,id:LayoutId,
     fields.forEach(([a,b],i)=>{const y=164+i*176;rule(744,y,616);flow(`Context ${i+1}`,[label(a.toUpperCase(),744,y+22,616,'accent'),t(b,744,y+70,616,38)],744,y+22,616,146,22);});
   }else if(id==='split'){
     title(84,162,478,230,p.heading,68);flow('Evidence explanation',[t(p.body,84,446,478,32,'muted')],84,446,478,250,0);
-    if(minimal)photo(688,162,672,468,'minimal-balance');else if(report)chart(['Previous','Current'],[42,68],'bar',{x:688,y:162,w:672,h:468});else mockup(688,162,672,468);
-    note(minimal?'AI concept study · Balance, space and form':'Synthetic example · Replace with your own source',688,674,672);
+    if(minimal)photo(688,162,672,468,'minimal-fold');else if(report)chart(['Previous','Current'],[42,68],'bar',{x:688,y:162,w:672,h:468});else mockup(688,162,672,468);
+    note(minimal?'Form study · Fold':'Synthetic example · Replace with your own source',688,674,672);
   }else if(id==='before-after'){
     title();
     [84,744].forEach((x,i)=>{label(i?'PROPOSED':'CURRENT',x,318,616,'accent');if(proposal)photo(x,368,616,264,i?'material':'paper');else if(minimal){const group=uid('comparison');(s.groups??=[]).push({id:group,name:i?'Proposed comparison panel':'Current comparison panel'});shape(x,368,616,264,i?'ink':'surface',{group,name:i?'Proposed comparison panel':'Current comparison panel'});text(i?'A clearer outcome.':'The current situation.',x+32,414,552,150,'heading',48,i?'background':'ink',{group});}else mockup(x,368,616,264,i?'after':'before');flow(`Comparison explanation ${i+1}`,[t(i?'Explain the improvement and its evidence.':'Describe the baseline and its context.',x,670,616,27,'muted')],x,670,616,58,0);});
@@ -107,8 +107,8 @@ export function composeExpanded(c:TemplateCollection,p:TemplatePage,id:LayoutId,
     note(pitch?'Sample interface · Replace with your product evidence':report?'Synthetic data · Replace with verified values and source':review?'Synthetic observation record · Replace with verified research':'AI study · Replace with your evidence and source',548,704,812);
   }else if(id==='metrics'){
     title(84,162,464,200,p.heading,66);
-    flow('Metric context',[text('68%',84,392,464,146,'title',116,'accent'),t(proposal?'Example success target':'Example completion rate',84,562,464,30),t(p.body,84,624,464,25,'muted')],84,392,464,328,20);
-    chart(['Baseline','Current','Target'],[42,68,80],review?'bar':'column',{x:668,y:168,w:692,h:484});note('Example data · Replace before presenting',668,698,692);
+    flow('Metric context',[text('68%',84,392,464,146,'title',116,'accent'),t(proposal?'Current completion rate':'Example completion rate',84,562,464,30),t(proposal?'80% target · 12 points to close':p.body,84,624,464,25,'muted')],84,392,464,328,20);
+    chart(['Baseline','Current','Target'],[42,68,80],review?'bar':'column',{x:668,y:168,w:692,h:484},proposal);note('Example data · Replace before presenting',668,698,692);
   }else if(id==='table'){
     title();const cells=pitch?[['Measure','Now','Next','Context'],['Revenue','Add value','Add target','Per period'],['Cost','Add value','Add target','Per customer'],['Margin','Add value','Add target','Definition']]:proposal?[['Deliverable','Scope','Effort','Approval'],['Foundation','Type and color','Add estimate','Client'],['Applications','Key touchpoints','Add estimate','Client'],['Handoff','System and files','Add estimate','Lead']]:[['Criterion','Option A','Option B','Decision'],['Audience fit','Add evidence','Add evidence','Add rationale'],['Feasibility','Add evidence','Add evidence','Add rationale'],['Value','Add evidence','Add evidence','Add rationale']];
     table(cells,84,330,1276,328);note(pitch?'Illustrative structure · Add actual financial assumptions':'Add sources, definitions, or notes for this comparison');

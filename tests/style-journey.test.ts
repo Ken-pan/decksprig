@@ -39,7 +39,7 @@ test('contextual text-style reset keeps each object role and scale, while custom
 });
 test('linked chart colors follow the document while custom series colors and values stay intact',()=>{
  const d=templateDeck('review'),chart=d.slides.flatMap(s=>s.elements).find(e=>e.type==='chart')!;chart.chart!.colors.push('#ff0088');const data=structuredClone(chart.chart!.series),system=structuredClone(d.designSystem!);system.colors.accent='#ab572b';system.colors.ink='#20354b';const next=applyDeckDesignSystem(d,system),updated=next.slides.flatMap(s=>s.elements).find(e=>e.id===chart.id)!;
- assert.deepEqual(updated.chart!.colors,['#ab572b','#ff0088']);assert.equal(updated.chart!.textColor,'#20354b');assert.deepEqual(updated.chart!.series,data);
+ assert.deepEqual(updated.chart!.colors,[system.colors.line,'#ab572b',system.colors.background,'#ff0088']);assert.equal(updated.chart!.textColor,'#20354b');assert.deepEqual(updated.chart!.series,data);
 });
 
 

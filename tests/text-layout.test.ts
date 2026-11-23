@@ -47,9 +47,11 @@ test('invalid measurement and stale/locked AI changes roll back atomically', () 
   e.locked=true; assert.throws(()=>applyOperations(d,ops,0,'ai',measure));
 });
 test('content-and-evidence templates wrap headings and body in persistent responsive frames', () => {
-  const s=createLayout('split'), title=s.elements.find(e=>e.text==='The evidence')!,body=s.elements.find(e=>e.text.startsWith('Describe what you observed.'))!;
-  assert.equal(title.textSizing,'auto-height');assert.equal(title.layoutItem?.widthMode,'fill');assert.equal(title.layoutItem?.maxWidth,516);
-  assert.equal(body.textSizing,'auto-height');assert.equal(body.layoutItem?.widthMode,'fill');assert.equal(body.w,516);
+  const s=createLayout('split'),frame=s.autoLayouts!.find(layout=>layout.name==='Research introduction')!;
+  const [title,body]=frame.order.map(id=>s.elements.find(element=>element.id===id)!);
+  assert.ok(title.text.includes('broke down'));
+  assert.equal(title.textSizing,'auto-height');assert.equal(title.layoutItem?.widthMode,'fill');assert.equal(title.layoutItem?.maxWidth,frame.w);
+  assert.equal(body.textSizing,'auto-height');assert.equal(body.layoutItem?.widthMode,'fill');assert.ok(body.w<=frame.w);
 });
 test('automatic layout retains authored text sizing modes while repositioning text', () => {
   const d=fixture('auto-height'), s=d.slides[0];

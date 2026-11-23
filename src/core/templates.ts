@@ -2,6 +2,7 @@ import { element,uid, blankSlide, newDeck, type Deck, type Slide, type SlideElem
 import { type ColorRole, type TextRole } from './design-system-schema';
 import {TEMPLATE_MEDIA} from './template-media';
 import {TEMPLATE_PAGES} from './template-blueprints';
+import {LEDGER_METRIC_CELLS,LEDGER_METRIC_SOURCE} from './template-story-samples';
 import {composeInterior} from './template-compositions';
 import {composeExpanded} from './template-expanded-compositions';
 import {composeProfessional} from './template-professional-compositions';
@@ -68,8 +69,16 @@ export function createLayout(id: LayoutId, index = 1, collectionId: string = 'po
     }
     return box;
   };
-  const table=(cells:string[][],x=84,y=320,w=1276,h=336)=>{if(id==='table'&&c.id!=='report'){y=286;h=412;}return s.elements.push(element('table',{name:'Editable comparison table',x,y,w,h,fontFamily:system.typography.body.fontFamily,fontSize:28,fill:system.colors.ink,stroke:system.colors.line,strokeWidth:1,cells,tableFit:{minimumFontSize:24,padding:8},lineHeight:1.2,design:{text:'body',textScale:28/30,fill:'ink',stroke:'line',overrides:['lineHeight']}}));};
-  const chart=(labels:string[],values:number[],type:'column'|'bar'|'line'|'area'='column',box={x:524,y:292,w:836,h:424})=>s.elements.push(element('chart',{name:'Example results · editable data',...box,fontFamily:system.typography.body.fontFamily,fontSize:24,fill:system.colors.accent,stroke:system.colors.ink,design:{text:'body',textScale:24/30,fill:'accent',stroke:'ink'},chart:{type,adaptive:true,labels,series:[{name:'Completion',values}],title:'',subtitle:'',source:'',colors:[system.colors.accent],textColor:system.colors.ink,legend:false,grid:false,showValues:type==='column'||type==='bar',stacked:false,categoryTitle:'',valueTitle:'',prefix:'',suffix:'%'}}));
+  const table=(cells:string[][],x=84,y=320,w=1276,h=336)=>{if(id==='table'&&c.id!=='report'){y=286;h=412;}const table=element('table',{name:'Editable comparison table',x,y,w,h,fontFamily:system.typography.body.fontFamily,fontSize:28,fill:system.colors.ink,stroke:system.colors.line,strokeWidth:1,cells,tableFit:{minimumFontSize:24,padding:8},lineHeight:1.2,design:{text:'body',textScale:28/30,fill:'ink',stroke:'line',overrides:['lineHeight']}});s.elements.push(table);return table;};
+  const chart=(labels:string[],values:number[],type:'column'|'bar'|'line'|'area'='column',box={x:524,y:292,w:836,h:424},compare=false)=>{
+    const roles:ColorRole[]=compare?['line','accent','background']:['accent'];
+    const fill=roles[0];
+    s.elements.push(element('chart',{name:'Example results · editable data',...box,fontFamily:system.typography.body.fontFamily,fontSize:24,
+      fill:system.colors[fill],stroke:system.colors.ink,design:{text:'body',textScale:24/30,fill,stroke:'ink'},
+      chart:{type,adaptive:true,labels,series:[{name:'Completion',values}],title:'',subtitle:'',source:'',colors:roles.map(role=>system.colors[role]),
+        ...(compare?{colorCategories:labels,colorRoles:roles}:{}),textColor:system.colors.ink,legend:false,grid:false,
+        showValues:type==='column'||type==='bar',stacked:false,categoryTitle:'',valueTitle:'',prefix:'',suffix:'%'}}));
+  };
   const columns=(items:[string,string][],roadmap=false)=>items.forEach(([title,body],i)=>{
     const x=84+i*432;rule(x,310,392);
     text(`0${i+1}`,x,344,260,108,'heading',72,'accent');
@@ -265,7 +274,12 @@ export function deckTemplateCollection(deck:Pick<Deck,'slides'|'designSystem'|'t
 }
 export function templateDeck(collectionId: string,options:Record<string,TemplateOptions>={},library=false,story?:readonly LayoutId[]) {
   const c=COLLECTIONS.find(c=>c.id===collectionId)??COLLECTIONS[0];
-  const deck=newDeck(c.title,(library?c.layouts:story??c.story??c.layouts).flatMap((id,i)=>createTemplatePages(id,i+1,c.id,options[id])));
+  const slides=(library?c.layouts:story??c.story??c.layouts).flatMap((id,i)=>{
+    const option=options[id];
+    const metricTable=!library&&c.id==='report'&&id==='table'&&!option?.cells&&!option?.count;
+    return createTemplatePages(id,i+1,c.id,metricTable?{...option,cells:LEDGER_METRIC_CELLS,source:option?.source??LEDGER_METRIC_SOURCE}:option);
+  });
+  const deck=newDeck(c.title,slides);
   // Curated stories and the full task catalog can order pages differently from
   // the authored sequence. Only shared objects justify a smart handoff.
   for(let i=0;i<deck.slides.length;i++)if(deck.slides[i].transition?.effect==='smart'){

@@ -2,23 +2,37 @@ import {element,uid,type SlideElement,type GroupLayout} from './model';
 import type {TemplatePainter} from './template-compositions';
 import type {TemplatePage} from './template-blueprints';
 import type {TemplateCollection,LayoutId} from './template-collections';
+import type {ColorRole} from './design-system-schema';
 import {templateContract,defaultTemplateCount,DEFAULT_DASHBOARD_ITEMS,type TemplateOptions} from './template-contracts';
 import {sampleChart} from './charts';
-import {inlineTextWidth} from './inline-text-width';
+import {inlineTextLines,inlineTextWidth} from './inline-text-width';
 import {templateChartCaption} from './chart-caption';
 import {formatChartValue} from './chart-style';
 import {resolveGroupLayouts} from './object-layout';
 import {templatePageGrid} from './template-page-grid';
+import {LEDGER_METRIC_CELLS,LEDGER_METRIC_STYLE,TEMPLATE_STORY_SAMPLES} from './template-story-samples';
 
 const supported=new Set(['cover','summary','evidence','content','annotation','dashboard','category-chart','trend','composition','comparison','workstreams','matrix','hierarchy','case-study','decision','action-plan','appendix','freeform','agenda','insights','team','process','solution','timeline','gallery','table','quote','split','close','before-after','roadmap','metrics','risks']);
 export function composeProfessional(c:TemplateCollection,p:TemplatePage,id:LayoutId,d:TemplatePainter,o:TemplateOptions={}):boolean{
   if(!supported.has(id))return false;
-  if(id==='cover'&&!o.noImage&&!o.coverVisual&&o.density!=='reading'){const width={portfolio:650,review:724,proposal:760,pitch:790,report:574,minimal:650}[c.id];if(inlineTextWidth(o.heading??p.heading,c.system.typography.title.fontSize,c.display)<=width*2)return false;}
+  const coverWidths={portfolio:650,review:724,proposal:760,pitch:790,report:574,minimal:650};
+  const coverHeading=o.heading??p.heading;
+  const wideCover=id==='cover'&&(o.coverVisual==='illustration'
+    ? inlineTextLines(coverHeading,64,c.display,724)>3
+    : inlineTextWidth(coverHeading,c.system.typography.title.fontSize,c.display)>coverWidths[c.id]*2);
+  if(id==='cover'&&!wideCover&&!o.noImage&&!o.coverVisual&&o.density!=='reading')return false;
   const {s,text,shape,rule,label,image,photo,mockup}=d,reading=o.density==='reading';
+  const materialDecision=c.id==='proposal'&&id==='decision'&&!o.heading&&!o.body&&!o.items;
+  if(materialDecision){
+    s.background=c.system.colors.dark;s.backgroundStyle='dark';
+    for(const e of s.elements.filter(e=>e.pageElement)){e.fill=c.system.colors.onDark;if(e.design)e.design.fill='onDark';}
+  }
+
   if(id==='quote'){s.background=c.system.colors.background;s.backgroundStyle='background';for(const e of s.elements.filter(e=>e.pageElement?.kind==='page-number')){e.fill=c.system.colors.muted;if(e.design)e.design.fill='muted';}}
   const contract=templateContract(id),n=o.items?.length??o.count??defaultTemplateCount(id);
   if(contract.counts.length&&n>Math.max(...contract.counts)&&!['table','comparison','trend'].includes(id))throw new Error('Use a continuation for this amount of content.');
-  const heading=o.heading??p.heading,body=o.body??p.body;
+  const sample=TEMPLATE_STORY_SAMPLES[c.id];
+  const heading=o.heading??(id==='decision'?sample.decision.title:p.heading),body=o.body??p.body;
   const fields=o.items??p.fields??p.columns??[];
   const items=Array.from({length:n},(_,i)=>fields[i]??[`Checkpoint ${i+1}`,'Confirm the outcome and record the next decision.'] as [string,string]);
   s.template={prototype:id,variant:o.noImage?'no-image':o.mirror?'image-left':String(n),density:reading?'reading':'presentation'};
@@ -30,10 +44,10 @@ export function composeProfessional(c:TemplateCollection,p:TemplatePage,id:Layou
     for(const e of es){e.group=group;e.textSizing='auto-height';e.layoutItem={widthMode:'fill',heightMode:'fixed',basisFontSize:e.fontSize};}
     layouts.push({id:group,name,direction:'vertical',gap,padding:{top:0,right:0,bottom:0,left:0},align:'start',justify:'start',columns:1,x,y,w,h,textFitHeight:h,widthMode:'fixed',heightMode:'hug',order:es.map(e=>e.id)});return group;
   };
-  const t=(v:string,x:number,y:number,w:number,size=28,color:'ink'|'muted'|'accent'='ink')=>text(v,x,y,w,Math.ceil(size*1.4),'body',size,color,{lineHeight:1.3});
+  const t=(v:string,x:number,y:number,w:number,size=28,color:ColorRole='ink')=>text(v,x,y,w,Math.ceil(size*1.4),'body',size,color,{lineHeight:1.3});
   const title=(value=heading,x=84,y=138,w=1276,h=134,size=c.id==='proposal'?68:60)=>{
     if(o.body&&id==='summary'){flow('Summary context',[t(o.body,84,454,506,26,'muted')],84,454,506,232,0);}
-    else if(id==='decision')return flow('Page title',[text(value,x,y,w,h,'heading',size,'ink')],x,y,w,h,0);
+    else if(id==='decision')return flow('Page title',[text(value,x,y,w,h,materialDecision?'body':'heading',materialDecision?34:size,materialDecision?'onDark':'ink')],x,y,w,h,0);
     else if(o.body&&!['cover','split','quote','freeform'].includes(id)){flow('Page title',[text(value,84,138,800,134,'heading',52,'ink')],84,138,800,134,0);flow('Page introduction',[t(o.body,924,138,436,24,'muted')],924,138,436,134,0);return;}
     return flow('Page title',[text(value,x,y,w,h,'heading',size,'ink')],x,y,w,h,0);
   };
@@ -59,12 +73,12 @@ export function composeProfessional(c:TemplateCollection,p:TemplatePage,id:Layou
     const e=element('table',{name:'Editable detail table',...box,y,h,fontFamily:c.body,fontSize:reading?26:28,lineHeight:1.2,fill:c.system.colors.ink,stroke:c.system.colors.line,cells,tableFit:{minimumFontSize:24,padding:8},tableStyle:{preset:'editorial',headerRow:true,borders:'rows',padding:8,verticalAlign:'middle',numericAlign:true},design:{text:'body',textScale:(reading?26:28)/30,fill:'ink',stroke:'line',overrides:['lineHeight']}});s.elements.push(e);return e;
   };
   const fullChart=(type:'bar'|'line'|'donut',labels:string[],values:number[],suffix='')=>{
-    const chart:NonNullable<SlideElement['chart']>=o.chart?{...o.chart,adaptive:true}:{...sampleChart(),type,adaptive:true,colorRoles:['accent','ink','muted','line','surface'],labels,series:[{name:type==='line'?'Actual':'Atlas example',values}],legend:type==='donut',showValues:type!=='line',grid:type==='line',suffix,colors:[c.system.colors.accent,c.system.colors.ink,c.system.colors.muted,c.system.colors.line,c.system.colors.surface],textColor:c.system.colors.ink,source:type==='line'?'Illustrative Atlas data · May–Oct 2026':'Illustrative Atlas data · Q3 2026',forecastFrom:type==='line'?3:undefined};
+    const chart:NonNullable<SlideElement['chart']>=o.chart?{...o.chart,adaptive:true}:{...sampleChart(),type,adaptive:true,colorRoles:['accent','ink','muted','line','surface'],labels,series:[{name:type==='line'?'Actual':'Example',values}],legend:type==='donut',showValues:type!=='line',grid:type==='line',suffix,colors:[c.system.colors.accent,c.system.colors.ink,c.system.colors.muted,c.system.colors.line,c.system.colors.surface],textColor:c.system.colors.ink,source:'Illustrative values · Replace with your own data and source'};
     if(o.chart&&o.chartTheme!=='local'){chart.textColor=c.system.colors.ink;chart.colorRoles=['accent','ink','muted','line','surface'];chart.colors=chart.colorRoles.map(role=>c.system.colors[role]);}
     if(['trend','composition','category-chart'].includes(id))chart.sourceDisplay='caption';
     const e=element('chart',{name:p.name,x:84,y:284,w:1276,h:404,fontFamily:c.body,fontSize:26,fill:o.chartTheme==='local'?chart.colors[0]:c.system.colors.accent,stroke:o.chartTheme==='local'?chart.textColor:c.system.colors.ink,chart,design:{text:'body',textScale:26/30,...(o.chartTheme==='local'?{}:{fill:'accent',stroke:'ink'})}});s.elements.push(e);return e;
   };
-  if(id==='cover'&&o.coverVisual==='illustration'&&!o.noImage){
+  if(id==='cover'&&o.coverVisual==='illustration'&&!o.noImage&&!wideCover){
     s.template.variant='illustrated';
     flow('Cover introduction',[text(heading,84,220,724,280,'title',64),t(body,84,520,724,30,'muted')],84,220,724,440,30);
     image('work-03-usability-test',880,230,480,360,'contain');rule(84,710,1276);
@@ -72,11 +86,23 @@ export function composeProfessional(c:TemplateCollection,p:TemplatePage,id:Layou
     s.background=c.system.colors.dark;s.backgroundStyle='dark';
     flow('Closing takeaway',[text(heading,84,210,1150,244,'title',84,'onDark'),...(o.body?[text(o.body,84,490,1150,150,'body',32,'onDark')]:[])],84,210,1150,460,44);
     for(const e of s.elements.filter(e=>e.pageElement)){e.fill=c.system.colors.onDark;if(e.design)e.design.fill='onDark';}
+  }else if(id==='cover'&&!wideCover&&!o.noImage){
+    flow('Cover introduction',[text(heading,84,176,1040,306,'title',76)],84,176,1040,306,0);
+    flow('Cover context',[t(body,84,526,870,32,'muted')],84,526,870,166,0);
+    photo(1050,506,310,180,c.id==='minimal'?'minimal-orbit':c.id==='proposal'?'material':c.id==='pitch'?'glass':c.id==='report'?'ledger-folio':'paper');
+    rule(84,710,1276);label('Author / team · Date',84,728,1000);
   }else if(id==='cover'){
-    flow('Cover introduction',[text(heading,84,176,o.noImage?1276:1040,306,'title',76)],84,176,o.noImage?1276:1040,306,0);
-    flow('Cover context',[t(body,84,526,o.noImage?1276:870,32,'muted')],84,526,o.noImage?1276:870,166,0);
-    if(!o.noImage)photo(1050,506,310,180,c.id==='minimal'?'minimal-orbit':c.id==='proposal'?'material':c.id==='pitch'?'glass':c.id==='report'?'ledger-folio':'paper');
-    rule(84,710,1276);label('AUTHOR / TEAM · DATE',84,714,1000);
+    s.template.variant=o.noImage?'no-image':'long-title';
+    const titleBox=pageGrid.full,contextBox=o.noImage?titleBox:pageGrid.span(0,8),art=pageGrid.span(9,3);
+    flow('Cover introduction',[text(heading,titleBox.x,132,titleBox.w,322,'title',76)],titleBox.x,132,titleBox.w,322,0);
+    if(body)flow('Cover context',[t(body,contextBox.x,502,contextBox.w,32,'muted')],contextBox.x,502,contextBox.w,174,0);
+    if(!o.noImage){
+      const artwork={portfolio:'paper',review:'work-05-review',proposal:'material',pitch:'glass',report:'ledger-folio',minimal:'minimal-orbit'};
+      const key=o.coverVisual==='illustration'?'work-03-usability-test':artwork[c.id];
+      image(key,art.x,490,art.w,186,key.startsWith('work-')?'contain':'cover');
+    }
+    rule(titleBox.x,710,titleBox.w);
+    label('Author / team · Date',titleBox.x,728,titleBox.w);
   }else if(id==='summary'){
     title(heading,84,164,506,248,72);
     items.forEach(([a,b],i)=>{const y=164+i*(504/n);rule(684,y,676);flow(`Takeaway ${i+1}`,[label(a,684,y+18,676,'accent'),t(b,684,y+66,676,32)],684,y+18,676,504/n-32,18);});
@@ -96,34 +122,69 @@ export function composeProfessional(c:TemplateCollection,p:TemplatePage,id:Layou
     items.forEach(([a,b],i)=>{const y=290+i*h;rule(84,y,1276);flow(`Risk ${i+1}`,[t(a,84,y+18,302,32)],84,y+18,302,h-28,0);flow(`Risk response ${i+1}`,[t(b,460,y+18,900,28,'muted')],460,y+18,900,h-28,0);});
     note(o.source??'Confirm mitigation, ownership and review dates');
   }else if(id==='dashboard'){
-    const metrics=o.items??DEFAULT_DASHBOARD_ITEMS.slice(0,o.count??4);
-    title(o.heading??(metrics.length===4?'Four signals from the quarter':'Performance signals at a glance'));grid('Metric',metrics,'metrics');note(o.items?'Add the source, population and reporting period':'Atlas pilot · Q3 2026 · Targets and changes are illustrative');
+    const metrics=o.items??((o.count===undefined?sample.dashboard:undefined)??DEFAULT_DASHBOARD_ITEMS).slice(0,o.count??4);
+    title(o.heading??(metrics.length===4?'Four signals from the quarter':'Performance signals at a glance'));grid('Metric',metrics,'metrics');note(o.items?'Add the source, population and reporting period':'Illustrative values · Update the context and source');
   }else if(id==='content'||id==='appendix'||id==='case-study'||id==='decision'||id==='action-plan'){
     title();
     if(id==='action-plan')nativeTable(o.cells??[['Action','Owner','Due','Done when'],['Test dispatch flow','Research','Oct 20','All priority tasks completed'],['Verify handoff','Engineering','Oct 27','No blocking issues remain'],['Review pilot data','Product','Nov 03','Baseline and target compared'],...(o.count&&o.count>3?Array.from({length:o.count-3},(_,i)=>[`Follow-up ${i+1}`,'Product',`Nov ${10+i*7}`,'Decision recorded']):[])],284,412);
     else if(id==='decision'){
       const paragraph=Boolean(o.body&&o.body.length>100);
-      flow('Decision recommendation',[text(o.body??'Approve the focused pilot',84,310,502,180,paragraph?'body':'heading',paragraph?30:56),...(!o.body?[t('Decision owner: Product lead\nInvestment: 2 weeks\nRisk: limited pilot coverage',84,526,502,28,'muted')]:[])],84,310,502,370,30);
-      const reasons=o.items??[['Evidence','The revised task flow reduced avoidable handoffs.'],['Scope','A focused cohort keeps the first release measurable.'],['Cost','Two weeks of delivery fit the current team’s capacity.']],h=396/reasons.length;
-      reasons.forEach(([a,b],i)=>{const y=308+i*h;rule(686,y,674);flow(`Decision reason ${i+1}`,[t(a,686,y+18,674,32),t(b,686,y+67,674,28,'muted')],686,y+18,674,h-20,12);});
+      const color=materialDecision?'onDark':'ink',detailColor=materialDecision?'onDark':'muted';
+      const leadY=materialDecision?245:310,leadSize=materialDecision?76:paragraph?30:54;
+      flow('Decision recommendation',[text(o.body??sample.decision.lead,84,leadY,502,180,paragraph?'body':'heading',leadSize,color),
+        ...(!o.body?[t(sample.decision.context,84,526,502,27,detailColor)]:[])],84,leadY,502,690-leadY,30);
+      const reasons=o.items??sample.decision.points,h=396/reasons.length;
+      reasons.forEach(([a,b],i)=>{
+        const y=308+i*h;
+        rule(686,y,674,materialDecision?'muted':'line');
+        flow(`Decision reason ${i+1}`,[t(a,686,y+18,674,28,color),t(b,686,y+62,674,26,detailColor)],686,y+18,674,h-10,10);
+      });
     }else{
-      const values=o.items??(id==='case-study'?[['Challenge','Dispatchers needed to find the next urgent task across several lists.'],['Action','The team tested a single task view and a visible handoff state.'],['Result','Completion increased from 42% to 68% in the illustrative pilot.'],['Proof','Compare the same tasks and cohort before extending the release.']].slice(0,o.count??4) as [string,string][]:id==='appendix'?(o.items??[['Method','Compare the same tasks, cohort and time period. This example uses synthetic data.'],['Definition','Completion means a task reached the agreed final state within the pilot period.'],['References','Atlas sample research plan; pilot measurement sheet; release decision log.']]):items);
+      const values=o.items??(id==='case-study'?sample.caseStudy.slice(0,o.count??4):id==='appendix'?(o.items??[['Method','Compare the same tasks, cohort and time period. This example uses synthetic data.'],['Definition','Completion means a task reached the agreed final state within the pilot period.'],['References','Atlas sample research plan; pilot measurement sheet; release decision log.']]):items);
       const h=406/values.length;values.forEach(([a,b],i)=>stage(()=>{const y=288+i*h;rule(84,y,1276);label(String(i+1).padStart(2,'0'),84,y+18,90,'accent');flow(`Point label ${i+1}`,[t(a,220,y+16,280,30)],220,y+16,280,h-20,0);flow(`Point explanation ${i+1}`,[t(b,540,y+16,820,reading?26:28,'muted')],540,y+16,820,h-20,0);},i));
     }
-    note(o.source??(id==='appendix'?'Sources are example internal records, not external citations':'Illustrative Atlas example · Replace content and evidence'));
+    if(id!=='decision'||o.source)note(o.source??(id==='appendix'?'Sources are example internal records':'Illustrative example · Replace content and evidence'));
   }else if(id==='timeline'){
     title(o.heading??'From discovery to the pilot');
     if(n<=4){items.forEach(([a,b],i)=>stage(()=>{const w=(1276-40*(n-1))/n,x=84+i*(w+40);rule(x,388,w);flow(`Milestone ${i+1}`,[label(o.dates?.[i]??new Date(Date.UTC(2026,9,6+((o.itemOffset??0)+i)*14)).toLocaleDateString('en-US',{month:'short',day:'2-digit',timeZone:'UTC'}),x,318,w,'accent'),t(a,x,440,w,34),t(b,x,510,w,27,'muted')],x,318,w,370,42);},i));}
     else{items.forEach(([a,b],i)=>stage(()=>{const y=290+i*56;rule(84,y+48,1276);label(o.dates?.[i]??new Date(Date.UTC(2026,9,6+((o.itemOffset??0)+i)*14)).toLocaleDateString('en-US',{month:'short',day:'2-digit',timeZone:'UTC'}),84,y+8,170,'accent');flow(`Milestone ${i+1}`,[t(a,290,y,360,30)],290,y,360,48,0);flow(`Milestone output ${i+1}`,[t(b,700,y,660,26,'muted')],700,y,660,48,0);},i));}
     note('Dated milestones · Spacing shows sequence, not proportional time');
   }else if(id==='table'||id==='comparison'){
-    title();const cells=o.cells??(id==='comparison'?[['Criterion','Focused pilot','Broad release',...(o.count===3?['Wait']:[])],['Audience value','Task flow tested','Broader access',...(o.count===3?['Unchanged']:[])],['Effort','2 weeks','6 weeks',...(o.count===3?['No delivery']:[])],['Risk','Limited cohort','More dependencies',...(o.count===3?['Delayed learning']:[])],['Recommendation','Proceed','Revisit after pilot',...(o.count===3?['Not recommended']:[])]]:[['Workstream','Owner','Progress','Deadline','Decision'],...Array.from({length:o.count??4},(_,i)=>[['Dispatch flow','Handoff clarity','Pilot learning','Release readiness','Training','Reporting','Support','Follow-up'][i%8],['Design','Product','Research','Engineering'][i%4],i===2?'Needs review':'On track',`Oct ${10+i*2}`,'Review milestone'])]);
-    nativeTable(cells);note(o.source??(id==='comparison'?'Recommendation: focused pilot · Compare the same criteria':'Illustrative status report · Q3 2026 · Internal sample records'));
+    title();
+    const direction: string[][]=[
+      ['Criterion','Warm editorial','Neutral system'],
+      ['Material','Tactile paper and warm color','Smooth stock and gray'],
+      ['Typography','Serif headlines with quiet body text','One sans-serif family'],
+      ['Best use','Identity and editorial applications','Functional reference pages'],
+      ['Recommendation','Test on cover and detail page','Keep as a control'],
+    ];
+    const cells=o.cells??(id==='comparison'&&c.id==='proposal'&&o.count===undefined?direction:id==='comparison'?[['Criterion','Focused pilot','Broad release',...(o.count===3?['Wait']:[])],['Audience value','Task flow tested','Broader access',...(o.count===3?['Unchanged']:[])],['Effort','2 weeks','6 weeks',...(o.count===3?['No delivery']:[])],['Risk','Limited cohort','More dependencies',...(o.count===3?['Delayed learning']:[])],['Recommendation','Proceed','Revisit after pilot',...(o.count===3?['Not recommended']:[])]]:[['Workstream','Owner','Progress','Deadline','Decision'],...Array.from({length:o.count??4},(_,i)=>[['Dispatch flow','Handoff clarity','Pilot learning','Release readiness','Training','Reporting','Support','Follow-up'][i%8],['Design','Product','Research','Engineering'][i%4],i===2?'Needs review':'On track',`Oct ${10+i*2}`,'Review milestone'])]);
+    if(id==='table'&&c.id==='report'&&o.cells)s.template.variant='full-width-data';
+    const rendered=nativeTable(cells,286,412);
+    if(o.cells===LEDGER_METRIC_CELLS)rendered.tableStyle=LEDGER_METRIC_STYLE;
+    note(o.source??(id==='comparison'?(c.id==='proposal'&&o.count===undefined?'Example direction study · Compare both at the same size':'Recommendation: focused pilot · Compare the same criteria'):'Illustrative status report · Q3 2026 · Internal sample records'));
   }else if(id==='category-chart'){
-    title(o.heading??'Completion across eight pilot tasks');const e=fullChart('bar',['Decision review','Evidence intake','Cross-team handoff','Access validation','Release readiness','Reporting','Incident review','Partner onboarding'].slice(0,o.count??8),[42,53,68,61,74,82,79,91].slice(0,o.count??8),'%');note(templateChartCaption(e.chart!,id)).name='Chart context';
+    title(o.heading??'Completion across eight pilot tasks');
+    const e=fullChart('bar',['Decision review','Evidence intake','Cross-team handoff','Access validation','Release readiness','Reporting','Incident review','Partner onboarding'].slice(0,o.count??8),[42,53,68,61,74,82,79,91].slice(0,o.count??8),'%');
+    if(!o.body&&!o.heading)Object.assign(e,{y:238,h:450});
+    note(templateChartCaption(e.chart!,id)).name='Chart context';
   }else if(id==='trend'){
-    title(o.heading??'Completion improved through the pilot');const e=fullChart('line',['May','Jun','Jul','Aug','Sep','Oct'],[32,38,42,54,62,68],'%');
-    if(!o.chart){e.chart!.series=Array.from({length:o.count??1},(_,i)=>({name:['Completion','Active use','Quality'][i],values:[[32,38,42,54,62,68],[30,34,44,49,55,62],[74,78,81,84,90,94]][i]}));e.chart!.legend=(o.count??1)>1;}note(templateChartCaption(e.chart!,id)).name='Chart context';
+    const trend=sample.trend;
+    title(o.heading??trend.title);
+    const e=fullChart('line',trend.labels,trend.values,'%');
+    if(c.id==='pitch'&&!o.chart&&!o.heading&&!o.body){
+      Object.assign(e,{y:252,h:436});
+      e.chart!.showValues=true;
+      e.chart!.dataLabels={position:'outside',fontSize:24};
+    }
+    if(!o.chart){
+      e.chart!.series=[{name:trend.series,values:trend.values}];
+      e.chart!.forecastFrom=trend.forecastFrom;
+      if((o.count??1)>1)e.chart!.series.push({name:'Comparison group',values:trend.values.map(value=>Math.max(0,value-9))});
+      if(o.count===3)e.chart!.series.push({name:'Target',values:trend.values.map(()=>80)});
+      e.chart!.legend=e.chart!.series.length>1;
+    }
+    note(templateChartCaption(e.chart!,id)).name='Chart context';
   }else if(id==='composition'){
     title(o.heading??'How the pilot budget is allocated');const parts=o.count??4,values=parts===2?[35,65]:parts===3?[30,35,35]:parts===4?[20,30,35,15]:[20,30,35,10,5];const e=fullChart('donut',['Research','Design','Delivery','Support','Measurement'].slice(0,parts),values,'%');if(!o.chart)e.chart!.series[0].name='Pilot budget';note(templateChartCaption(e.chart!,id)).name='Chart context';
   }else if(id==='workstreams'){
@@ -151,8 +212,22 @@ export function composeProfessional(c:TemplateCollection,p:TemplatePage,id:Layou
     else mockup(84,286,896,400);
     if(c.id!=='report')note(o.source??'Illustrative editable evidence structure · Replace with verified observations');
   }else if(id==='annotation'){
-    title(o.heading??'Keep context, ownership and evidence together');
+    title(o.heading??(c.id==='minimal'?'Look closer at the fold':'Keep context, ownership and evidence together'));
     const left=pageGrid.span(0,5),right=pageGrid.span(6,6);
+    if(c.id==='minimal'&&!o.items&&!o.body){
+      const artwork=pageGrid.span(0,8), detail=pageGrid.span(8,4);
+      const study=image('minimal-fold',artwork.x,284,artwork.w,402,'cover');
+      Object.assign(study,{fit:'crop',imageSize:{w:1536,h:1024},imagePosition:{x:.49,y:.31},imageZoom:1.46});
+      const criteria=[['Contour','Follow the outer edge as the plane turns.'],['Shadow','The dark edge separates the two planes.'],['Space','The empty field makes the fold legible.']];
+      criteria.forEach(([name,meaning],i)=>{
+        const y=284+i*140;
+        rule(detail.x,y,detail.w);
+        flow(`Form detail ${i+1}`,[text(name,detail.x,y+18,detail.w,38,'body',32,'ink',{fontWeight:600,lineHeight:1.25}),
+          t(meaning,detail.x,y+62,detail.w,26,'muted')],detail.x,y+18,detail.w,100,10);
+      });
+      note('Detail study · Fold',710);
+      return true;
+    }
     const start=s.elements.length;mockup(left.x,286,left.w,318);
     const full=s.elements.slice(start),group=full[0].group;
     const owner=full.find(e=>e.text==='Review the design');if(owner){owner.text='Owner: Maya · Due: Oct 20';owner.name='Handoff owner and date';}

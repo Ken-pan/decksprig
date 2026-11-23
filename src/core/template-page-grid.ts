@@ -32,8 +32,8 @@ function region(name:string,page:LayoutId,collection:CollectionId,box:Horizontal
   if(name.startsWith('Decision reason '))return[6,6];
   if(['Chapter number'].includes(name))return[0,3];
   if(['Chapter introduction'].includes(name))return[4,8];
-  if(/^Risk \d+$/.test(name))return[0,2];
-  if(/^Response \d+$/.test(name))return[3,6];
+  if(/^Risk \d+$/.test(name))return[0,3];
+  if(/^Response \d+$/.test(name))return[4,5];
   if(/^Risk response \d+$/.test(name))return[3,9];
   if(/^Risk owner \d+$/.test(name))return[10,2];
   if(['Project introduction','Review problem','Executive finding','Context introduction'].includes(name))return[0,6];
@@ -43,6 +43,10 @@ function region(name:string,page:LayoutId,collection:CollectionId,box:Horizontal
   if(['Research rationale'].includes(name))return[4,8];
   if(['Direction rationale','Product introduction','Finding and response','Evidence explanation','Visual explanation','Text-only explanation'].includes(name))return[0,page==='split'?5:10];
   if(name==='Review decision')return[0,12];
+  if(['Research introduction','Research method'].includes(name))return[0,5];
+  if(name.startsWith('Research observation '))return[6,6,40];
+  if(page==='annotation'&&name.startsWith('Form detail '))return[8,4];
+  if(name==='Project showcase detail')return[4,8];
   if(name==='Evidence ladder')return[6,6];
   if(['Project showcase introduction','Evidence context','Metric context','Performance measure','Success measure','Traction measure','Primary result'].includes(name))return[0,4];
   if(['Type specimen'].includes(name))return[4,8];
@@ -103,6 +107,7 @@ export function placeTemplateOnGrid(slide:Slide,collection:CollectionId,page:Lay
   const wideTitle=s.template?.variant==='no-image'||s.template?.variant==='reading'||s.template?.variant==='long-title'||s.elements.some(e=>e.name==='Cover context');
   const rootLayouts=units.filter(u=>u.layouts.some(l=>l.id===u.id));
   for(const u of rootLayouts){
+    if(page==='cover'&&s.template?.variant==='no-image'&&u.name==='Cover context'){move(u,0,12);continue;}
     if(s.template?.variant==='reading-details'){if(u.name==='Audience focus'){move(u,0,12,collection==='minimal'?0:28);continue;}if(/^Audience detail \d+$/.test(u.name)){move(u,0,3);continue;}if(/^Audience context \d+$/.test(u.name)){move(u,3,9);continue;}if(u.name==='Discussion introduction'||/^Discussion question \d+$/.test(u.name)){move(u,0,12);continue;}}
     if(s.template?.variant==='full-width-data'){if(u.elements.some(e=>e.name==='Current result')){move(u,10,2);continue;}if(u.name==='Result context'){move(u,10,2);continue;}if(['Page title','Heading frame'].includes(u.name)){move(u,0,s.elements.some(e=>e.name==='Current result')?9:12);continue;}}
     if(u.name==='Adaptive introduction'){move(u,0,s.template?.variant==='no-image'?12:8);continue;}
@@ -125,7 +130,10 @@ export function placeTemplateOnGrid(slide:Slide,collection:CollectionId,page:Lay
   else if(page==='gallery')visualUnits.sort((a,b)=>a.box.x-b.box.x).forEach((u,i)=>move(u,i%3*4,4));
   else if(page==='facts'&&collection==='pitch')for(const [i,u] of visualUnits.sort((a,b)=>a.box.x-b.box.x).entries())move(u,i*4,4,0,'local',{x:grid.span(i*4,4).x,w:u.box.w});
   else if(page==='cover')for(const u of units.filter(u=>!mapped.has(u.id)&&u.elements.some(e=>e.type==='image'))){if(wideTitle){move(u,9,3);}else if(collection==='portfolio'){const x=grid.span(6,6).x;move(u,6,6,0,'bleed',{x,w:1440-x});}else move(u,collection==='pitch'?8:7,collection==='pitch'?4:5);}
-  else if(page==='split')for(const u of visualUnits)move(u,collection==='review'?0:6,collection==='review'?5:6);
+  else if(page==='split')for(const u of visualUnits){
+    if(collection==='minimal'||collection==='proposal')move(u,5,7);
+    else move(u,collection==='review'?0:6,collection==='review'?5:6);
+  }
   else if(page==='metrics')for(const u of visualUnits)move(u,4,8);
   else if(page==='table'&&collection==='report')for(const u of visualUnits)move(u,s.template?.variant==='full-width-data'?0:2,s.template?.variant==='full-width-data'?12:10);
   else if(page==='statement'&&collection==='proposal')for(const u of visualUnits){const x=grid.span(9,3).x;move(u,9,3,0,'bleed',{x,w:1440-x});}
@@ -145,6 +153,7 @@ export function placeTemplateOnGrid(slide:Slide,collection:CollectionId,page:Lay
     const e=u.elements.length===1?u.elements[0]:undefined;
     if(e?.pageElement)continue;
     if(e&&e.y<116){if(e.x<140)move(u,0,12);continue;}
+    if(page==='split'&&(collection==='minimal'||collection==='proposal')&&e?.type==='text'&&e.y>=670&&e.x>500){move(u,5,7);continue;}
     if(e?.type==='text'&&e.y>=700&&e.w>800){move(u,0,12);e.y=Math.min(e.y,grid.bottom-e.fontSize*e.lineHeight);continue;}
     if(['gallery','insights','q-and-a'].includes(page)&&e?.type==='line'&&e.w<700){move(u,Math.max(0,Math.min(2,Math.floor((u.box.x-84)/432)))*4,4);continue;}
     if(page==='gallery')continue;
@@ -164,7 +173,7 @@ export function placeTemplateOnGrid(slide:Slide,collection:CollectionId,page:Lay
       if(e?.type==='line')move(u,0,12);else if(e?.type==='text'&&/^\d{2}$/.test(e.text))move(u,0,1);
     }else if(page==='risks'){
       if(e?.type==='line')move(u,0,12);
-      else if(e?.text==='UNCERTAINTY'){move(u,0,2);e.y=284;}else if(e?.text==='RESPONSE'){move(u,3,6);e.y=284;}else if(e?.text==='OWNER / CHECK'){move(u,10,2);e.y=284;}
+      else if(e?.text==='UNCERTAINTY'){move(u,0,3);e.y=284;}else if(e?.text==='RESPONSE'){move(u,4,5);e.y=284;}else if(e?.text==='OWNER / CHECK'){move(u,10,2);e.y=284;}
     }else if(page==='decision'&&e?.type==='line')move(u,6,6);
     else if(page==='before-after'&&e){
       if(collection==='report'){if(e.type==='line')move(u,0,12);else if(e.type==='text')move(u,e.x>=1100?9:e.x>=700?6:e.x>=400?3:0,3);continue;}

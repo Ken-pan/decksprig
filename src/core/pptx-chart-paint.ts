@@ -45,16 +45,31 @@ export function preserveNativeChartPaint(source:string, chart:Chart, font?:{fami
     if(index>=0)space.splice(index,1,global);
     else {const before=space.findIndex(node=>['c:externalData','c:printSettings','c:userShapes','c:extLst'].some(key=>key in node));space.splice(before<0?space.length:before,0,global);}
   }
+  const categoryPaint=chart.colorCategories&&chart.series.length===1&&['bar','column'].includes(chart.type);
   for(const [index,series] of descendants(document,'c:ser').entries()) {
     const color=chart.colors[(index%chart.series.length)%chart.colors.length];
     shape(seriesProperties(series),color,chart.type!=='line',chart.type==='area'?(chart.visual?.areaOpacity??.2):1,chart.type==='area'?(chart.visual?.lineWidth??2.67):undefined);
     for(const marker of descendants(series,'c:marker')){
       const properties=child(marker,'c:spPr');if(properties)shape(properties,color);
     }
+    const colorAt=(point:number)=>categoryPaint?chart.colorCategories!.indexOf(chart.labels[point]):-1;
+    if(categoryPaint){
+      const before=series.findIndex(node=>['c:dLbls','c:trendline','c:errBars','c:cat','c:val'].some(key=>key in node));
+      const existing=new Set(descendants(series,'c:dPt').map(point=>Number(point.find(node=>'c:idx' in node)?.[':@']?.['@_val'])));
+      const paints=chart.labels.flatMap((_,point)=>existing.has(point)||colorAt(point)<0?[]:[{'c:dPt':[
+        {'c:idx':[],':@':{'@_val':point}}, {'c:spPr':[]},
+      ]}]);
+      series.splice(before<0?series.length:before,0,...paints);
+    }
     for(const point of descendants(series,'c:dPt')){
       const index=Number(point.find(node=>'c:idx' in node)?.[':@']?.['@_val']??0);
-      const paintColor=chart.type==='pie'||chart.type==='donut'?chart.colors[index%chart.colors.length]:color;
-      const properties=child(point,'c:spPr');if(properties)shape(properties,paintColor,true,chart.type==='area'?(chart.visual?.areaOpacity??.2):1);
+      const paletteIndex=chart.type==='pie'||chart.type==='donut'?index:colorAt(index);
+      const paintColor=paletteIndex>=0?chart.colors[paletteIndex%chart.colors.length]:color;
+      const properties=child(point,'c:spPr');
+      if(!properties)continue;
+      const outline=Boolean(categoryPaint&&paletteIndex>=0&&(chart.colorRoles?.[paletteIndex]==='background'||paintColor==='transparent'));
+      shape(properties,outline?'transparent':paintColor,true,chart.type==='area'?(chart.visual?.areaOpacity??.2):1);
+      if(outline)shape(properties,chart.textColor,false,1,2.5);
     }
   }
   function text(nodes:Node[], labels=false) {

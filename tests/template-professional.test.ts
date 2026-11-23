@@ -7,6 +7,7 @@ import {applyOperations} from '../src/core/operations';
 import {buildPptx} from '../src/core/pptx-export';
 import {CORE_PROTOTYPES} from '../src/core/template-contracts';
 import {sampleChart} from '../src/core/charts';
+import {renderChartSvg} from '../src/core/chart-render';
 import {fitTableElement} from '../src/core/table-fit';
 import {applyDeckDesignSystem} from '../src/core/deck-design-system';
 import {textBodyXml} from '../src/core/pptx-fidelity';
@@ -76,6 +77,8 @@ test('native template export is well-formed, reusable and preserves gaps, foreca
 test('five-column replacement removes the stock report result and preserves an explicitly edited result',()=>{
  const d=templateDeck('report',{},true),s=d.slides.find(s=>s.template?.prototype==='table')!,e=s.elements.find(e=>e.type==='table')!,metric=s.elements.find(e=>e.name==='Current result')!;
  const cells=[['Region','Baseline','Current','Period','Source'],...Array.from({length:8},(_,i)=>['Region '+i,'42%','53%','Q3','Matched cohort'])];
+ const authored=createTemplatePages('table',1,'report',{cells});
+ assert.ok(authored.every(page=>page.template?.variant==='full-width-data'&&page.elements.find(e=>e.type==='table')?.x===84));
  const next=applyOperations(d,[{op:'update_element',slideId:s.id,elementId:e.id,patch:{cells}}]);const first=next.slides.find(p=>p.id===s.id)!;const table=first.elements.find(t=>t.type==='table')!;assert.equal(table.x,84);assert.equal(table.w,1440-first.layout!.margins.left-first.layout!.margins.right);assert.ok(!first.elements.some(t=>t.id===metric.id));assert.equal(next.revision,d.revision+1);
  const custom=applyOperations(d,[{op:'update_element',slideId:s.id,elementId:metric.id,patch:{text:'72%'}}]);const after=applyOperations(custom,[{op:'update_element',slideId:s.id,elementId:e.id,patch:{cells}}]);assert.equal(after.slides.find(p=>p.id===s.id)!.elements.find(t=>t.id===metric.id)!.text,'72%');
 });
@@ -112,4 +115,14 @@ test('native click cues initialize hidden content and reveal a complete point wi
  const z=await JSZip.loadAsync(await buildPptx(d,false,async()=>({w:1440,h:810}))),xml=await z.file('ppt/slides/slide1.xml')!.async('string');
  assert.match(xml,/<p:strVal val="hidden"\/>/);assert.match(xml,/<p:strVal val="visible"\/>/);assert.match(xml,/presetClass="entr"/);
  const ids=[...xml.matchAll(/<p:cTn[^>]* id="(\d+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
+});
+
+test('default eight-row category charts label every bar',()=>{
+ for(const collection of ['minimal','report']){
+  const page=templateDeck(collection).slides.find(slide=>slide.template?.prototype==='category-chart')!;
+  const chart=page.elements.find(element=>element.chart)!;
+  assert.equal(chart.chart!.labels.length,8);
+  const svg=renderChartSvg(chart);
+  for(const label of chart.chart!.labels)assert.ok(svg.includes('>'+label+'</text>'),collection+' missing '+label);
+ }
 });

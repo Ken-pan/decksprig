@@ -16,6 +16,7 @@
   import {TEXT_ROLES} from '../core/design-system-schema';
   import {deckDesignSystem,styleSlide} from '../core/deck-design-system';
   import {countLabel} from '../core/ui-copy';
+  import {loadFeature} from '../features';
   import {loadLibraryTypography} from '../core/font-loading';
   import {Plus,ArrowLeft,ArrowRight,Check,Play,Square,ChevronDown} from '@lucide/svelte';
   import {uiDisclosure} from '../ui-motion';
@@ -44,6 +45,16 @@
   let previewHeading=$state<HTMLHeadingElement>();
   let galleryScroll=0;
   let active=$derived(previews.find(p=>p.collection.id===selected));
+  $effect(() => {
+    const slides = active?.deck.slides;
+    if (!slides) return;
+    if (slides.some(slide => slide.elements.some(element => element.type === 'chart'))) {
+      void import('../core/chart-render').catch(() => {});
+    }
+    if (slides.some(slide => slide.elements.some(element => element.type === 'table'))) {
+      void loadFeature('table-visual').catch(() => {});
+    }
+  });
   const prototype=$derived(active?.deck.slides[page]?.template?.prototype as LayoutId|undefined);
   const contract=$derived(prototype?templateContract(prototype):undefined);
   const variant=$derived(prototype?optionsByCollection[selected]?.[prototype]??{}:{});

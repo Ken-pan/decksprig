@@ -14,11 +14,11 @@ export const TEMPLATE_PAGES:Record<string,Record<string,TemplatePage>>={
     cover:page('Cover','Selected work','Selected\nwork.','Your name\nProduct designer','Introduce the work and its author'),
     facts:page('Project context','Context','The project at a glance','Describe the challenge, the audience, and what success looks like.','Set the role, timeline, and scope',{fields:[['My role','Your contribution'],['Timeline','Start → finish'],['Deliverables','What you shipped']]}),
     statement:page('Design challenge','The challenge','Make the next\nstep obvious.','Define who you designed for and the decision you helped them make.','Frame the central design challenge'),
-    split:page('Research finding','Evidence','The evidence','Describe what you observed.\n\nExplain how it shaped\nyour design decisions.','Connect one research finding to its evidence'),
+    split:page('Research finding','Evidence','Where the task\nbroke down.','Describe what you observed.\n\nExplain how it shaped\nyour design decisions.','Connect one research finding to its evidence'),
     'before-after':page('Before and after','Comparison','A clearer path forward.','Compare the original and updated experience at the same scale.','Show what changed for the audience'),
     process:page('Design decisions','Approach','From questions to decisions.','','Explain the reasoning, options, and validation',{columns:[['Define','Who needed help?\nWhich decision was hardest?'],['Explore','What did you compare?\nWhy choose this direction?'],['Validate','What changed in testing?\nWhat is still uncertain?']]}),
     evidence:page('Project showcase','The work','The work, in detail.','','Give the finished work room to be read'),
-    close:page('Closing','Reflection','What I learned.','Name the lesson you would carry into the next project.','Leave a lesson and a way to continue the conversation'),
+    close:page('Closing','Reflection','Make the next\nstep visible.','The workflow got clearer once the next action stayed where people needed it.','Leave a lesson and a way to continue the conversation'),
     metrics:page('Results','Results','Show the change that matters.','Add the result, baseline, and measurement period.','Support the outcome with an editable chart'),
     table:page('Comparison table','Options','Make the tradeoffs visible.','','Compare options against the same criteria'),
     quote:page('Interview insight','Research','“Add an actual quote\nfrom your research.”','','Give a voice to the research'),
@@ -54,6 +54,9 @@ export const TEMPLATE_PAGES:Record<string,Record<string,TemplatePage>>={
     roadmap:page('Go to market','Go to market','A practical path to market.','','Explain how to reach, activate, and retain the audience',{columns:[['Reach','Find the right audience'],['Activate','Deliver the first value'],['Retain','Build a reason to return']]}),
     facts:page('Team','The team','The people behind the work.','Explain the experience that makes this team suited to the problem.','Show relevant experience and responsibility',{fields:[['Domain','Relevant experience'],['Product','Design and technology'],['Execution','Delivery and operations']]}),
     close:page('Closing','The ask','Let’s take the\nnext step.','Name the milestone this support will unlock.','State the ask, use of resources, and next milestone'),
+  },
+  minimal:{
+    split:page('Form study','Study','One form, less noise.','Let the silhouette carry the idea. Remove details that fight its outline.','Show how one visual choice carries the idea'),
   },
   report:{
     cover:page('Cover','Performance','Quarterly\nreport.','Quarter and year','Identify the period, team, and scope'),

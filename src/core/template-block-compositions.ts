@@ -7,13 +7,14 @@ import {DEFAULT_DASHBOARD_ITEMS,defaultTemplateCount,templateContract,type Templ
 import {uid} from './model';
 import {resolveGroupLayouts} from './object-layout';
 import {templatePageGrid} from './template-page-grid';
+import {TEMPLATE_STORY_SAMPLES} from './template-story-samples';
 
 /** Manual insertion and template pages share the same native layout and style contract. */
 export function composeTemplateBlock(c:TemplateCollection,p:TemplatePage,id:LayoutId,d:TemplatePainter,o:TemplateOptions={}):boolean {
   const kind=templateBlockId(id);if(!kind||o.structure==='designed')return false;
   const page={width:1440,height:810,designSystem:c.system},options=defaultBlockOptions(kind),contract=templateContract(id);
   const count=o.items?.length??o.count??defaultTemplateCount(id);
-  const fields=o.items??(id==='dashboard'?DEFAULT_DASHBOARD_ITEMS:p.fields??p.columns);
+  const fields=o.items??(id==='dashboard'?(o.count===undefined?TEMPLATE_STORY_SAMPLES[c.id].dashboard:undefined)??DEFAULT_DASHBOARD_ITEMS:p.fields??p.columns);
   const seeded=kind==='architecture'||['gantt','kanban','swot','funnel'].includes(id);
   let items=Array.from({length:count},(_,index)=>{
     const seed=options.items[index%options.items.length],field=seeded&&!o.items?undefined:fields?.[index];
@@ -47,7 +48,7 @@ export function composeTemplateBlock(c:TemplateCollection,p:TemplatePage,id:Layo
   for(const e of s.elements.filter(e=>e.group===placed.groupId)){e.motionMatch='off';if(staged&&e.blockItem!==undefined)e.animation={effect:'fade',duration:240,delay:0,order:e.blockItem,trigger:'click',easing:'linear'};}
 
   group.block!.fingerprint=blockFingerprint(s.elements.filter(e=>e.group===placed.groupId));
-  const source=o.source??(id==='dashboard'?'Illustrative Atlas data · Replace values, cohort and reporting period':kind==='timeline'?'Dated milestones · Spacing shows sequence, not proportional time':kind==='funnel'?'Illustrative values · Stage widths do not represent numeric proportions':kind==='gantt'?'Planned periods · Confirm owners, dates and dependencies':'Editable example · Replace with your project content');
+  const source=o.source??(id==='dashboard'?'Illustrative example · Update values, context and source':kind==='timeline'?'Dated milestones · Spacing shows sequence, not proportional time':kind==='funnel'?'Illustrative values · Stage widths do not represent numeric proportions':kind==='gantt'?'Planned periods · Confirm owners, dates and dependencies':'Editable example · Replace with your project content');
   text(source,84,716,1196,32,'caption',20,'muted',{textSizing:'auto-height'});
   s.template={prototype:id,variant:`block-${kind}-${options.layout}`,density:o.density??'presentation',collection:c.id};
   s.transition={effect:'fade',duration:300,easing:'linear'};

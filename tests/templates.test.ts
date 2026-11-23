@@ -57,11 +57,11 @@ test('project-owned AI artwork embeds each source once with original bytes and p
 });
 
 test('theme-linked AI illustrations change pigment from their original while photos and alpha stay intact',async()=>{
-  const d=await embedTemplateArtwork(templateDeck('portfolio'),async src=>new Uint8Array(await readFile(`public${src}`)),themeLoader);
+  const d=await embedTemplateArtwork(templateDeck('review'),async src=>new Uint8Array(await readFile(`public${src}`)),themeLoader);
   const before=JSON.stringify(d),system=COLLECTIONS[2].system,next=applyDeckDesignSystem(d,system);
   assert.ok(next.slides.flatMap(s=>s.elements).filter(e=>e.resource?.id.startsWith('blue-black:')).every(e=>themedIllustrationColor(e)===system.colors.accent));
   const calls:string[]=[];const prepared=await prepareThemeArtwork(next,async(id,color)=>{calls.push(id);return themeLoader(id,color);});
-  assert.equal(calls.length,new Set(calls).size);assert.equal(JSON.stringify(d),before);
+  assert.ok(calls.length>0);assert.equal(calls.length,new Set(calls).size);assert.equal(JSON.stringify(d),before);
   const old=d.slides.flatMap(s=>s.elements),changed=prepared.slides.flatMap(s=>s.elements);
   for(const e of changed){const original=old.find(a=>a.id===e.id)!;if(e.resource?.kind==='photo')assert.equal(e.src,original.src);
     if(e.resource?.id.startsWith('blue-black:')){assert.equal(e.resource.color,system.colors.accent);assert.equal(e.resource.originalSha256,original.resource!.originalSha256);const a=PNG.sync.read(Buffer.from(original.src!.split(',')[1],'base64')),b=PNG.sync.read(Buffer.from(e.src!.split(',')[1],'base64'));assert.equal(a.width,b.width);assert.equal(a.height,b.height);for(let i=3;i<a.data.length;i+=4)assert.equal(a.data[i],b.data[i]);}
@@ -103,9 +103,10 @@ test('template charts and tables use their document palette in themes and PPTX',
   const d=templateDeck('report'),dark=COLLECTIONS[3].system;
   const next=applyDeckDesignSystem(d,dark);
   const chart=next.slides.flatMap(s=>s.elements).find(e=>e.type==='chart')!;
-  assert.equal(chart.fill,dark.colors.accent);assert.equal(chart.chart!.textColor,dark.colors.ink);
+  assert.equal(chart.fill,dark.colors.line);assert.equal(chart.chart!.colors[1],dark.colors.accent);assert.equal(chart.chart!.textColor,dark.colors.ink);
   const table=next.slides.flatMap(s=>s.elements).find(e=>e.type==='table')!;
-  assert.deepEqual(tableAppearance(table,dark),{text:dark.colors.ink,line:dark.colors.line,background:dark.colors.background,header:dark.colors.surface});
+  const painted=tableAppearance(table,dark);
+  assert.deepEqual(painted,{text:dark.colors.ink,line:dark.colors.line,background:'transparent',header:'#242836'});
   next.slides=next.slides.filter(s=>s.elements.some(e=>e.type==='table'));
   const zip=await JSZip.loadAsync(await buildPptx(next));
   const xml=await zip.file('ppt/slides/slide1.xml')!.async('string');
@@ -113,5 +114,5 @@ test('template charts and tables use their document palette in themes and PPTX',
   const tableXml=xml.match(/<a:tbl>[\s\S]*?<\/a:tbl>/)![0];
   // Editable theme references must resolve to the same actual table palette.
   const colors=pptxColors(tableXml,theme);
-  for(const color of [dark.colors.surface,dark.colors.ink,dark.colors.line])assert.ok(colors.has(color.slice(1)),`Missing table color ${color}`);
+  for(const color of [painted.header,dark.colors.ink,dark.colors.line])assert.ok(colors.has(color.slice(1)),`Missing table color ${color}`);
 });

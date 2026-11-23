@@ -83,7 +83,10 @@ export async function enhancePptxTemplate(bytes:Uint8Array,deck:Deck,template=fa
         cells.forEach((row,ri)=>{const themed=row.replace(/<a:tc>[\s\S]*?<\/a:tc>/g,cell=>{
           if(!e.design!.overrides?.includes('fontFamily'))cell=cell.replace(/<a:(latin|ea)\b[^>]*typeface="([^"]*)"[^>]*\/>/g,(original,script,family)=>sameFontFamily(family,esc(e.fontFamily))?`<a:${script} typeface="+mn-${script==='ea'?'ea':'lt'}"/>`:original);
           cell=cell.replace(/<a:txBody>[\s\S]*?<\/a:txBody>/,tx=>tx.replace(/<a:srgbClr val="[^"]*"\s*\/>/g,`<a:schemeClr val="${e.design?.fill?roles[e.design.fill]:'dk1'}"/>`));
-          return cell.replace(/<a:tcPr[\s\S]*?<\/a:tcPr>/,pr=>pr.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln[^>]*>/g,ln=>ln.replace(/<a:srgbClr val="[^"]*"\s*\/>/g,`<a:schemeClr val="${e.design?.stroke?roles[e.design.stroke]:'accent2'}"/>`)).replace(/<a:solidFill><a:srgbClr val="[^"]*"\s*\/><\/a:solidFill>/g,`<a:solidFill><a:schemeClr val="${ri===0?'lt2':'lt1'}"/></a:solidFill>`));
+          return cell.replace(/<a:tcPr[\s\S]*?<\/a:tcPr>/,pr=>{
+            const lines=pr.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln[^>]*>/g,ln=>ln.replace(/<a:srgbClr val="[^"]*"\s*\/>/g,`<a:schemeClr val="${e.design?.stroke?roles[e.design.stroke]:'accent2'}"/>`));
+            return e.tableStyle?.bodyFill!==undefined?lines:lines.replace(/<a:solidFill><a:srgbClr val="[^"]*"\s*\/><\/a:solidFill>/g,`<a:solidFill><a:schemeClr val="${ri===0?'lt2':'lt1'}"/></a:solidFill>`);
+          });
         });shape=shape.replace(row,themed);});
       }
       shape=shape.replace(/<p:cNvPr\b([^>]*?)(\/>|>)/,(_,attrs,end)=>`<p:cNvPr${attrs.replace(/ descr="[^"]*"/g,'')} descr="${esc(e.type==='image'?e.name:e.type==='chart'?e.chart?.title||e.name:e.name)}"${end}`);

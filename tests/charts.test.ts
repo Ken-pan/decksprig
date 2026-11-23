@@ -161,4 +161,43 @@ test('canvas chart formatting keeps optional defaults and reaches rendering and 
  assert.throws(()=>validateChart({...chart,axisStyle:{fontSize:0}}));assert.throws(()=>validateChart({...chart,dataLabels:{color:'#fff'}}));
 });
 
-test('line endpoint value labels align into the plot without changing chart data or axes',()=>{const c=validateChart({...sampleChart(),type:'area',labels:['Q1','Q2','Q3'],series:[{name:'Registered',values:[18,27,42]}],showValues:true,dataLabels:{position:'outside',fontSize:22}}),e=element('chart',{w:1100,h:420,fontSize:24,chart:c}),o=chartOption(e),data=(o.series as any[])[0].data;assert.deepEqual(data,[{value:18,label:{align:'left'}},27,{value:42,label:{align:'right'}}]);assert.deepEqual(e.chart,c);assert.equal((o.series as any[])[0].label.position,'top');});
+test('line endpoint value labels align into the plot without changing chart data or axes',()=>{const c=validateChart({...sampleChart(),type:'area',labels:['Q1','Q2','Q3'],series:[{name:'Registered',values:[18,27,42]}],showValues:true,dataLabels:{position:'outside',fontSize:22}}),e=element('chart',{w:1100,h:420,fontSize:24,chart:c}),o=chartOption(e),data=(o.series as any[])[0].data;assert.deepEqual(data,[{value:18,label:{align:'left'}},27,{value:42,label:{align:'right'}}]);assert.deepEqual(e.chart,c);assert.equal((o.series as any[])[0].label.position,'top');assert.equal((o.series as any[])[0].labelLayout({dataIndex:0}).dx,20);});
+
+test('single-series benchmark bars keep their category paints in SVG and native PowerPoint',async()=>{
+  const {createLayout}=await import('../src/core/templates');
+  const {importPptxChart}=await import('../src/importers/pptx-chart');
+  for(const collection of ['review','proposal','report']){
+    const page=createLayout('metrics',1,collection),chart=page.elements.find(element=>element.chart)!;
+    const model=chart.chart!;
+    assert.equal(model.series.length,1);
+    assert.deepEqual(model.colorCategories,model.labels);
+    assert.equal(new Set(model.colors).size,3);
+    const svg=renderChartSvg(chart).toLowerCase();
+    for(const color of model.colors.slice(0,2))assert.ok(svg.includes(color.toLowerCase()),collection+' '+color);
+    assert.ok(svg.includes('stroke="'+model.textColor.toLowerCase()+'"'));
+
+    const pptx=await JSZip.loadAsync(await buildPptx(newDeck('Benchmarks',[page])));
+    const path=Object.keys(pptx.files).find(name=>/^ppt\/charts\/chart\d+\.xml$/.test(name))!;
+    const xml=await pptx.file(path)!.async('string');
+    const marks=[...xml.matchAll(/<c:dPt>(.*?)<\/c:dPt>/g)].map(match=>match[1]);
+    assert.equal(marks.length,3);
+    assert.match(marks[2],/<a:noFill\/>.*<a:ln/);
+    const restored=importPptxChart(xml,{},{
+      points:value=>value*4/3,font:value=>value||'Inter',
+      color:(node,fallback)=>node?.noFill!==undefined?'transparent':node?.solidFill?.srgbClr?.val?'#'+node.solidFill.srgbClr.val:fallback||'#111111',
+      warn:()=>{},
+    })?.chart;
+    assert.deepEqual(restored?.series,model.series);
+    assert.deepEqual(restored?.labels,model.labels);
+    assert.deepEqual(restored?.colorCategories,model.labels);
+    assert.deepEqual(restored?.colors.map(color=>color.toLowerCase()),[...model.colors.slice(0,2).map(color=>color.toLowerCase()),'transparent']);
+  }
+});
+
+test('Signal’s first data label leaves space after the nearby axis label',async()=>{
+ const {templateDeck}=await import('../src/core/templates');
+ const chart=templateDeck('pitch').slides[14].elements.find(element=>element.chart)!;
+ const labels=[...renderChartSvg(chart).matchAll(/<text[^>]*translate\(([\d.]+) [\d.]+\)[^>]*>(16%|20%)<\/text>/g)];
+ const x=(label:string)=>Number(labels.find(match=>match[2]===label)?.[1]);
+ assert.ok(x('16%')-x('20%')>=26,'The first value label sits clear of the value-axis tick');
+});
