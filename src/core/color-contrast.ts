@@ -13,9 +13,11 @@ export function contrastRatio(a:string,b:string):number {
 }
 
 /** Preserve authored alpha. Never make an invisible object visible to meet a target. */
-export function readableTextColor(foreground:string,background:string,target=4.5,opacity=1):string {
+export function readableTextColor(foreground:string,background:string,target=4.5,opacity=1,backdrop?:string):string {
   const color=normalizeColor(foreground);if(!color||opacity===0)return foreground;
-  const ratio=(value:string)=>contrastRatio(compositeColor(value,background,opacity),background);
+  // A shape's group opacity applies after its fill and label are composited.
+  const back=backdrop?compositeColor(background,backdrop,opacity):background;
+  const ratio=(value:string)=>contrastRatio(backdrop?compositeColor(compositeColor(value,background),backdrop,opacity):compositeColor(value,background,opacity),back);
   if(ratio(color)>=target||color.slice(7)==='00')return foreground;
   const alpha=color.slice(7),black='#000000'+alpha,white='#ffffff'+alpha,end=ratio(black)>ratio(white)?black:white;
   if(ratio(end)<target)return end;

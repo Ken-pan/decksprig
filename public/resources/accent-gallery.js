@@ -6,7 +6,7 @@ let color = ORIGINAL_ACCENT, revision = 0, currentId, exporting = false;
 try { color = normalizeAccent(localStorage.getItem('deck-studio-illustration-accent') || ORIGINAL_ACCENT); } catch {}
 const toast = message => { document.querySelector('#toast').textContent = message; };
 const bar = document.createElement('div'); bar.className = 'gallery-accent';
-bar.innerHTML = `<span>Accent color</span><div class="gallery-swatches" role="group" aria-label="Illustration accent color"></div><label class="gallery-custom"><input type="color" aria-label="Custom accent color"><input aria-label="Accent HEX value" maxlength="7"></label><button class="secondary" id="color-zip">Download this color</button><a class="secondary gallery-editor" href="/app?library=blue-black">Decksprig</a><span class="gallery-color-status" role="status" aria-live="polite"></span>`;
+bar.innerHTML = `<span>Accent color</span><div class="gallery-swatches" role="group" aria-label="Illustration accent color"></div><label class="gallery-custom"><input type="color" aria-label="Custom accent color"><input aria-label="Accent HEX value" maxlength="7"></label><button class="secondary" id="color-zip">Download this color</button><a class="secondary gallery-editor" href="/?library=blue-black">Deck Studio</a><span class="gallery-color-status" role="status" aria-live="polite"></span>`;
 document.querySelector('.viewbar').before(bar);
 for (const preset of ACCENT_PRESETS) {
   const button = document.createElement('button'); button.type = 'button'; button.style.setProperty('--swatch', preset.color);
@@ -55,8 +55,8 @@ function setColor(value) {
   inView.forEach(card => void renderCard(card)); void renderDetail(); updateEditorLink();
 }
 custom.addEventListener('change', () => setColor(custom.value)); hex.addEventListener('change', () => setColor(hex.value));
-const editorLink = document.createElement('a'); editorLink.className = 'secondary gallery-editor'; editorLink.textContent = 'Use in Decksprig'; document.querySelector('#detail .actions').append(editorLink);
-function updateEditorLink() { editorLink.href = `/app?${new URLSearchParams({library: 'blue-black', asset: `blue-black:${currentId || ''}`, accent: color})}`; bar.querySelector('.gallery-editor').href = `/app?${new URLSearchParams({library: 'blue-black', accent: color})}`; }
+const editorLink = document.createElement('a'); editorLink.className = 'secondary gallery-editor'; editorLink.textContent = 'Use in Deck Studio'; document.querySelector('#detail .actions').append(editorLink);
+function updateEditorLink() { editorLink.href = `/?${new URLSearchParams({library: 'blue-black', asset: `blue-black:${currentId || ''}`, accent: color})}`; bar.querySelector('.gallery-editor').href = `/?${new URLSearchParams({library: 'blue-black', accent: color})}`; }
 document.addEventListener('click', event => {
   const button = event.target.closest('[data-open]'); if (button) { currentId = button.dataset.open; updateEditorLink(); void renderDetail(); }
 });

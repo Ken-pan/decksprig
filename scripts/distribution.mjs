@@ -1,4 +1,4 @@
-import {cp, mkdir, readFile, readdir, lstat, rename, writeFile} from 'node:fs/promises';
+import {cp, link, mkdir, readFile, readdir, lstat, rename, unlink, writeFile} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve, relative, dirname, join} from 'node:path';
@@ -34,13 +34,33 @@ export async function inventory(directory) {
 }
 export async function packageManifest(directory, kind) {
   const files = await inventory(directory);
-  const report = {format: 'decksprig-distribution/1', kind, files, payloadBytes: Object.values(files).reduce((sum,file)=>sum+file.bytes,0)};
+  const report = {format: 'deckleaf-distribution/1', kind, files, payloadBytes: Object.values(files).reduce((sum,file)=>sum+file.bytes,0)};
   await writeFile(join(directory, 'release-manifest.json'), JSON.stringify(report, null, 2) + '\n');
   return report;
 }
-export async function archivePackage(parent, name, filename) {
+/** Deduplicate identical raster artwork in a freshly staged release. */
+export async function linkDuplicateArtwork(directory, files) {
+  const seen = new Map();
+  let saved = 0;
+  for (const [path, entry] of Object.entries(files)) {
+    if (!/^(examples|resources)\/.*\.(png|jpe?g|webp)(\.stored\.br)?$/.test(path)) continue;
+    const target = join(directory, path);
+    const first = seen.get(entry.sha256);
+    if (!first) {
+      seen.set(entry.sha256, target);
+      continue;
+    }
+    const temporary = target + '.linking';
+    await link(first, temporary);
+    try { await rename(temporary, target); }
+    finally { await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
+    saved += entry.bytes;
+  }
+  return saved;
+}
+export async function archivePackage(parent, name, filename, {gzip = true} = {}) {
   const file = join(parent, filename), temporary = file + '.tmp';
-  execFileSync('tar', ['-czf', temporary, '-C', parent, name], {env: {...process.env, COPYFILE_DISABLE: '1'}, stdio: 'inherit'});
+  execFileSync('tar', [gzip ? '-czf' : '-cf', temporary, '-C', parent, name], {env: {...process.env, COPYFILE_DISABLE: '1'}, stdio: 'inherit'});
   await rename(temporary, file);
   const hash = createHash('sha256');
   for await (const chunk of createReadStream(file)) hash.update(chunk);
@@ -77,6 +97,6 @@ export async function exportSources(root, destination) {
     await mkdir(dirname(resolve(destination, path)), {recursive: true});
     await cp(source, resolve(destination, path));
   }
-  await writeFile(join(destination, 'README.md'), `# Decksprig export font sources\n\nThis separate development package contains the original manifest, full TTF faces, licenses, font generator and all hashed inputs for the ${faces.length} bundled editable PPTX faces. Original source-relative paths are preserved. It is not required at runtime: the app already includes full FNTDATA for offline editable export, browser fonts, licenses and template originals.\n\nThe public/fonts/pptx/manifest.json here is the original source manifest, not a runtime replacement. Its file and sha256 fields describe the generated FNTDATA outputs, which ship with the app. Every sourceHashes input is included and verified. The full catalog is retained for provenance; the included generator's default families have complete inputs. Other catalog families are available in the repository.\n\nTo regenerate those faces in this source tree, install Python fonttools and Brotli, then run python3 scripts/build-template-fonts.py. Generation has not been run by the packaging step. No network, credentials or user documents are included by the packager.\n`);
+  await writeFile(join(destination, 'README.md'), `# Deckleaf export font sources\n\nThis separate development package contains the original manifest, full TTF faces, licenses, font generator and all hashed inputs for the ${faces.length} bundled editable PPTX faces. Original source-relative paths are preserved. It is not required at runtime: the app already includes full FNTDATA for offline editable export, browser fonts, licenses and template originals.\n\nThe public/fonts/pptx/manifest.json here is the original source manifest, not a runtime replacement. Its file and sha256 fields describe the generated FNTDATA outputs, which ship with the app. Every sourceHashes input is included and verified. The full catalog is retained for provenance; the included generator's default families have complete inputs. Other catalog families are available in the repository.\n\nTo regenerate those faces in this source tree, install Python fonttools and Brotli, then run python3 scripts/build-template-fonts.py. Generation has not been run by the packaging step. No network, credentials or user documents are included by the packager.\n`);
   return packageManifest(destination, 'export-sources');
 }

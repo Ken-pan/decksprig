@@ -1,5 +1,5 @@
 import type {LineStyle} from './line-schema';
-import {tablePresetStyle} from './table-appearance';
+import {tablePresetStyle} from './table-rendering';
 import { element, type Deck, type Slide, type SlideElement } from './model';
 import type { Bounds, Point } from './interactions';
 import { deckDesignSystem, styledElement } from './deck-design-system';

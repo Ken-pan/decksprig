@@ -78,7 +78,7 @@ test('font weights reflect the family and embedded custom font range', () => {
   assert.deepEqual(fontWeights('Inter', [{family: 'Inter', name: 'custom.woff2', weight: '300 500', style: 'normal', data: 'data:font/woff2;base64,AA=='}]), [300,400,500]);
 });
 test('HTML font embedding covers rich-run families and preserves the OFL notices without local or CDN dependencies', async () => {
-  const slide = blankSlide(); slide.elements = [element('text', {fontFamily: 'Lora', runs: [{text: 'Rich', fontFamily: 'JetBrains Mono'}]})];
+  const slide = blankSlide(); slide.elements = [element('text', {fontFamily: 'Lora', runs: [{text: 'Body '}, {text: 'Rich', fontFamily: 'JetBrains Mono'}]})];
   const deck = newDeck('Offline export', [slide]);
   assert.deepEqual(usedLibraryFonts(deck).map(f => f.family), ['Lora', 'JetBrains Mono']);
   const previous = globalThis.fetch;

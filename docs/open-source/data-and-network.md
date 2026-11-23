@@ -17,8 +17,8 @@ Session keys and Google OAuth access tokens are kept in memory rather than writt
 
 A hosted demo also has infrastructure-level access logs and provider privacy policies. Before publication, its operator should document the actual host, recipients, retention and contact route. This description is a data-flow guide, not a completed worldwide privacy compliance assessment.
 
-Do not put confidential, personal or unlicensed source material into an AI request or public presentation without the required authority. Imported material is not covered automatically by Decksprig's proposed code license.
+Do not put confidential, personal or unlicensed source material into an AI request or public presentation without the required authority. Imported material is not covered automatically by Deckleaf's proposed code license.
 
 ## Public release boundaries
 
-The browser edition does not accept stock-photo developer keys or directly call stock-provider authenticated APIs. A local server maintainer can supply environment credentials. The public Openverse-only function rejects malformed queries, bounds concurrent work and is disabled by default and requires `DECKSPRIG_PHOTO_SEARCH_ENABLED=true` to opt in. Its configured Netlify per-IP rule must be verified after deployment and is not a global spend cap. See PRIVACY.md for the user-facing policy.
+The browser edition does not accept stock-photo developer keys or directly call stock-provider authenticated APIs. A local server maintainer can supply environment credentials. The public Openverse-only function rejects malformed queries, bounds concurrent work and is disabled by default and requires `DECKLEAF_PHOTO_SEARCH_ENABLED=true` to opt in. Its configured Netlify per-IP rule must be verified after deployment and is not a global spend cap. See PRIVACY.md for the user-facing policy.

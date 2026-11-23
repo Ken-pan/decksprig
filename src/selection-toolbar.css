@@ -7,6 +7,16 @@
 .selection-context { -webkit-tap-highlight-color:transparent; }
 .selection-completion-actions { display:flex; flex:none; gap:4px; }
 .canvas-touch-hint { display:none; }
+/* Context-only adaptations load with the selection toolbar. */
+.short-workspace:has(.selection-context) .canvas-insert-dock { visibility:hidden; pointer-events:none; }
+.short-workspace .selection-context { flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; }
+.short-workspace .selection-context > * { flex-shrink:0; }
+.short-workspace .selection-context > :is(.element-quick-tools,.text-quick-tools,.drawing-object-tools) { flex:none; flex-wrap:nowrap; }
+.short-workspace .selection-context > span { display:none; }
+.short-workspace .selection-completion-actions { position:sticky; right:0; background:var(--surface-chrome); }
+@media (max-width:360px) {
+  .selection-context:has(.drawing-object-tools) > button[aria-label='Duplicate selection'] { display:none; }
+}
 .selection-context > span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:var(--ui-meta); color:var(--text-secondary); max-width: 120px; padding: 0 12px 0 8px; border-right: 1px solid var(--border-subtle); margin-right: 4px; }
 .selection-context button:not(:where([popover] button)):disabled { color:var(--text-tertiary); }
 @media (max-width: 760px), (pointer: coarse) {

@@ -1,12 +1,49 @@
 import {z} from './schema';
-import { DeckSchema, SlideSchema, validateDeck, assertDeckInvariants, type Deck } from './model';
+import { DeckSchema, SlideSchema, ElementSchema, validateDeck, assertDeckInvariants, type Deck, type Slide } from './model';
 import { shareDocumentRevision } from './document-data';
 
 // Only data validated and recursively frozen here is eligible for reuse. An
 // externally frozen root is not proof that its children or schema are valid.
 const frozenData = new WeakSet<object>();
 const revisions = new WeakSet<Deck>();
+/** Internal cache eligibility: external Object.freeze() is not validation. */
+export function isOwnedDocumentData(value: object): boolean { return frozenData.has(value); }
 const slideList = z.array(z.unknown()).check(z.minLength(1)).check(z.maxLength(500));
+const elementList = z.array(z.unknown()).check(z.maxLength(3000));
+
+// Only fields identical to an owned, deeply frozen revision may skip parsing.
+// Changed fields still receive their canonical defaults, limits and strict keys.
+function changedFields<T extends object>(schema: z.ZodMiniObject, previous: T, next: T, list?: string): T {
+  const result = {...next} as Record<string, unknown>;
+  const fields = schema.shape as z.core.$ZodShape;
+  const before = previous as Record<string, unknown>, after = next as Record<string, unknown>;
+  for (const key of Object.keys(next)) {
+    if (!Object.hasOwn(fields, key)) throw new Error(`Unrecognized document field: ${key}`);
+  }
+  for (const key of Object.keys(fields)) {
+    if (key === list || after[key] === before[key]) continue;
+    const value = z.parse(fields[key],after[key]);
+    if (value !== undefined || Object.hasOwn(next, key)) result[key] = value;
+  }
+  return result as T;
+}
+
+function validateSlideRevision(before: Slide | undefined, next: Slide): Slide {
+  if (!before) return SlideSchema.parse(next);
+  const result = changedFields(SlideSchema, before, next, 'elements');
+  if (next.elements !== before.elements) {
+    elementList.parse(next.elements);
+    const byId = new Map(before.elements.map(element=>[element.id,element]));
+    result.elements = next.elements.map(element => {
+      const previous=byId.get(element?.id);
+      if(previous&&previous===element)return element;
+      // ElementSchema owns individual fields; assertDeckInvariants below still
+      // checks relationships and content. Only owned identical branches can skip parsing.
+      return previous&&element&&typeof element==='object'&&!Array.isArray(element)?changedFields(ElementSchema,previous,element):ElementSchema.parse(element);
+    });
+  }
+  return shareDocumentRevision(before, result);
+}
 
 function freezeData(value: unknown): void {
   if (!value || typeof value !== 'object' || frozenData.has(value)) return;
@@ -20,6 +57,11 @@ function ownRevision(deck: Deck): Deck {
 /** Import/recovery boundary: validate and detach mutable caller-owned data once. */
 export function adoptDeckRevision(value: Deck): Deck {
   return revisions.has(value) ? value : ownRevision(validateDeck(value));
+}
+
+/** Decode and own one canonical revision without validating it again on open. */
+export async function adoptDocumentFileRevision(raw: unknown): Promise<Deck> {
+  return ownRevision((await import('./document-file')).readDocumentFile(raw));
 }
 
 /** Transfer the editor's own JSON data into read-only ownership without remounting equal pages. */
@@ -36,23 +78,11 @@ export function createRevisionValidator(previous: Deck) {
   const assert = (next: Deck) => assertDeckInvariants(next, trustedSlides(next));
   function validate(next: Deck): Deck {
     if (next === base) return base;
-    const result = {...next} as Deck;
-    const fields = DeckSchema.shape;
-    for (const key of Object.keys(next)) {
-      if (!Object.hasOwn(fields, key)) throw new Error(`Unrecognized document field: ${key}`);
-    }
-    // Equal values belong to the owned frozen base. Parse every changed field,
-    // including removals, and preserve canonical optional/default semantics.
-    for (const key of Object.keys(fields) as Array<keyof typeof fields>) {
-      if (key === 'slides' || next[key] === base[key]) continue;
-      const value = fields[key].parse(next[key]);
-      if (value !== undefined || Object.hasOwn(next, key)) (result as any)[key] = value;
-    }
+    const result = changedFields(DeckSchema, base, next, 'slides');
     slideList.parse(next.slides);
     result.slides = next.slides.map(slide => {
       if (slides.has(slide)) return slide;
-      const parsed = SlideSchema.parse(slide), before = byId.get(parsed.id);
-      return before ? shareDocumentRevision(before, parsed) : parsed;
+      return validateSlideRevision(byId.get(slide?.id), slide);
     });
     assert(result);
     return ownRevision(result);

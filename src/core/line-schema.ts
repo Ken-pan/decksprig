@@ -1,5 +1,6 @@
 import {z} from './schema';
 export const LineStyleSchema = z.strictObject({
+  dashArray:z.optional(z.array(z.number().check(z.minimum(0)).check(z.maximum(20000))).check(z.maxLength(32))),
   route: z._default(z.enum(['straight','elbow','rounded','curve','arc','step','zigzag','wave']), 'straight'),
   dash: z._default(z.enum(['solid','dashed','dotted','short-dash','long-dash','dash-dot','dash-dot-dot']), 'solid'),
   start: z._default(z.enum(['none','arrow','open-arrow','stealth','circle','circle-outline','square','diamond','bar']), 'none'),

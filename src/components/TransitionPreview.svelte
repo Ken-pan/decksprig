@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../motion-preview.css';
   import { onMount, tick, untrack } from 'svelte';
   import { RotateCcw } from '@lucide/svelte';
   import { runPageTransition, type PageTransitionRun } from '../core/transitions';

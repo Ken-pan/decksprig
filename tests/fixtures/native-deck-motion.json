@@ -1,0 +1,984 @@
+{
+  "provenance": "Selected wire metadata from actual fig-deck106 saved native backup; no document text, canvas bytes or assets. Known action matches UI Out600ms OnClick control.",
+  "definitions": [
+    {
+      "name": "NodeType",
+      "kind": "ENUM",
+      "fields": [
+        {
+          "name": "NONE",
+          "isArray": false,
+          "value": 0,
+          "type": null
+        },
+        {
+          "name": "DOCUMENT",
+          "isArray": false,
+          "value": 1,
+          "type": null
+        },
+        {
+          "name": "CANVAS",
+          "isArray": false,
+          "value": 2,
+          "type": null
+        },
+        {
+          "name": "GROUP",
+          "isArray": false,
+          "value": 3,
+          "type": null
+        },
+        {
+          "name": "FRAME",
+          "isArray": false,
+          "value": 4,
+          "type": null
+        },
+        {
+          "name": "BOOLEAN_OPERATION",
+          "isArray": false,
+          "value": 5,
+          "type": null
+        },
+        {
+          "name": "VECTOR",
+          "isArray": false,
+          "value": 6,
+          "type": null
+        },
+        {
+          "name": "STAR",
+          "isArray": false,
+          "value": 7,
+          "type": null
+        },
+        {
+          "name": "LINE",
+          "isArray": false,
+          "value": 8,
+          "type": null
+        },
+        {
+          "name": "ELLIPSE",
+          "isArray": false,
+          "value": 9,
+          "type": null
+        },
+        {
+          "name": "RECTANGLE",
+          "isArray": false,
+          "value": 10,
+          "type": null
+        },
+        {
+          "name": "REGULAR_POLYGON",
+          "isArray": false,
+          "value": 11,
+          "type": null
+        },
+        {
+          "name": "ROUNDED_RECTANGLE",
+          "isArray": false,
+          "value": 12,
+          "type": null
+        },
+        {
+          "name": "TEXT",
+          "isArray": false,
+          "value": 13,
+          "type": null
+        },
+        {
+          "name": "SLICE",
+          "isArray": false,
+          "value": 14,
+          "type": null
+        },
+        {
+          "name": "SYMBOL",
+          "isArray": false,
+          "value": 15,
+          "type": null
+        },
+        {
+          "name": "INSTANCE",
+          "isArray": false,
+          "value": 16,
+          "type": null
+        },
+        {
+          "name": "STICKY",
+          "isArray": false,
+          "value": 17,
+          "type": null
+        },
+        {
+          "name": "SHAPE_WITH_TEXT",
+          "isArray": false,
+          "value": 18,
+          "type": null
+        },
+        {
+          "name": "CONNECTOR",
+          "isArray": false,
+          "value": 19,
+          "type": null
+        },
+        {
+          "name": "CODE_BLOCK",
+          "isArray": false,
+          "value": 20,
+          "type": null
+        },
+        {
+          "name": "WIDGET",
+          "isArray": false,
+          "value": 21,
+          "type": null
+        },
+        {
+          "name": "STAMP",
+          "isArray": false,
+          "value": 22,
+          "type": null
+        },
+        {
+          "name": "MEDIA",
+          "isArray": false,
+          "value": 23,
+          "type": null
+        },
+        {
+          "name": "HIGHLIGHT",
+          "isArray": false,
+          "value": 24,
+          "type": null
+        },
+        {
+          "name": "SECTION",
+          "isArray": false,
+          "value": 25,
+          "type": null
+        },
+        {
+          "name": "SECTION_OVERLAY",
+          "isArray": false,
+          "value": 26,
+          "type": null
+        },
+        {
+          "name": "WASHI_TAPE",
+          "isArray": false,
+          "value": 27,
+          "type": null
+        },
+        {
+          "name": "VARIABLE",
+          "isArray": false,
+          "value": 28,
+          "type": null
+        },
+        {
+          "name": "TABLE",
+          "isArray": false,
+          "value": 29,
+          "type": null
+        },
+        {
+          "name": "TABLE_CELL",
+          "isArray": false,
+          "value": 30,
+          "type": null
+        },
+        {
+          "name": "VARIABLE_SET",
+          "isArray": false,
+          "value": 31,
+          "type": null
+        },
+        {
+          "name": "SLIDE",
+          "isArray": false,
+          "value": 32,
+          "type": null
+        },
+        {
+          "name": "ASSISTED_LAYOUT",
+          "isArray": false,
+          "value": 33,
+          "type": null
+        },
+        {
+          "name": "INTERACTIVE_SLIDE_ELEMENT",
+          "isArray": false,
+          "value": 34,
+          "type": null
+        },
+        {
+          "name": "VARIABLE_OVERRIDE",
+          "isArray": false,
+          "value": 35,
+          "type": null
+        },
+        {
+          "name": "MODULE",
+          "isArray": false,
+          "value": 36,
+          "type": null
+        },
+        {
+          "name": "SLIDE_GRID",
+          "isArray": false,
+          "value": 37,
+          "type": null
+        },
+        {
+          "name": "SLIDE_ROW",
+          "isArray": false,
+          "value": 38,
+          "type": null
+        },
+        {
+          "name": "RESPONSIVE_SET",
+          "isArray": false,
+          "value": 39,
+          "type": null
+        },
+        {
+          "name": "CODE_COMPONENT",
+          "isArray": false,
+          "value": 40,
+          "type": null
+        },
+        {
+          "name": "TEXT_PATH",
+          "isArray": false,
+          "value": 41,
+          "type": null
+        },
+        {
+          "name": "CODE_INSTANCE",
+          "isArray": false,
+          "value": 42,
+          "type": null
+        },
+        {
+          "name": "CODE_LIBRARY",
+          "isArray": false,
+          "value": 43,
+          "type": null
+        },
+        {
+          "name": "CODE_FILE",
+          "isArray": false,
+          "value": 44,
+          "type": null
+        },
+        {
+          "name": "CODE_LAYER",
+          "isArray": false,
+          "value": 45,
+          "type": null
+        },
+        {
+          "name": "BRUSH",
+          "isArray": false,
+          "value": 46,
+          "type": null
+        },
+        {
+          "name": "MANAGED_STRING",
+          "isArray": false,
+          "value": 47,
+          "type": null
+        },
+        {
+          "name": "TRANSFORM",
+          "isArray": false,
+          "value": 48,
+          "type": null
+        },
+        {
+          "name": "CMS_RICH_TEXT",
+          "isArray": false,
+          "value": 49,
+          "type": null
+        },
+        {
+          "name": "REPEATER",
+          "isArray": false,
+          "value": 50,
+          "type": null
+        },
+        {
+          "name": "JSX",
+          "isArray": false,
+          "value": 51,
+          "type": null
+        },
+        {
+          "name": "EMBEDDED_PROTOTYPE",
+          "isArray": false,
+          "value": 52,
+          "type": null
+        },
+        {
+          "name": "REACT_FIBER",
+          "isArray": false,
+          "value": 53,
+          "type": null
+        },
+        {
+          "name": "RESPONSIVE_NODE_SET",
+          "isArray": false,
+          "value": 54,
+          "type": null
+        },
+        {
+          "name": "WEBPAGE",
+          "isArray": false,
+          "value": 55,
+          "type": null
+        },
+        {
+          "name": "KEYFRAME",
+          "isArray": false,
+          "value": 56,
+          "type": null
+        },
+        {
+          "name": "KEYFRAME_TRACK",
+          "isArray": false,
+          "value": 57,
+          "type": null
+        },
+        {
+          "name": "ANIMATION_PRESET_INSTANCE",
+          "isArray": false,
+          "value": 58,
+          "type": null
+        },
+        {
+          "name": "CODE_EMBED",
+          "isArray": false,
+          "value": 59,
+          "type": null
+        },
+        {
+          "name": "BINARY_FILE",
+          "isArray": false,
+          "value": 60,
+          "type": null
+        },
+        {
+          "name": "SPEC_BLOCK",
+          "isArray": false,
+          "value": 61,
+          "type": null
+        },
+        {
+          "name": "TOOL_INSTANCE",
+          "isArray": false,
+          "value": 62,
+          "type": null
+        },
+        {
+          "name": "CUSTOM_EFFECT_INSTANCE",
+          "isArray": false,
+          "value": 63,
+          "type": null
+        },
+        {
+          "name": "NATIVE_CODE_LAYER_INSTANCE",
+          "isArray": false,
+          "value": 64,
+          "type": null
+        }
+      ]
+    },
+    {
+      "name": "ConnectionType",
+      "kind": "ENUM",
+      "fields": [
+        {
+          "name": "NONE",
+          "isArray": false,
+          "value": 0,
+          "type": null
+        },
+        {
+          "name": "INTERNAL_NODE",
+          "isArray": false,
+          "value": 1,
+          "type": null
+        },
+        {
+          "name": "URL",
+          "isArray": false,
+          "value": 2,
+          "type": null
+        },
+        {
+          "name": "BACK",
+          "isArray": false,
+          "value": 3,
+          "type": null
+        },
+        {
+          "name": "CLOSE",
+          "isArray": false,
+          "value": 4,
+          "type": null
+        },
+        {
+          "name": "SET_VARIABLE",
+          "isArray": false,
+          "value": 5,
+          "type": null
+        },
+        {
+          "name": "UPDATE_MEDIA_RUNTIME",
+          "isArray": false,
+          "value": 6,
+          "type": null
+        },
+        {
+          "name": "CONDITIONAL",
+          "isArray": false,
+          "value": 7,
+          "type": null
+        },
+        {
+          "name": "SET_VARIABLE_MODE",
+          "isArray": false,
+          "value": 8,
+          "type": null
+        },
+        {
+          "name": "OBJECT_ANIMATION",
+          "isArray": false,
+          "value": 9,
+          "type": null
+        },
+        {
+          "name": "UPDATE_ANIMATION_TIMELINE_STATE",
+          "isArray": false,
+          "value": 10,
+          "type": null
+        }
+      ]
+    },
+    {
+      "name": "InteractionType",
+      "kind": "ENUM",
+      "fields": [
+        {
+          "name": "ON_CLICK",
+          "isArray": false,
+          "value": 0,
+          "type": null
+        },
+        {
+          "name": "AFTER_TIMEOUT",
+          "isArray": false,
+          "value": 1,
+          "type": null
+        },
+        {
+          "name": "MOUSE_IN",
+          "isArray": false,
+          "value": 2,
+          "type": null
+        },
+        {
+          "name": "MOUSE_OUT",
+          "isArray": false,
+          "value": 3,
+          "type": null
+        },
+        {
+          "name": "ON_HOVER",
+          "isArray": false,
+          "value": 4,
+          "type": null
+        },
+        {
+          "name": "MOUSE_DOWN",
+          "isArray": false,
+          "value": 5,
+          "type": null
+        },
+        {
+          "name": "MOUSE_UP",
+          "isArray": false,
+          "value": 6,
+          "type": null
+        },
+        {
+          "name": "ON_PRESS",
+          "isArray": false,
+          "value": 7,
+          "type": null
+        },
+        {
+          "name": "NONE",
+          "isArray": false,
+          "value": 8,
+          "type": null
+        },
+        {
+          "name": "DRAG",
+          "isArray": false,
+          "value": 9,
+          "type": null
+        },
+        {
+          "name": "ON_KEY_DOWN",
+          "isArray": false,
+          "value": 10,
+          "type": null
+        },
+        {
+          "name": "ON_VOICE",
+          "isArray": false,
+          "value": 11,
+          "type": null
+        },
+        {
+          "name": "ON_MEDIA_HIT",
+          "isArray": false,
+          "value": 12,
+          "type": null
+        },
+        {
+          "name": "ON_MEDIA_END",
+          "isArray": false,
+          "value": 13,
+          "type": null
+        },
+        {
+          "name": "MOUSE_ENTER",
+          "isArray": false,
+          "value": 14,
+          "type": null
+        },
+        {
+          "name": "MOUSE_LEAVE",
+          "isArray": false,
+          "value": 15,
+          "type": null
+        }
+      ]
+    },
+    {
+      "name": "EasingType",
+      "kind": "ENUM",
+      "fields": [
+        {
+          "name": "IN_CUBIC",
+          "isArray": false,
+          "value": 0,
+          "type": null
+        },
+        {
+          "name": "OUT_CUBIC",
+          "isArray": false,
+          "value": 1,
+          "type": null
+        },
+        {
+          "name": "INOUT_CUBIC",
+          "isArray": false,
+          "value": 2,
+          "type": null
+        },
+        {
+          "name": "LINEAR",
+          "isArray": false,
+          "value": 3,
+          "type": null
+        },
+        {
+          "name": "IN_BACK_CUBIC",
+          "isArray": false,
+          "value": 4,
+          "type": null
+        },
+        {
+          "name": "OUT_BACK_CUBIC",
+          "isArray": false,
+          "value": 5,
+          "type": null
+        },
+        {
+          "name": "INOUT_BACK_CUBIC",
+          "isArray": false,
+          "value": 6,
+          "type": null
+        },
+        {
+          "name": "CUSTOM_CUBIC",
+          "isArray": false,
+          "value": 7,
+          "type": null
+        },
+        {
+          "name": "SPRING",
+          "isArray": false,
+          "value": 8,
+          "type": null
+        },
+        {
+          "name": "GENTLE_SPRING",
+          "isArray": false,
+          "value": 9,
+          "type": null
+        },
+        {
+          "name": "CUSTOM_SPRING",
+          "isArray": false,
+          "value": 10,
+          "type": null
+        },
+        {
+          "name": "SPRING_PRESET_ONE",
+          "isArray": false,
+          "value": 11,
+          "type": null
+        },
+        {
+          "name": "SPRING_PRESET_TWO",
+          "isArray": false,
+          "value": 12,
+          "type": null
+        },
+        {
+          "name": "SPRING_PRESET_THREE",
+          "isArray": false,
+          "value": 13,
+          "type": null
+        },
+        {
+          "name": "HOLD",
+          "isArray": false,
+          "value": 14,
+          "type": null
+        },
+        {
+          "name": "EASE_IN",
+          "isArray": false,
+          "value": 15,
+          "type": null
+        }
+      ]
+    },
+    {
+      "name": "GUID",
+      "kind": "STRUCT",
+      "fields": [
+        {
+          "name": "sessionID",
+          "isArray": false,
+          "value": 1,
+          "type": "uint"
+        },
+        {
+          "name": "localID",
+          "isArray": false,
+          "value": 2,
+          "type": "uint"
+        }
+      ]
+    },
+    {
+      "name": "ParentIndex",
+      "kind": "STRUCT",
+      "fields": [
+        {
+          "name": "guid",
+          "isArray": false,
+          "value": 1,
+          "type": "GUID"
+        },
+        {
+          "name": "position",
+          "isArray": false,
+          "value": 2,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "NodeChange",
+      "kind": "MESSAGE",
+      "fields": [
+        {
+          "name": "guid",
+          "isArray": false,
+          "value": 1,
+          "type": "GUID"
+        },
+        {
+          "name": "parentIndex",
+          "isArray": false,
+          "value": 3,
+          "type": "ParentIndex"
+        },
+        {
+          "name": "type",
+          "isArray": false,
+          "value": 4,
+          "type": "NodeType"
+        },
+        {
+          "name": "name",
+          "isArray": false,
+          "value": 5,
+          "type": "string"
+        },
+        {
+          "name": "objectAnimations",
+          "isArray": true,
+          "value": 426,
+          "type": "PrototypeInteraction"
+        }
+      ]
+    },
+    {
+      "name": "PrototypeInteraction",
+      "kind": "MESSAGE",
+      "fields": [
+        {
+          "name": "id",
+          "isArray": false,
+          "value": 1,
+          "type": "GUID"
+        },
+        {
+          "name": "event",
+          "isArray": false,
+          "value": 2,
+          "type": "PrototypeEvent"
+        },
+        {
+          "name": "actions",
+          "isArray": true,
+          "value": 3,
+          "type": "PrototypeAction"
+        },
+        {
+          "name": "isDeleted",
+          "isArray": false,
+          "value": 4,
+          "type": "bool"
+        },
+        {
+          "name": "stateManagementVersion",
+          "isArray": false,
+          "value": 5,
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "PrototypeEvent",
+      "kind": "MESSAGE",
+      "fields": [
+        {
+          "name": "interactionType",
+          "isArray": false,
+          "value": 1,
+          "type": "InteractionType"
+        },
+        {
+          "name": "transitionTimeout",
+          "isArray": false,
+          "value": 6,
+          "type": "float"
+        }
+      ]
+    },
+    {
+      "name": "PrototypeAction",
+      "kind": "MESSAGE",
+      "fields": [
+        {
+          "name": "transitionNodeID",
+          "isArray": false,
+          "value": 1,
+          "type": "GUID"
+        },
+        {
+          "name": "transitionDuration",
+          "isArray": false,
+          "value": 3,
+          "type": "float"
+        },
+        {
+          "name": "easingType",
+          "isArray": false,
+          "value": 4,
+          "type": "EasingType"
+        },
+        {
+          "name": "transitionTimeout",
+          "isArray": false,
+          "value": 5,
+          "type": "float"
+        },
+        {
+          "name": "connectionType",
+          "isArray": false,
+          "value": 7,
+          "type": "ConnectionType"
+        },
+        {
+          "name": "easingFunction",
+          "isArray": true,
+          "value": 12,
+          "type": "float"
+        },
+        {
+          "name": "animationType",
+          "isArray": false,
+          "value": 30,
+          "type": "AnimationType"
+        },
+        {
+          "name": "animationPhase",
+          "isArray": false,
+          "value": 32,
+          "type": "AnimationPhase"
+        }
+      ]
+    },
+    {
+      "name": "AnimationPhase",
+      "kind": "ENUM",
+      "fields": [
+        {
+          "name": "IN",
+          "isArray": false,
+          "value": 0,
+          "type": null
+        },
+        {
+          "name": "OUT",
+          "isArray": false,
+          "value": 1,
+          "type": null
+        }
+      ]
+    },
+    {
+      "name": "AnimationType",
+      "kind": "ENUM",
+      "fields": [
+        {
+          "name": "NONE",
+          "isArray": false,
+          "value": 0,
+          "type": null
+        },
+        {
+          "name": "FADE",
+          "isArray": false,
+          "value": 1,
+          "type": null
+        },
+        {
+          "name": "SLIDE_FROM_LEFT",
+          "isArray": false,
+          "value": 2,
+          "type": null
+        },
+        {
+          "name": "SLIDE_FROM_RIGHT",
+          "isArray": false,
+          "value": 3,
+          "type": null
+        },
+        {
+          "name": "SLIDE_FROM_TOP",
+          "isArray": false,
+          "value": 4,
+          "type": null
+        },
+        {
+          "name": "SLIDE_FROM_BOTTOM",
+          "isArray": false,
+          "value": 5,
+          "type": null
+        }
+      ]
+    },
+    {
+      "name": "Message",
+      "kind": "MESSAGE",
+      "fields": [
+        {
+          "name": "nodeChanges",
+          "isArray": true,
+          "value": 4,
+          "type": "NodeChange"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "guid": {
+        "sessionID": 221,
+        "localID": 12
+      },
+      "type": "SLIDE",
+      "objectAnimations": [
+        {
+          "id": {
+            "sessionID": 249,
+            "localID": 29
+          },
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "actions": [
+            {
+              "transitionNodeID": {
+                "sessionID": 237,
+                "localID": 28
+              },
+              "transitionDuration": 0.6000000238418579,
+              "easingType": "CUSTOM_CUBIC",
+              "connectionType": "OBJECT_ANIMATION",
+              "easingFunction": [
+                0.17000000178813934,
+                0,
+                0.20000000298023224,
+                1
+              ],
+              "animationType": "SLIDE_FROM_LEFT",
+              "animationPhase": "OUT"
+            }
+          ],
+          "isDeleted": false,
+          "stateManagementVersion": 1
+        }
+      ]
+    },
+    {
+      "guid": {
+        "sessionID": 237,
+        "localID": 28
+      },
+      "parentIndex": {
+        "guid": {
+          "sessionID": 221,
+          "localID": 12
+        },
+        "position": "a"
+      },
+      "type": "TABLE"
+    }
+  ]
+}

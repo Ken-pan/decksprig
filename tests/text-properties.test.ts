@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { element, blankSlide, newDeck } from '../src/core/model';
-import { textPropertyState, textToggleState } from '../src/core/text-properties';
+import { textProperties, textPropertyState, textToggleState, textSelectionState } from '../src/core/text-properties';
 import { textStylePatch } from '../src/core/fonts';
 import { applyOperations } from '../src/core/operations';
 
@@ -40,4 +40,19 @@ test('applying a mixed toggle unifies only that style while preserving distinct 
   const locked=element('text',{locked:true,runs:[{text:'Read only',italic:true,fontFamily:'Bodoni Moda'}]}),editable=element('text',{italic:false,fontFamily:'Manrope'});
   assert.equal(textToggleState([locked],'italic'),true);assert.deepEqual(textPropertyState([locked],'fontFamily'),{value:'Bodoni Moda',mixed:false});
   assert.equal(textToggleState([editable,locked],'italic'),false);assert.deepEqual(textPropertyState([editable,locked],'fontFamily'),{value:'Manrope',mixed:false});
+});
+
+test('one-pass inspection matches the existing property and toggle contracts across inherited, empty and locked text',()=>{
+  const paragraph=(runs:any[],extra={})=>({align:'right' as const,spaceBefore:0,spaceAfter:0,indent:0,firstLineIndent:0,runs,...extra});
+  const cases=[[],[element('rect')],[element('text',{text:''})],[element('text',{fontFamily:'Inter',fontSize:40,paragraphs:[paragraph([{text:'A',fontFamily:'inter',fontWeight:600,fontSize:20},{text:'B',fontFamily:' INTER ',fontWeight:900,fontSize:30}],{lineSpacing:60}),paragraph([{text:'',italic:true}],{lineHeight:1.4})]})],
+    [element('text',{locked:true,italic:true}),element('text',{italic:false,runs:[{text:'A',color:'#4f63e780'},{text:'B',fontWeight:900,bold:false,underline:true,strikethrough:true}]})],
+    [element('text',{locked:true,paragraphs:[paragraph([{text:'',fontSize:90}])]}),element('text',{locked:true,italic:true})]];
+  for(const elements of cases){const result=textSelectionState(elements);for(const key of textProperties)assert.deepEqual(result.properties[key],textPropertyState(elements,key),key);for(const key of ['bold','italic','underline','strikethrough']as const)assert.equal(result[key],textToggleState(elements,key),key);}
+});
+
+test('batch inspector state follows mutable callers and does not alter their styles',()=>{
+  const e=element('text',{text:'AB',paragraphs:[{align:'left',spaceBefore:0,spaceAfter:0,indent:0,firstLineIndent:0,lineSpacing:50,runs:[{text:'A',fontSize:20,fontWeight:600},{text:'B',fontSize:25,fontWeight:900}]}]}),before=JSON.stringify(e),first=textSelectionState([e]);
+  assert.equal(first.bold,true);assert.equal(first.properties.fontWeight.mixed,true);assert.deepEqual(first.properties.lineHeight,{value:2,mixed:false});assert.equal(JSON.stringify(e),before);
+  e.paragraphs![0].runs[1].fontSize=50;e.paragraphs![0].runs[1].fontWeight=400;
+  const changed=textSelectionState([e]);assert.equal(changed.bold,'mixed');assert.equal(changed.properties.lineHeight.value,1);assert.equal(first.properties.lineHeight.value,2);
 });

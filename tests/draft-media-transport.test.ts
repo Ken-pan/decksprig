@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newDeck,blankSlide,element} from '../src/core/model';
-import {draftRecord,resolveDraft} from '../src/core/drafts';
+import {draftRecord} from '../src/core/drafts';
+import {resolveDraft} from '../src/core/draft-resolution';
 import {packDraft,restoreDraft} from '../src/core/draft-media-transport';
 
 test('worker recovery transport retains full source/media/history and an assigned browser branch key',()=>{

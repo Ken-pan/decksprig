@@ -1,0 +1,9 @@
+{
+  "harfbuzzjs@1.6.4": [
+    {
+      "file": "font-runtime-harfbuzz.txt",
+      "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64",
+      "source": "https://raw.githubusercontent.com/harfbuzz/harfbuzz/main/COPYING"
+    }
+  ]
+}

@@ -14,7 +14,7 @@
 :root .text-btn.ghost:not(:disabled):not([aria-disabled='true']):active { background: var(--state-active); }
 :root :is(.ui-action-menu button, .ui-command-results > button, .canvas-layer-picker button):not(:disabled):not([aria-disabled='true']):active { background: var(--state-active); }
 /* The selected marker owns segmented fills, even when its button is hovered. */
-:root .editor-app .seg[data-ui-indicator] button[aria-pressed='true']:hover:not(:active) { background: transparent; }
+:root .seg[data-ui-indicator] button[aria-pressed='true']:not(:disabled):is(:hover,:active) { background: transparent; color: var(--control-selected-text); }
 
 /* A layer is one surface; its name never adds a second rounded fill. */
 :root :is(.layer-row, .layer-group) :is(.layer-name, .layer-group-name):is(:hover, :active) { background: transparent; }
@@ -33,7 +33,7 @@
 :root :is(.editor-app, .modal, [popover], .brand-guide) :is(input, select, textarea):is(:disabled, [aria-disabled='true']) { color: var(--text-secondary); }
 :root :is(.editor-app, .modal, [popover], .brand-guide) :is(input, select, textarea)[aria-disabled='true']:hover { border-color: var(--field-border); }
 :root .field-inline:has(input:disabled):hover { border-color: var(--field-border); }
-:root .font-trigger:not(:disabled):active { background: var(--state-active); border-color: var(--border-strong); }
+:root .font-trigger:not(:disabled):active { background: var(--state-active); border-color: var(--field-border); }
 :root :is(.editor-app, .modal, [popover], .brand-guide) button[aria-busy='true'] { opacity: 1; }
 :root button[aria-disabled='true']:not([aria-busy='true']) { color: var(--text-disabled); }
 :root .text-btn:is(.primary, .danger):is(:disabled, [aria-disabled='true']):not([aria-busy='true']) { --feedback-rest: var(--field-surface); background: var(--field-surface); border-color: var(--field-border); color: var(--text-disabled); }
@@ -106,7 +106,7 @@
 @media (hover: hover) and (pointer: fine) {
   :root :is(.icon-btn.on, .icon-btn.active, .text-btn.active, .icon-btn[aria-pressed='true'], .text-btn[aria-pressed='true'], .ui-filter-chip[aria-pressed='true']):not(:disabled):not([aria-disabled='true']):not(:active):hover { background: var(--state-selected-hover); }
   :root :is(.appearance-options, .palette-options, .settings-layout nav) > button[aria-pressed='true']:not(:disabled):not([aria-disabled='true']):hover:not(:active) { background: var(--state-selected-hover); }
-  :root :is(.number-field, .color-field):not(.has-error):not(:has(input:is(:disabled, [aria-disabled='true']))):hover { border-color: var(--border-strong); }
+  :root :is(.number-field, .color-field, .ui-property-input, .font-trigger, .ui-search-field, .doc-library-search, .layer-search-field, .font-query, .font-dropdown-search, .resource-query):not(.dimensions-linked .number-field):not(:disabled):not([aria-disabled='true']):not(:has(input:is(:disabled, [aria-disabled='true']))):hover { background: var(--field-surface-hover); }
   :root .color-clear:not(:disabled):hover:not(:active) { background: var(--state-hover); color: var(--text-primary); }
   :root :is(.transition-option, .layout-style-options > button)[aria-pressed='true']:not(:disabled):not(:active):hover { background: var(--state-selected-hover); }
   /* Preview targets are quieter than persistent resource selections. */
@@ -146,3 +146,45 @@
 
 /* The dimension link uses glyph contrast and keyboard focus, without a button tile. */
 :root .ui-button.icon-btn.ratio-toggle[aria-pressed]:not(:disabled):not([aria-disabled='true']):is(:hover,:active) { background: transparent; color: var(--text-primary); }
+
+/* Property choices stay neutral; their inset edge distinguishes selection
+   without a bright inverse block or a change to the control's dimensions. */
+:root :is(.text-btn,.icon-btn,.property-choice button,.picker-modes button,.font-dropdown-sources button,.settings-layout nav button):is([aria-pressed='true'],[aria-checked='true'],[aria-selected='true']):not(:disabled):not(.ratio-toggle) {
+  --state-selected:var(--control-selected-surface);
+  --state-selected-hover:var(--control-selected-hover);
+  --state-selected-active:var(--control-selected-active);
+  --text-link:var(--control-selected-text);
+  --text-secondary:var(--control-selected-text);
+  background:var(--control-selected-surface); color:var(--control-selected-text);
+  font-weight:var(--ui-weight-medium);
+}
+:root :is(.seg button,.text-btn,.icon-btn,.property-choice button,.picker-modes button,.font-dropdown-sources button,.settings-layout nav button):is([aria-pressed='true'],[aria-checked='true'],[aria-selected='true']):not(:disabled):not(:focus-visible):not(.ratio-toggle) {
+  outline:1px solid var(--control-selected-border); outline-offset:-1px;
+}
+/* A persistent canvas tool is the emphasized selection. Use the user's
+   palette only here; popover choices and document properties remain neutral. */
+:root .canvas-insert-dock button[aria-pressed='true']:not(:where([popover] button)) {
+  --control-selected-surface:var(--action-solid-bg);
+  --control-selected-hover:var(--action-solid-bg-hover);
+  --control-selected-active:var(--action-solid-bg-active);
+  --control-selected-text:var(--action-solid-fg);
+  --control-selected-border:transparent;
+  background:var(--control-selected-surface); color:var(--control-selected-text);
+}
+/* Supporting labels remain readable on pressed surfaces and selected rows. */
+:root :is(.layer-row.chosen,.layer-group.chosen,.font-row.chosen,.font-dropdown-list>[aria-selected='true']) { --text-secondary:var(--text-primary); }
+:root :is(.editor-app,.modal,[popover]) button:not(:disabled):not([aria-disabled='true']):active { --text-secondary:currentColor; }
+/* A locked selection still describes its value without imitating an enabled choice. */
+.seg:has(>button[aria-pressed='true']:disabled) { --control-selected-surface:var(--state-selected); }
+:root :is(.editor-app,.modal,[popover]) :is(.seg,.property-choice) button:is([aria-pressed='true'],[aria-checked='true']):disabled { color:var(--text-primary); }
+@media(forced-colors:active) {
+  :root :is(.editor-app,.modal,[popover]) svg.lucide-icon { color:inherit; }
+  .seg[data-ui-indicator]::before { background:Highlight; forced-color-adjust:none; }
+  :root :is(.seg,.property-choice,.picker-modes) button:is([aria-pressed='true'],[aria-checked='true'],[aria-selected='true']) { color:HighlightText; background:Highlight; forced-color-adjust:none; }
+}
+
+/* Selected layers carry a full edge as well as their quiet fill. Keyboard
+   focus on the name uses that same edge instead of a second nested outline. */
+:root :is(.layer-row.chosen,.layer-group.chosen){outline:1px solid var(--control-selected-border);outline-offset:-1px}
+:root :is(.layer-row.chosen:has(>.layer-name:focus-visible),.layer-group.chosen:has(>.layer-group-name:focus-visible)){outline:2px solid var(--accent-line);outline-offset:-2px}
+:root :is(.layer-row.chosen>.layer-name,.layer-group.chosen>.layer-group-name):focus-visible{outline:none}

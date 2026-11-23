@@ -12,9 +12,5 @@
   .inspector-view-tabs,.font-dropdown-sources,.seg { flex-wrap:wrap; }
 }
 @media (any-pointer:coarse) and (max-width:760px) {
-  .topbar-left { flex:1; max-width:none; }
-  .topbar-left .brand-button { width:44px; flex:none; padding:0; }
-  .topbar .document-name { flex:1; min-width:0; max-width:140px; padding-inline:4px; font-size:16px; }
-  .topbar-right { gap:0; }
   .canvas-insert-dock { gap:4px; }
 }

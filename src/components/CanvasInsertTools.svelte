@@ -66,22 +66,26 @@
         {/snippet}
       </InsertToolsFrame>
 <style>
-  .shape-split, .drawing-split { display: flex; align-items: center; width: 44px; min-width: 0; border-radius: var(--r-control); }
-  .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { width: 32px; min-width: 32px; padding: 0; border-radius: var(--r-control); }
-  .shape-split > :global(.shape-options), .drawing-options { width: 12px; }
-  .shape-split > :global(.shape-options > button), .drawing-options :global(.ui-panel-trigger > button) { width: 12px; min-width: 12px; padding: 0; border-radius: var(--r-control); }
+  /* Tool selection is scoped in feedback.css so popovers retain neutral choices. */
+  :global(.canvas-insert-dock .icon-btn) { color: var(--text-primary); }
+  :global(#app .canvas-insert-dock .active:enabled) { background: var(--control-selected-surface); color: var(--control-selected-text); }
+  .shape-split, .drawing-split { display: flex; align-items: center; width: 68px; min-width: 68px; border-radius: var(--r-control); }
+  .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { width: 44px; min-width: 44px; padding: 0; border-radius: var(--r-control); }
+  .shape-split > :global(.shape-options), .drawing-options { width: 24px; }
+  .shape-split > :global(.shape-options > button), .drawing-options :global(.ui-panel-trigger > button) { width: 24px; min-width: 24px; padding: 0; border-radius: var(--r-control); }
   .shape-split > :global(.shape-options > button > svg), .drawing-options :global(.ui-panel-trigger > button > svg) { width: 10px; height: 10px; }
   @media (min-width: 761px) and (pointer: fine) {
-    .shape-split, .drawing-split { width: 56px; }
-    .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { width: 40px; min-width: 40px; min-height: 44px; }
-    .shape-split > :global(.shape-options), .drawing-options { width: 16px; }
-    .shape-split > :global(.shape-options > button), .drawing-options :global(.ui-panel-trigger > button) { width: 16px; min-width: 16px; min-height: 44px; }
+    .shape-split, .drawing-split { width: 68px; }
+    .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { width: 44px; min-width: 44px; min-height: 44px; }
+    .shape-split > :global(.shape-options), .drawing-options { width: 24px; }
+    .shape-split > :global(.shape-options > button), .drawing-options :global(.ui-panel-trigger > button) { width: 24px; min-width: 24px; min-height: 44px; }
     .shape-split > :global(.shape-options > button > svg), .drawing-options :global(.ui-panel-trigger > button > svg) { width: 12px; height: 12px; }
   }
   @media (max-width: 760px), (pointer: coarse) {
-    .shape-split, .drawing-split { width: 56px; }
-    .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { width: 44px; min-width: 44px; min-height: 44px; }
-    .shape-split > :global(.shape-options > button), .drawing-options :global(.ui-panel-trigger > button) { min-height: 44px; }
+    .shape-split, .drawing-split { width:100%; min-width:88px; }
+    .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { width:auto; flex:1; min-width:44px; min-height:44px; }
+    .shape-split > :global(.shape-options), .drawing-options { width:44px; flex:none; }
+    .shape-split > :global(.shape-options > button), .drawing-options :global(.ui-panel-trigger > button) { width:44px; min-width:44px; min-height:44px; }
     .shape-split > :global(.shape-entry), .drawing-split > :global(.draw-entry) { flex-direction: column; gap: 2px; padding: 2px 4px; }
   }
 </style>

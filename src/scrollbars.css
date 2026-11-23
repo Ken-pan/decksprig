@@ -1,6 +1,6 @@
 /* Application chrome only. Native scrolling, wheel, touch and keyboard stay intact. */
 :root {
-  --scroll-thumb: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+  --scroll-thumb: var(--text-secondary);
 }
 
 #app * {

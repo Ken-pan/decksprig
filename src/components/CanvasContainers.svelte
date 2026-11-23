@@ -49,5 +49,5 @@
   .container-outline{position:absolute;border:solid var(--canvas-selection);pointer-events:none}
   .scope-outline{border-style:dashed;opacity:.7}
   .hover-outline{border-color:color-mix(in srgb,var(--canvas-selection) 65%,transparent)}
-  .container-label{position:absolute;display:block;text-align:start;left:0;transform:translateX(min(0px,calc(var(--label-room) - 100%)));line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--canvas-selection);font-family:var(--font-ui);border:0;background:var(--surface-overlay);border-radius:2px;pointer-events:auto;cursor:pointer}
+  .container-label{position:absolute;display:block;text-align:start;left:0;transform:translateX(min(0px,calc(var(--label-room) - 100%)));line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary);font-family:var(--font-ui);border:0;background:var(--surface-overlay);border-radius:2px;pointer-events:auto;cursor:pointer}
 </style>

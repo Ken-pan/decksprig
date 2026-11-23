@@ -7,6 +7,7 @@ import { matchSmartLayers, createSmartTransition } from '../src/core/smart-motio
 import { createNextMotionState, moveEntranceGroup } from '../src/core/motion-authoring';
 import {resolvePageTransition} from '../src/core/transitions';
 import { defaultAnimation, suggestEntrances } from '../src/core/motion';
+import {resolveObjectMotion} from '../src/core/motion-sequence';
 import { aiJsonSchema, omitNull } from '../server/ai-schema';
 
 test('smart identity is explicit, unique and independent of element IDs; ambiguity never guesses',()=>{
@@ -29,6 +30,20 @@ test('uniform typography can shrink continuously; changed wrapping, fonts, data 
   b.elements[0].w=300;assert.equal(matchSmartLayers(a,b).pairs[0].dissolve,true);b.elements[0].w=360;b.elements[0].text='Another story';assert.equal(matchSmartLayers(a,b).pairs[0].dissolve,true);
   a.elements=[element('image',{name:'Photo',src:'data:image/png;base64,AA=='})];b.elements=[element('image',{name:'Photo',src:'data:image/png;base64,AB=='})];assert.equal(matchSmartLayers(a,b).pairs[0].dissolve,true);
   a.elements=[element('chart',{name:'Chart',values:[{label:'A',value:10}]})];b.elements=[element('chart',{name:'Chart',values:[{label:'A',value:20}]})];assert.equal(matchSmartLayers(a,b).pairs[0].dissolve,true);
+});
+test('table-only style changes crossfade in live and serialized Smart Animate without replacing nodes',()=>{
+ const a=blankSlide(),b=blankSlide();a.elements=[element('table',{name:'Metrics',cells:[['A','B'],['1','2']],tableStyle:{cellStyles:[{row:1,column:1,fill:'#ffffff',strikethrough:false}],columnWidths:[1,1]}})];b.elements=[element('table',{...a.elements[0],id:'styled-table',x:a.elements[0].x+80,tableStyle:{cellStyles:[{row:1,column:1,fill:'#00ff00',strikethrough:true}],columnWidths:[1,2]}})];
+ const before=JSON.stringify([a,b]),plan=matchSmartLayers(a,b);assert.equal(plan.pairs[0].dissolve,true);assert(plan.pairs[0].changed.includes('content'));
+ const context={resolveObjectMotion,__name:(f:Function)=>f,getComputedStyle:()=>({visibility:'visible',opacity:'1'})},portableMatcher=runInNewContext(`(${matchSmartLayers.toString()})`,context),portableFactory=runInNewContext(`(${createSmartTransition.toString()})`,context);
+ assert.equal(JSON.stringify(portableMatcher(a,b)),JSON.stringify(plan));
+ for(const run of [createSmartTransition(matchSmartLayers),portableFactory(portableMatcher)]){
+  const captured:any[]=[],node=(e:any)=>({dataset:{elementId:e.id},style:{visibility:''},querySelector:()=>null,animate:(frames:any,timing:any)=>{captured.push({id:e.id,frames,timing});return{};},cloneNode(){throw new Error('Keep original table nodes');}}),old=node(a.elements[0]),next=node(b.elements[0]),root=(n:any)=>({querySelectorAll:()=>[n],querySelector:()=>({style:{backgroundColor:'#ffffff'}})});
+  const originalComputedStyle=globalThis.getComputedStyle;globalThis.getComputedStyle=context.getComputedStyle as unknown as typeof getComputedStyle;
+  try{assert.equal(run(root(next),root(old),a,b,{duration:600,fill:'both'},[],[],{native:true}),true);}finally{globalThis.getComputedStyle=originalComputedStyle;}
+  assert.equal(old.style.visibility,'');assert(captured.some(c=>c.id===a.elements[0].id&&c.frames[0].opacity===1&&c.frames[1].opacity===0));assert(captured.some(c=>c.id===b.elements[0].id&&c.frames[0].opacity===0&&c.frames[1].opacity===1));assert(captured.every(c=>c.timing.duration===600));
+ }
+ assert.equal(JSON.stringify([a,b]),before);
+ b.elements[0]={...a.elements[0],id:'same-style',tableStyle:JSON.parse(JSON.stringify(a.elements[0].tableStyle))};assert.equal(matchSmartLayers(a,b).pairs[0].dissolve,false);assert.deepEqual(matchSmartLayers(a,b).pairs[0].changed,[]);
 });
 test('copying a motion state is one guarded transaction and protects source geometry, authored cues and references',()=>{
   const s=blankSlide('Evidence');s.source={provider:'PDF',render:'data:image/png;base64,AA==',warnings:[],fidelity:'source-render'};
@@ -54,7 +69,7 @@ test('smart matching and DOM runtime serialize with no application globals and n
   const captured:any[]=[];const node=(e:any)=>{const shape={style:{},animate:(frames:any,timing:any)=>{captured.push({target:'shape',frames,timing});return{}}};return{dataset:{elementId:e.id},style:{visibility:'',contain:''},querySelector:(q:string)=>q==='.element-motion'?{inert:false,style:{visibility:''}}:q==='.element-visual'?{style:{},animate:shape.animate}:q.includes('shape-content')?shape:null,animate:(frames:any,timing:any)=>{captured.push({target:e.id,frames,timing});return{}},cloneNode(){throw new Error('No clones')}};};
   const old=node(a.elements[0]),next=node(b.elements[0]),oldPage={style:{backgroundColor:'#111111'}},newPage={style:{backgroundColor:'#eeeeee'}};
   const root=(n:any,page:any)=>({querySelectorAll:()=>[n],querySelector:()=>page});
-  const context={__name:(f:Function)=>f,getComputedStyle:()=>({visibility:'visible',opacity:'1'})};const matcher=runInNewContext(`(${matchSmartLayers.toString()})`,context),factory=runInNewContext(`(${createSmartTransition.toString()})`,context),restore:Function[]=[],animations:any[]=[];
+  const context={resolveObjectMotion,__name:(f:Function)=>f,getComputedStyle:()=>({visibility:'visible',opacity:'1'})};const matcher=runInNewContext(`(${matchSmartLayers.toString()})`,context),factory=runInNewContext(`(${createSmartTransition.toString()})`,context),restore:Function[]=[],animations:any[]=[];
   const before=JSON.stringify([a,b]);assert.equal(factory(matcher)(root(next,newPage),root(old,oldPage),a,b,{duration:650,fill:'both'},animations,restore),true);assert.equal(old.style.visibility,'hidden');assert.equal(newPage.style.backgroundColor,'transparent');
   const geometry=captured.find(c=>c.target===b.elements[0].id);assert.match(geometry.frames[0].transform,/rotate\(-10deg\)/);assert.match(geometry.frames[1].transform,/rotate\(10deg\)/);assert.match(geometry.frames[0].transform,/scale\(0.5,0.5\)/);
   const paint=captured.find(c=>c.frames[0].backgroundColor);assert.equal(paint.frames[0].backgroundColor,'#ff0000');assert.equal(paint.frames[1].backgroundColor,'#00ff00');restore.forEach(fn=>fn());assert.equal(old.style.visibility,'');assert.equal(newPage.style.backgroundColor,'#eeeeee');assert.equal(JSON.stringify([a,b]),before);
@@ -70,4 +85,11 @@ test('a smart boundary reverses with its authored timing while ordinary destinat
   assert.deepEqual(resolvePageTransition(a,b,1),b.transition);assert.deepEqual(resolvePageTransition(b,a,-1),b.transition);assert.deepEqual(resolvePageTransition(null,a,-1),a.transition);
   b.transition.effect='iris';assert.deepEqual(resolvePageTransition(b,a,-1),a.transition);
   const resolve=runInNewContext(`(${resolvePageTransition.toString()})`,{__name:(f:Function)=>f});b.transition.effect='smart';assert.equal(resolve(b,a,-1).effect,'smart');
+});
+
+test('native Smart Animate fades unmatched layers for the full timeline, including pages with no matches',()=>{
+ const a=blankSlide(),b=blankSlide();a.elements=[element('rect',{name:'Outgoing',opacity:.4})];b.elements=[element('ellipse',{name:'Incoming',opacity:.6})];const captured:any[]=[];
+ const node=(e:any)=>({dataset:{elementId:e.id},opacity:e.opacity,style:{visibility:''},querySelector:()=>null,animate:(frames:any,timing:any)=>{captured.push({id:e.id,frames,timing});return{};}}),root=(n:any)=>({querySelectorAll:()=>[n],querySelector:()=>({style:{backgroundColor:'#ffffff'}})}),old=node(a.elements[0]),next=node(b.elements[0]);
+ const context={resolveObjectMotion,__name:(f:Function)=>f,getComputedStyle:(n:any)=>({visibility:'visible',opacity:String(n.opacity)})},matcher=runInNewContext(`(${matchSmartLayers.toString()})`,context),factory=runInNewContext(`(${createSmartTransition.toString()})`,context),run=factory(matcher),timing={duration:2000,easing:'linear',fill:'both'};
+ assert.equal(run(root(next),root(old),a,b,timing,[],[],{native:true}),true);const outgoing=captured.find(c=>c.id===a.elements[0].id),incoming=captured.find(c=>c.id===b.elements[0].id);assert.deepEqual(JSON.parse(JSON.stringify(outgoing.frames)),[{opacity:.4},{opacity:0}]);assert.deepEqual(JSON.parse(JSON.stringify(incoming.frames)),[{opacity:0},{opacity:.6}]);assert.equal(outgoing.timing.duration,2000);captured.length=0;assert.equal(run(root(next),root(old),a,b,timing,[],[]),false);assert.equal(captured.length,0);
 });

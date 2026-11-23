@@ -1,15 +1,16 @@
 import type { Slide, SlideElement } from './model';
+import {resolveObjectMotion} from './motion-sequence';
 
 export type SmartPair = {from: SlideElement; to: SlideElement; basis: 'key' | 'name'; changed: string[]; dissolve: boolean};
 export type SmartPlan = {pairs: SmartPair[]; issues: string[]};
 
 // Serialized with the HTML player: all matching rules live inside this function.
-export function matchSmartLayers(from: Slide, to: Slide, steps: {fromStep?: number; toStep?: number} = {}): SmartPlan {
+export function matchSmartLayers(from: Slide, to: Slide, steps: {fromStep?: number; toStep?: number} = {},resolve:typeof resolveObjectMotion=resolveObjectMotion): SmartPlan {
   const issues: string[] = [], pairs: SmartPair[] = [];
   const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
   const eligible = (s: Slide, step: number) => {
-    const orders = [...new Set(s.elements.filter(e=>!e.hidden && e.animation?.trigger==='click' && e.animation.effect!=='none').map(e=>e.animation!.order))].sort((a,b)=>a-b);
-    return s.elements.filter(e=>!e.hidden && e.motionMatch!=='off' && !e.sourceRegion && !['prototype','line'].includes(e.type) && !(e.animation?.trigger==='click' && e.animation.effect!=='none' && orders.indexOf(e.animation.order)>=step));
+    const entries=new Map(resolve(s).entries.map(entry=>[entry.id,entry]));
+    return s.elements.filter(e=>{const entry=entries.get(e.id);return !e.hidden&&e.motionMatch!=='off'&&!e.sourceRegion&&!['prototype','line'].includes(e.type)&&(!entry||(entry.phase==='out'?step<entry.cue:step>=entry.cue));});
   };
   const old = eligible(from, steps.fromStep ?? Infinity), next = eligible(to, steps.toStep ?? 0);
   const context = (e: SlideElement, s: Slide) => e.group ? 'group:'+s.elements.filter(x=>x.group===e.group && !x.hidden).map(x=>x.type+':'+normalize(x.name)).sort().join('|') : 'root';
@@ -28,12 +29,12 @@ export function matchSmartLayers(from: Slide, to: Slide, steps: {fromStep?: numb
     if(y.type==='text'){
       const ratio=x.fontSize/y.fontSize, close=(v:number,w:number)=>Math.abs(v-w)<.01;
       const proportional=close(x.w/y.w,ratio)&&close(x.h/y.h,ratio)&&close(x.letterSpacing,y.letterSpacing*ratio)&&(['top','right','bottom','left'] as const).every(k=>close(x.padding?.[k] ?? 0,(y.padding?.[k] ?? 0)*ratio));
-      dissolve ||= !same(['text','runs','paragraphs','fontFamily','fontWeight','italic','underline','align','verticalAlign','lineHeight','wrap','clipText','maxLines']) || !proportional;
-      if(!same(['text','runs','paragraphs','fontSize','fontFamily','fontWeight','padding','letterSpacing','italic','underline','align','verticalAlign','lineHeight','wrap','clipText','maxLines']))changed.push('text');
+      dissolve ||= !same(['text','runs','paragraphs','fontFamily','fontWeight','italic','underline','strikethrough','align','verticalAlign','lineHeight','wrap','clipText','maxLines']) || !proportional;
+      if(!same(['text','runs','paragraphs','fontSize','fontFamily','fontWeight','padding','letterSpacing','italic','underline','strikethrough','align','verticalAlign','lineHeight','wrap','clipText','maxLines']))changed.push('text');
     }else if(y.type==='image'){
       dissolve ||= !same(['src','fit','crop']);if(!same(['src','fit','crop']))changed.push('image');
     }else if(y.type==='table' || y.type==='chart'){
-      dissolve ||= !same(['cells','values','chart','fontFamily','fontSize','fontWeight','w','h','fill','padding','align','lineHeight']);if(dissolve)changed.push('content');
+      dissolve ||= !same(['cells','tableStyle','values','chart','fontFamily','fontSize','fontWeight','w','h','fill','padding','align','lineHeight']);if(dissolve)changed.push('content');
     }
     pairs.push({from:x,to:y,basis:key.startsWith('key:')?'key':'name',changed,dissolve});
   }
@@ -42,16 +43,16 @@ export function matchSmartLayers(from: Slide, to: Slide, steps: {fromStep?: numb
 
 // Existing incoming/outgoing nodes only. No bitmap overlays, clones or live iframe copies.
 export function createSmartTransition(match: typeof matchSmartLayers) {
-  return function(incoming: HTMLElement, outgoing: HTMLElement, from: Slide, to: Slide, settings: KeyframeAnimationOptions, animations: Animation[], restore: (()=>void)[], steps: {fromStep?:number;toStep?:number} = {}) {
+  return function(incoming: HTMLElement, outgoing: HTMLElement, from: Slide, to: Slide, settings: KeyframeAnimationOptions, animations: Animation[], restore: (()=>void)[], steps: {fromStep?:number;toStep?:number;native?:boolean} = {}) {
     const nodes=(root:HTMLElement)=>new Map([...root.querySelectorAll<HTMLElement>('[data-element-id],.e[data-id]')].map(n=>[n.dataset.elementId || n.dataset.id!,n]));
     const old=nodes(outgoing), next=nodes(incoming), plan=match(from,to,steps);
     const visible=(n:HTMLElement|undefined)=>Boolean(n && !n.querySelector<HTMLElement>('.element-motion')?.inert && getComputedStyle(n.querySelector('.element-motion') || n).visibility!=='hidden');
     const pairs=plan.pairs.filter(p=>visible(old.get(p.from.id)) && visible(next.get(p.to.id)));
-    if(!pairs.length)return false;
+    if(!pairs.length&&!steps.native)return false;
     for(const root of [incoming,outgoing]){const page=root.querySelector<HTMLElement>('.slide-render,.slide');if(page){const bg=page.style.backgroundColor;page.style.backgroundColor='transparent';restore.push(()=>page.style.backgroundColor=bg);}}
     const animate=(n:HTMLElement,frames:Keyframe[])=>{try{animations.push(n.animate(frames,settings));}catch{/* The existing node remains visible in its final state. */}};
     const baseOpacity=(n:HTMLElement)=>Number(getComputedStyle(n).opacity);
-    const fade=(n:HTMLElement,enter:boolean)=>{const opacity=baseOpacity(n);animate(n,enter?[{offset:0,opacity:0},{offset:.2,opacity:0},{offset:.62,opacity},{offset:1,opacity}]:[{offset:0,opacity},{offset:.08,opacity},{offset:.36,opacity:0},{offset:1,opacity:0}]);};
+    const fade=(n:HTMLElement,enter:boolean)=>{const opacity=baseOpacity(n);animate(n,steps.native?(enter?[{opacity:0},{opacity}]:[{opacity},{opacity:0}]):enter?[{offset:0,opacity:0},{offset:.2,opacity:0},{offset:.62,opacity},{offset:1,opacity}]:[{offset:0,opacity},{offset:.08,opacity},{offset:.36,opacity:0},{offset:1,opacity:0}]);};
     const hide=(n:HTMLElement)=>{const value=n.style.visibility;n.style.visibility='hidden';restore.push(()=>n.style.visibility=value);};
     const nearest=(a:number,b:number)=>b+((a-b+180)%360+360)%360-180;
     function geometry(n:HTMLElement,x:SlideElement,y:SlideElement,enter:boolean,dissolve:boolean){

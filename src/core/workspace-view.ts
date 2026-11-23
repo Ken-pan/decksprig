@@ -1,9 +1,4 @@
-import {uid, type Deck} from './model';
-import {cloneDocumentData} from './document-data';
-
-export function copyDeck(deck: Deck, title = `${deck.title} · Copy`): Deck {
-  return {...cloneDocumentData(deck), id: uid('deck'), title: title.slice(0,300), revision: 0, updatedAt: new Date().toISOString()};
-}
+export {copyDeck} from './document-copy';
 export function reorderedSlides(ids: string[], dragged: string, target: string, after = false): string[] {
   if (dragged === target || !ids.includes(dragged) || !ids.includes(target)) return ids;
   const next = ids.filter(id => id !== dragged), index = next.indexOf(target);

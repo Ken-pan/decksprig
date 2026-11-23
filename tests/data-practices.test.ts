@@ -18,7 +18,7 @@ test('dense professional charts space readable labels without removing data or l
   assert.equal(option.series[0].data.length,24);assert.equal(option.series[0].labelLayout.hideOverlap,true);
   assert.equal(option.xAxis.axisLabel.interval(0),true);assert.equal(option.xAxis.axisLabel.interval(23),true);
   const svg=renderChartSvg(e);assert.ok(svg.includes('Customer segment 1'));assert.ok(svg.includes('Customer segment 24'));
-  const title=svg.match(/<title>([\s\S]*?)<\/title>/)![1];assert.ok(title.includes('$1000000'));assert.equal((svg.match(/<svg\b/g)??[]).length,1);
+  const title=svg.match(/<title>([\s\S]*?)<\/title>/)![1];assert.ok(title.includes('$1,000,000'));assert.equal((svg.match(/<svg\b/g)??[]).length,1);
   assert.equal(JSON.stringify(e),before);
   const legacy={...e,chart:{...chart,visual:undefined}};assert.equal(chartLabelLayout(legacy,legacy.chart).step,1);assert.equal((chartOption(legacy) as any).xAxis.axisLabel.interval,0);
 });

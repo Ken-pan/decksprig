@@ -58,15 +58,6 @@ $('#ink').addEventListener('input',e=>{ink=e.target.value;render();});$('#backgr
 $('#clear').addEventListener('click',()=>{query=category=family='';$('input[type=search]').value='';document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(!b.dataset.filter)));render();});
 try{
   const response=await fetch('manifest.json');if(!response.ok)throw new Error('The catalog could not load. Reload to try again.');
-  const manifest=await response.json();assets=await Promise.all(manifest.items.map(async original=>{
-    const item={...original};
-    if(!item.attributionRequired){
-      item.provider='Decksprig Graphics';item.creator='Decksprig';
-      item.sourceUrl=new URL('README.md',location.href).href;
-      item.licenseNotice=item.licenseNotice.replaceAll('Deck Studio','Decksprig').replaceAll('http://127.0.0.1:4310/resources/deck-graphics-v1/README.md',item.sourceUrl);
-      if(original.creator==='Deck Studio')item.licenseNotice+=' Original creation credit: Deck Studio (previous project name).';
-    }
-    const r=await fetch(item.file);if(!r.ok)throw new Error('An SVG could not load. Reload to try again.');return {item,svg:await r.text()};
-  }));
+  const manifest=await response.json();assets=await Promise.all(manifest.items.map(async item=>{const r=await fetch(item.file);if(!r.ok)throw new Error('An SVG could not load. Reload to try again.');return {item,svg:await r.text()};}));
   $('#dark-example').src=svgUrl(customizeGraphic(assets.find(a=>a.item.id==='contour-flow').svg,'#f5f4ef'));render();
 }catch(error){status.textContent=error.message;}

@@ -1,0 +1,56 @@
+{
+  "name": "woff2-codec-wasm",
+  "version": "0.3.2",
+  "license": "MIT and bundled compiler runtime notices",
+  "file": "src/vendor/woff2-codec/codec.wasm",
+  "sha256": "722e8daff7f11f907f3e89bc656c17e7e56cbf1ecf75ea090d2a5b3ae13e63b9",
+  "packageArchive": "https://registry.npmjs.org/woff2-codec/-/woff2-codec-0.3.2.tgz",
+  "archiveSha256": "3b9230b77b20facb7ed075ec26c06f829dfd8931e53e4d4fca8d8dd356a82844",
+  "repository": "https://github.com/jlarmstrongiv/web-font-codecs",
+  "modifications": "WASM unmodified. Direct typed decoder adapter authored in src/core/font-woff2.ts; package JS and Node >=24 wrapper are not used.",
+  "upstreamSources": {
+    "woff1": {
+      "url": "https://github.com/bramstein/sfnt2woff-zopfli",
+      "revision": "64833aa89615b59b25f887443dfd344f24bbe3dc",
+      "notes": "Initial import of Mozilla/Jonathan Kew's original zlib-based WOFF codec, before any Zopfli modifications.",
+      "license": "MPL-1.1 OR GPL-2.0-or-later OR LGPL-2.1-or-later",
+      "distributionOption": "MPL-1.1"
+    },
+    "woff2": {
+      "url": "https://github.com/google/woff2",
+      "revision": "fb9c3379f2605b10f3e8f1d9636664ab5576775c",
+      "license": "MIT",
+      "notes": "Latest upstream commit as of 2026-09-28; includes 2026 bounds/overflow fixes absent from the last tagged release v1.0.2 (2017-11-13).",
+      "date": "2026-06-29T17:04:31Z"
+    },
+    "brotli": {
+      "url": "https://github.com/google/brotli",
+      "revision": "028fb5a23661f123017c060daa546b55cf4bde29",
+      "license": "MIT",
+      "notes": "Latest eligible stable release; independently pinned at submodules/google/brotli instead of the unused WOFF2 nested submodule. Native/WASM reference parity validates compatibility.",
+      "tag": "v1.2.0",
+      "date": "2025-10-27T16:03:32Z"
+    },
+    "zlib": {
+      "url": "https://github.com/madler/zlib",
+      "revision": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+      "tag": "v1.3.2",
+      "license": "Zlib",
+      "date": "2026-02-17T15:12:43Z"
+    },
+    "emscripten": {
+      "version": "6.0.9",
+      "url": "https://github.com/emscripten-core/emscripten/tree/6.0.9",
+      "license": "MIT OR NCSA",
+      "date": "2026-09-01T06:25:34Z"
+    },
+    "zopfli": {
+      "url": "https://github.com/google/zopfli",
+      "tag": "zopfli-1.0.3",
+      "commit": "bd64b2f0553d4f1ef4e6627647c5d9fc8c71ffc0",
+      "releasedAt": "2019-11-27T22:56:36Z",
+      "license": "Apache-2.0",
+      "modifications": "None; original Google C encoder, PNG tools not built."
+    }
+  }
+}

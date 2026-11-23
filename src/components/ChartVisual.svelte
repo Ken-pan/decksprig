@@ -1,21 +1,22 @@
 <script lang="ts">
+  import {fontFamilyKey,sameFontFamily} from '../core/font-stack';
   import { untrack,tick } from 'svelte';
   import {chartPointTarget} from '../ui-chart-hit';
   import {restoreFocus} from '../ui-focus';
   import type {ChartTextTarget} from '../core/chart-text';
   import {Button} from './ui';
   import type { SlideElement } from '../core/model';
-  import { loadLibraryFont } from '../core/font-loading';
-  let {element,fonts,editable=false,activePoint,onpoint,ontext}:{element:SlideElement;fonts?:import('../core/model').Deck['fonts'];editable?:boolean;activePoint?:{series:number;category:number};onpoint?:(series:number,category:number)=>void;ontext?:(target:ChartTextTarget)=>void}=$props();
+  import {loadLibraryTypography} from '../core/font-loading';
+  let {element,background='#ffffff',fonts,onlineFonts,editable=false,activePoint,onpoint,ontext}:{element:SlideElement;background?:string;fonts?:import('../core/model').Deck['fonts'];onlineFonts?:import('../core/model').Deck['onlineFonts'];editable?:boolean;activePoint?:{series:number;category:number};onpoint?:(series:number,category:number)=>void;ontext?:(target:ChartTextTarget)=>void}=$props();
   let root=$state<HTMLDivElement>(),focusedPoint=$state<{series:number;category:number}|null>(null),hoverPoint=$state<{series:number;category:number}|null>(null);
   let attempt = $state(0),lastChart=$state<{svg:string;description:string}>(),failed=$state(false);
-  const signature = $derived(JSON.stringify([element.chart, element.values, element.w, element.h, element.fontSize, element.fontFamily, element.fill, element.stroke, element.name,editable]));
+  const signature = $derived(JSON.stringify([background,element.chart, element.values, element.w, element.h, element.fontSize, element.fontFamily, element.fill, element.stroke, element.name,editable,onlineFonts?.find(font=>sameFontFamily(font.family,element.fontFamily))?.category]));
   const request = $derived.by(() => {
     signature;
     attempt;
-    const snapshot = untrack(() => element), imported = untrack(() => fonts);
-    const interactive=untrack(()=>editable);
-    return Promise.all([import('../core/chart-render'), loadLibraryFont(snapshot.fontFamily, imported).catch(() => {})]).then(([render]) => ({svg: render.renderChartSvg(snapshot,interactive), description: render.chartAlt(snapshot)}));
+    const snapshot = untrack(() => element), imported = untrack(() => fonts),online=untrack(()=>onlineFonts);
+    const interactive=untrack(()=>editable),backdrop=untrack(()=>background);
+    return Promise.all([import('../core/chart-render'), loadLibraryTypography([{elements:[snapshot]}],imported,online).catch(()=>{})]).then(([render]) => ({svg: render.renderChartSvg(snapshot,interactive,online?.find(font=>font.family===snapshot.fontFamily)?.category,backdrop), description: render.chartAlt(snapshot)}));
   });
   $effect(()=>{let active=true;failed=false;void request.then(async result=>{
     if(!active)return;

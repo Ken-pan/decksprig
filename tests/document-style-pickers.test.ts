@@ -25,7 +25,7 @@ test('choosing a document font links only the family and keeps typography, rich 
  const d=templateDeck('review'),s=d.slides[0],e=freeBody(d);d.designSystem!.typography.title.fontFamily='Lora';
  e.fontSize=43;e.fontWeight=700;e.design!.overrides=['fontSize','fontWeight'];e.runs=[{text:'Inherited',fontFamily:e.fontFamily,bold:true,color:e.fill},{text:'Custom',fontFamily:'Georgia',italic:true,color:'#ff0088'}];
  const locked=element('text',{locked:true}),source=element('text',{sourceRegion:{left:0,top:0,right:.5,bottom:.5}});s.elements.push(locked,source);
- const before=structuredClone(d),originalDocument=globalThis.document;globalThis.document={fonts:{load:async()=>[]}} as unknown as Document;
+ const before=structuredClone(d),originalDocument=globalThis.document;globalThis.document={createElement:()=>({remove(){}}),head:{append:(link:{onload:()=>void})=>queueMicrotask(()=>link.onload())},fonts:{load:async()=>[]}} as unknown as Document;
  try{
   const ops=await documentFontSelectionOperations(d,s.id,[e.id,locked.id,source.id],findFont('Lora')!);globalThis.document=originalDocument;const linked=applyOperations(d,ops);const result=linked.slides[0].elements.find(v=>v.id===e.id)!;
   assert.equal(result.design!.font,'title');assert.equal(result.design!.text,'body');assert.equal(result.fontFamily,'Lora');assert.equal(result.fontSize,43);assert.equal(result.fontWeight,700);assert.equal(result.lineHeight,e.lineHeight);

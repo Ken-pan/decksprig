@@ -1,4 +1,7 @@
 <script lang="ts">
+  import '../text-measurement-flow';
+  import {fontFamilyKey,sameFontFamily} from '../core/font-stack';
+  import type {TableCellTextPatch} from '../core/table-cell-text';
   import {isBlockSizingFrame} from '../core/block-frame';
   import {observeFontLoading} from '../core/font-events';
   import {hitElements} from '../core/hit-testing';
@@ -13,21 +16,27 @@
   import {isShapeTool} from '../core/shapes';
   import type { DeckBlock } from '../core/deck-blocks';
   import DeckBlockPreview from './DeckBlockPreview.svelte';
+  import type {BodyTextEditor} from '../body-text-editor';
+  let RichTextEditor=$state<typeof import('./CanvasRichText.svelte').default>(),bodyEditor=$state<BodyTextEditor|null>(null);
+  let richTextRequest:Promise<void>|undefined;
+  function loadRichText(){return richTextRequest??=import('./CanvasRichText.svelte').then(module=>{RichTextEditor=module.default;}).catch(()=>{throw Error('Text editing tools could not load. Refresh the app to retry.');});}
+  function setBodyEditor(value:BodyTextEditor|null){if(value||!bodyEditor?.dom.isConnected)bodyEditor=value;}
+  function bodyChanged(next:SlideElement){if(textDraft?.element.id===next.id){textDraft={...textDraft,element:next};updateDraftLayout();return;}const base=sourceSlide.elements.find(e=>e.id===next.id);if(!base||editing!==next.id)return;formattedText=isTextShape(base)?{...base,...shapeTextPatch(base,next)}:next;updateLiveTextLayout(next);}
   let MobileTextEditor=$state<typeof import('./CanvasMobileTextEditor.svelte').default>();
   let mobileTextEditing=$state(false);
-  $effect(()=>{mobileTextEditing=Boolean(interactive&&!original&&sourceSlide.elements.some(e=>e.id===editing&&e.type==='text')&&matchMedia('(max-width:760px), (pointer:coarse)').matches);});
+  $effect(()=>{mobileTextEditing=Boolean(interactive&&!original&&sourceSlide.elements.some(e=>e.id===editing&&canEditText(e))&&matchMedia('(max-width:760px), (pointer:coarse)').matches);});
   $effect(()=>{if(mobileTextEditing&&!MobileTextEditor)void import('./CanvasMobileTextEditor.svelte').then(module=>MobileTextEditor=module.default).catch(()=>{mobileTextEditing=false;editor.notify('The text editor could not open. Continue editing on the canvas.','warning');});});
   import type CanvasDrawingComponent from './CanvasDrawing.svelte';
   let CanvasDrawing = $state<typeof import('./CanvasDrawing.svelte').default>();
   $effect(() => {if (insertTool === 'draw' && !CanvasDrawing) void import('./CanvasDrawing.svelte').then(module => CanvasDrawing = module.default).catch(() => {editor.notify('Drawing tools could not load. Try again.', 'warning'); oninsertcancel?.();});});
   import {drawingState} from '../drawing-state.svelte';
   import type {CanvasTool} from '../core/insertion';
-  import TableVisual from './TableVisual.svelte';
   import {themedImagePreview} from '../core/theme-artwork';
   import {isRegionFill} from '../core/resource-purpose';
   import ResourceImage from './ResourceImage.svelte';
   import {descendants,treeSelection,ancestorIds,groupBox,groupMarquee,selectionRoots,editingSelectionScope,individualSelectionScope} from '../core/container-tree';
   import { onMount, tick, untrack } from 'svelte';
+  import {observeCanvasWidth} from '../core/canvas-width';
   import type { Deck, Slide, SlideElement } from '../core/model';
   import { focusCanvasSelection } from '../editor-focus';
   import {popoverFocus,restoreFocus} from '../ui-focus';
@@ -35,13 +44,14 @@
   import { holdPointerCursor, isPointerGestureActive } from '../pointer-cursor';
   import {canvasMovableIds,canvasHoverTarget} from '../core/canvas-pointer';
   import { editor } from '../core/editor.svelte';
-  import { textRangeStylePatch, textDraftPatch, type TextFormatPatch, type TextFormatState, type TextRange } from '../core/text-range-format';
-  import { readTextRange, restoreTextRange } from '../text-range-dom';
-  import {pasteInlineText} from '../inline-clipboard';
+  import { textDraftPatch, type TextFormatPatch, type TextFormatState, type TextRange } from '../core/text-range-format';
   import { insertedElement, insertionGeometry, fitTextInsertion, repeatedPlacementClick, type PlacementClick, type InsertTool, type InsertGeometry } from '../core/insertion';
   import { loadLibraryFont, slideFontFamilies } from '../core/font-loading';
   import { fontStack } from '../core/font-stack';
-  import { runStyle, paragraphStyle, textBoxStyle, textFlowStyle } from '../core/typography';
+  import {textLinkUrl} from '../core/text-link';
+  import {renderedNativeText,nativeTextSpans} from '../core/native-text-render';
+  import {createTypography} from '../core/typography';
+  const {runStyle,paragraphStyle,textBoxStyle,textFlowStyle}=createTypography(family=>fontStack(family,deck.onlineFonts?.find(font=>sameFontFamily(font.family,family))?.category));
   import {type Operation} from '../core/operations';
   import { selectedLayout } from '../core/object-layout';
   import { passedDragThreshold, boxResizeHandles, resizeCursor, resizeHandlePoint, resizeFromCorner, keepsAspectRatio, marqueeSelection, selectionBounds, selectionUnit, type ResizeHandle, type Point } from '../core/interactions';
@@ -51,11 +61,12 @@
   import { elementLabel } from './element-labels';
   import AsyncFeature from './AsyncFeature.svelte';
   import type {Chart} from '../core/chart-schema';
+  import {pageBackground} from '../core/page-background';
   import ChartVisual from './ChartVisual.svelte';
   import type {ChartTextTarget} from '../core/chart-text';
   import type {CellRange} from '../core/table-grid';
   import type {TableStyle} from '../core/table-schema';
-  import { playElement, clickOrders,autoEntranceOrders } from '../core/motion';
+  import {lazyElementPlayback} from '../core/lazy-motion-playback';
   import { resolveSlideTextSizing, resolveTextElement, browserTextSize, manualTextSizing } from '../core/text-layout';
   import {resolveGroupLayouts,manualLayoutSizing} from '../core/object-layout';
   import {createCanvasMoveScene,type CanvasMoveScene,type CanvasDrop} from '../core/canvas-container-move';
@@ -75,8 +86,8 @@
   // Selection preloads both visual aids before a drag crosses its threshold.
   // Saved layout-guide preferences also load them when the canvas opens.
   $effect(()=>{if(interactive&&(editor.selected.length||editor.layoutGuides))loadCanvasGuides();});
-  import { editedTextStyle } from '../core/text-editing';
-  let {deck, slide: sourceSlide, interactive = false, original = false, playback = false, step = 0, replay = 0, reduced = false, paused = false, entering = false, restored = false, sharedIds = [], clientId = '', insertTool = null, insertImage = null, insertBlock = null, onplace, oninsertcancel, ontextdraft, oncellselection, onprototype, onprototypeinteraction}: {deck: Pick<Deck, 'width' | 'height'> & Partial<Pick<Deck, 'fonts' | 'onlineFonts' | 'designSystem'>>; slide: Slide; interactive?: boolean; original?: boolean; playback?: boolean; step?: number; replay?: number; reduced?: boolean; paused?: boolean; entering?: boolean; restored?: boolean; sharedIds?: string[]; clientId?: string; insertTool?: CanvasTool|null; insertImage?: SlideElement|null; insertBlock?: DeckBlock|null; onplace?: (type:InsertTool, geometry:InsertGeometry, revision:number, slideId:string, text?:string, style?:Partial<SlideElement>) => void; oninsertcancel?: () => void; ontextdraft?: (active:boolean) => void; oncellselection?: (active:boolean) => void; onprototype?: (element: SlideElement) => void; onprototypeinteraction?: (id: string, active: boolean) => void} = $props();
+  import { mobileTextPresentation } from '../core/text-editing';
+  let {deck, slide: sourceSlide, interactive = false, original = false, thumbnail = false, layoutWidth, playback = false, step = 0, replay = 0, reduced = false, paused = false, entering = false, restored = false, sharedIds = [], clientId = '', insertTool = null, insertImage = null, insertBlock = null, onplace, oninsertcancel, ontextdraft, oncellselection, onprototype, onprototypeinteraction}: {deck: Pick<Deck, 'width' | 'height'> & Partial<Pick<Deck, 'fonts' | 'onlineFonts' | 'designSystem'>>; slide: Slide; interactive?: boolean; original?: boolean; thumbnail?: boolean; layoutWidth?: number; playback?: boolean; step?: number; replay?: number; reduced?: boolean; paused?: boolean; entering?: boolean; restored?: boolean; sharedIds?: string[]; clientId?: string; insertTool?: CanvasTool|null; insertImage?: SlideElement|null; insertBlock?: DeckBlock|null; onplace?: (type:InsertTool, geometry:InsertGeometry, revision:number, slideId:string, text?:string, style?:Partial<SlideElement>) => void; oninsertcancel?: () => void; ontextdraft?: (active:boolean) => void; oncellselection?: (active:boolean) => void; onprototype?: (element: SlideElement) => void; onprototypeinteraction?: (id: string, active: boolean) => void} = $props();
   let fontEpoch = $state(0), dataEditorId = $state('');
   const dataElement = $derived(sourceSlide.elements.find(e=>e.id===dataEditorId));
   let chartTextEditor=$state<{id:string;target:ChartTextTarget}|null>(null);
@@ -94,17 +105,17 @@
   function chartPointNode(id:string,series:number,category:number){return host?.querySelector<HTMLElement>(`[data-element-id="${id}"] [data-chart-point][data-chart-series="${series}"][data-chart-category="${category}"]`)??host?.querySelector<HTMLElement>(`[data-element-id="${id}"]`)??undefined;}
   function chartDraft(e:SlideElement){return chartValuePreview?.id===e.id?{...e,chart:chartValuePreview.chart}:e;}
   let tablePointerCell:{id:string;row:number;column:number}|null=null;
-  let cellEditor=$state<{id:string;row:number;column:number;initialValue?:string}|null>(null),cellPreview=$state<{id:string;row:number;column:number;value:string}|null>(null);
+  let cellEditor=$state<{id:string;row:number;column:number;initialValue?:string}|null>(null),cellPreview=$state<{id:string;row:number;column:number;patch:TableCellTextPatch}|null>(null);
   let tableInteraction=$state<{id:string;range?:CellRange;moving:boolean;resizing:boolean}>();
   let columnPreview=$state<{id:string;style:TableStyle}|null>(null);
   function cellNode(id:string,row:number,column:number){return host?.querySelector<HTMLElement>(`[data-element-id="${id}"] [data-table-row="${row}"][data-table-column="${column}"]`)??undefined;}
   function openCell(id:string,row:number,column:number,initialValue?:string){if(!interactive||original||sourceSlide.elements.find(e=>e.id===id)?.locked)return;editor.choose(id,false,true);cellEditor={id,row,column,initialValue};}
-  function tableDraft(e:SlideElement){const styled=columnPreview?.id===e.id?{...e,tableStyle:columnPreview.style}:e;if(cellPreview?.id!==e.id)return styled;const cells=(e.cells??[]).map(r=>[...r]);if(cells[cellPreview.row])cells[cellPreview.row][cellPreview.column]=cellPreview.value;return {...styled,cells};}
+  function tableDraft(e:SlideElement){const styled=columnPreview?.id===e.id?{...e,tableStyle:columnPreview.style}:e;return cellPreview?.id===e.id?{...styled,...cellPreview.patch}:styled;}
   let lineEditPreview=$state<{id:string;patch:Partial<SlideElement>}|null>(null);
   let lineLabelSize=$state<{id:string;w:number;h:number}|null>(null);
-  let formattedText = $state<SlideElement | null>(null), formatVersion = $state(0);
-  let formattingText = false;
-  let savedTextRange: {id: string; range: TextRange} | null = null;
+  // Editor transactions replace this complete draft; nested reactive proxies
+  // would retraverse thousands of unchanged run styles on every keystroke.
+  let formattedText = $state.raw<SlideElement | null>(null);
   let slide = $derived.by(() => {
     fontEpoch;
     const lineSource=lineEditPreview?{...sourceSlide,elements:sourceSlide.elements.map(e=>e.id===lineEditPreview!.id?{...e,...lineEditPreview!.patch}:e)}:sourceSlide;
@@ -128,12 +139,19 @@
   });
   $effect(() => {
     if (original && slide.source?.render) return;
-    for (const family of slideFontFamilies(slide)) void loadLibraryFont(family, deck.fonts).catch(() => {});
+    for (const family of slideFontFamilies(slide,deck.onlineFonts)) void loadLibraryFont(family, deck.fonts).catch(() => {});
   });
-  let orders = $derived(clickOrders(slide));
-  let autoOrder = $derived(autoEntranceOrders(slide));
   let host: HTMLDivElement;
-  let scale = $state(1);
+  let measuredWidth = $state<number>();
+  let scale = $derived((layoutWidth ?? measuredWidth ?? deck.width) / deck.width);
+  let lastScale: number | undefined;
+  $effect.pre(() => {
+    const next = scale;
+    if (lastScale !== undefined && Math.abs(next - lastScale) > .00001) {
+      untrack(() => { if (gesture || marquee || insertion) cancelPointer(); });
+    }
+    lastScale = next;
+  });
   let editing = $derived(interactive && !original ? editor.editingId : '');
   const sizingFrames=$derived(new Set(sourceSlide.elements.filter(e=>e.group&&sourceSlide.groups?.some(g=>g.id===e.group&&g.block)&&isBlockSizingFrame(e)).map(e=>e.id)));
   let individualPointer=$state(false);
@@ -152,7 +170,7 @@
   let movableIds=$derived(interactive?canvasMovableIds(sourceSlide,editor.selected,editor.selectionScope,editor.editingGroup,individualPointer):new Set<string>());
   let liveTextSize = $state<{id: string; w: number; h: number; x?: number; y?: number; textSizing?: SlideElement['textSizing']} | null>(null);
   $effect(() => { if (liveTextSize && liveTextSize.id !== editing) liveTextSize = null; });
-  $effect(() => { if (formattedText && formattedText.id !== editing) { formattedText = null; savedTextRange = null; } });
+  $effect(() => { if (formattedText && formattedText.id !== editing) { formattedText = null; } });
   let insertPoint = $state<Point|null>(null);
   let insertion = $state<{type:InsertTool;start:Point;end:Point;client:Point;pointerId:number;revision:number;slideId:string;active:boolean;constrained:boolean}|null>(null);
   let drawing = $state<CanvasDrawingComponent>();
@@ -168,15 +186,15 @@
   function renderedImage(e: SlideElement) {return regionRenderer && isRegionFill(e) ? regionRenderer(e) : themedImagePreview(e);}
   let adjustedClick = $derived(Boolean(insertPreview && insertPoint && !insertion?.active && (Math.abs(insertPreview.x - (insertion?.start ?? insertPoint).x) > .01 || Math.abs(insertPreview.y - (insertion?.start ?? insertPoint).y) > .01)));
   let previewLabelHeight = $derived(adjustedClick ? 48 : 28);
-  let textDraft = $state<{element:SlideElement;revision:number;slideId:string}|null>(null);
+  let textDraft = $state<{element:SlideElement;revision:number;slideId:string;deckId:string}|null>(null);
   let draftLayout = $state<InsertGeometry|null>(null);
   let draftBounds = $derived(draftLayout ?? textDraft?.element);
   let draftInput = $state<HTMLDivElement>();
   let lastImageClick: PlacementClick|null = null;
   function updateDraftLayout() {
     if (!textDraft || !draftInput) return;
-    const text = draftInput.innerText.replace(/\r\n/g, '\n');
-    let current = {...textDraft.element, ...editedTextStyle(textDraft.element, text || 'Type here…')};
+    const text = bodyEditor?.element().text??textDraft.element.text;
+    let current = text?textDraft.element:{...textDraft.element,text:'Type here…',runs:undefined,paragraphs:undefined};
     let size = browserTextSize(current, deck);
     if (!size) return;
     if (current.textSizing === 'auto-width' && size.w > deck.width) {
@@ -212,11 +230,14 @@
     insertPoint=canvasPoint(event.clientX,event.clientY);
     if(insertion)insertion={...insertion,end:insertPoint,active:insertion.active||passedDragThreshold(event.clientX-insertion.client.x,event.clientY-insertion.client.y,event.pointerType),constrained:event.shiftKey};
   }
-  function completeInsertion(type:InsertTool,geometry:InsertGeometry,revision:number,slideId:string) {
+  let textInsertionRequest=0;
+  async function completeInsertion(type:InsertTool,geometry:InsertGeometry,revision:number,slideId:string) {
     if(!interactive||original||editor.deck?.revision!==revision||slide.id!==slideId)return;
     if(type==='text'){
-      draftLayout=null;textDraft={element:insertedElement('text',deck,geometry,'',sourceSlide),revision,slideId};ontextdraft?.(true);
-      void tick().then(()=>{updateDraftLayout();draftInput?.focus({preventScroll:true});});
+      const request=++textInsertionRequest,document=editor.deck!,deckId=document.id,element=insertedElement('text',deck,geometry,'',sourceSlide);
+      try{await Promise.all([loadRichText(),import('../core/text-editing-fonts').then(module=>module.prepareTextEditingFonts(element,document))]);}catch(error){if(request===textInsertionRequest&&editor.deck?.id===deckId){editor.notify((error as Error).message.startsWith('Text editing tools')?(error as Error).message:'The font is unavailable. Choose a font from the font library and retry.','warning');oninsertcancel?.();}return;}if(!interactive||original||insertTool!=='text'||request!==textInsertionRequest||editor.deck?.id!==deckId||editor.deck?.revision!==revision||slide.id!==slideId)return;
+      draftLayout=null;textDraft={element,revision,slideId,deckId};ontextdraft?.(true);
+      void tick().then(updateDraftLayout);
     }else onplace?.(type,geometry,revision,slideId,'',type==='line'?{line:{...lineState.style}}:{});
     insertPoint=null;
   }
@@ -232,15 +253,18 @@
   }
   export function finishTextDraft(cancel=false) {
     if(!textDraft)return;
+    if(!cancel&&bodyEditor?.composing()){editor.notify('Finish composing text before saving.','warning');return;}
+    if(!cancel&&bodyEditor&&!bodyEditor.current()){editor.notify('The document changed. Copy this text, then reopen it before saving.','warning');return;}
     updateDraftLayout();
-    const draft=textDraft,text=draftInput?.innerText.replace(/\r\n/g,'\n')??'',geometry=draftLayout??draft.element;
+    const draft=textDraft,current=bodyEditor?.element()??draft.element,text=current.text,geometry=draftLayout??draft.element;
     textDraft=null;draftLayout=null;ontextdraft?.(false);
-    if(!cancel&&text.trim())onplace?.('text',{...geometry,h:Math.min(20000,geometry.h)},draft.revision,draft.slideId,text,textDraftPatch({...draft.element,...editedTextStyle(draft.element,text)}));
+    if(!cancel&&text.trim())onplace?.('text',{...geometry,h:Math.min(20000,geometry.h)},draft.revision,draft.slideId,text,textDraftPatch(current));
     else void focusCanvasSelection();
   }
   function textKey(event:KeyboardEvent, draft=false) {
     if(!event.isComposing&&event.keyCode!==229&&!event.altKey&&(event.metaKey||event.ctrlKey)&&(!event.shiftKey&&['k',','].includes(event.key.toLowerCase())||event.shiftKey&&event.code==='Backslash'))return;
     event.stopPropagation();if(event.isComposing||event.keyCode===229)return;
+    if(event.key==='Escape'&&document.querySelector('[popover]:popover-open:not([role=tooltip])'))return;
     if(event.key==='Escape'){event.preventDefault();if(draft)finishTextDraft(true);else{finishTextEditing(true);void focusCanvasSelection();}}
     else if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();if(draft)finishTextDraft();else{finishTextEditing();void focusCanvasSelection();}}
     else if((event.metaKey||event.ctrlKey)&&!event.shiftKey&&event.key.toLowerCase()==='s'){event.preventDefault();if(draft)finishTextDraft();else{finishTextEditing();void focusCanvasSelection();}void editor.flush();}
@@ -253,7 +277,7 @@
     else {editor.hovered='';cancelPointer();}
   });
   $effect(()=>{
-    if(textDraft&&(!interactive||original||textDraft.slideId!==slide.id||textDraft.revision!==editor.deck?.revision)){textDraft=null;draftLayout=null;ontextdraft?.(false);}
+    if(textDraft&&(!interactive||original||textDraft.deckId!==editor.deck?.id||textDraft.slideId!==slide.id||textDraft.revision!==editor.deck?.revision)){textDraft=null;draftLayout=null;ontextdraft?.(false);}
   });
   let gesture = $state<{id: string; targetId?:string; tapTarget?:string; layoutId?:string; ids: string[]; x: number; y: number; dx: number; dy: number; mode: 'move' | 'resize' | 'scale' | 'layout-resize' | 'rotate'; rotation?:RotationGesture; members?:SlideElement[]; context?:string; corner: ResizeHandle; base: SlideElement; pointerId: number; pointerType: string; active: boolean; proportional: boolean; revision:number; slideId:string;deckId:string;altPick:boolean;toggleSelection:boolean;axis?:Axis;clientX:number;clientY:number;startPoint:Point;shift:boolean;alt:boolean} | null>(null);
   let canvasScene:CanvasMoveScene|null=null;
@@ -296,8 +320,8 @@
     else{event.stopPropagation();beginMarquee(event);}
   }
   function previewSelectionFrame(){const frame=editor.selectedContainer?groupBox(slide,editor.selectedContainer):selectionFrame(slide,editor.selected,editor.selectionScope);return frame&&gesture?.mode==='move'?{...frame,x:frame.x+gesture.dx,y:frame.y+gesture.dy}:frame;}
-  let cancelledText = false;
   let panFrame=0;
+  let pendingDrag: {x:number;y:number;shift:boolean;alt:boolean} | undefined;
   let snapScene: SnapScene | null = null;
   let snapGuides = $state<SnapGuide[]>([]);
   let displayGuides=$derived(canvasDrop?.flow?[]:snapGuides);
@@ -324,7 +348,7 @@
   }
   function position(e:SlideElement){const {x,y,w,h}=previewPosition(e);return `left:${fmt(x)};top:${fmt(y)};width:${fmt(w)};height:${fmt(h)};transform:rotate(${e.rotation}deg) scale(${e.flipX?-1:1},${e.flipY?-1:1});`;}
   function visual(e: SlideElement) {
-    return `font-family:${fontStack(e.fontFamily, editor.deck?.onlineFonts?.find(f => f.family === e.fontFamily)?.category)};font-size:${e.fontSize}px;font-weight:${e.fontWeight};font-style:${e.italic ? 'italic' : 'normal'};text-decoration:${e.underline ? 'underline' : 'none'};line-height:${e.lineHeight};letter-spacing:${e.letterSpacing}px;text-align:${e.align};color:${e.fill};`;
+    return `font-family:${fontStack(e.fontFamily, editor.deck?.onlineFonts?.find(f => sameFontFamily(f.family,e.fontFamily))?.category)};font-size:${e.fontSize}px;font-weight:${e.fontWeight};font-style:${e.italic ? 'italic' : 'normal'};text-decoration:${e.type==='text'||e.type==='table'?'none':e.underline?'underline':'none'};line-height:${e.lineHeight};letter-spacing:${e.letterSpacing}px;text-align:${e.align};color:${e.fill};`;
   }
   function canvasLineLabel(e:SlideElement){void fontEpoch;return lineLabelElement(e);}
   function touchHandleTarget(event:PointerEvent,e:SlideElement,corner:ResizeHandle):SlideElement|undefined {
@@ -400,8 +424,15 @@
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     if (!gesture.active && !passedDragThreshold(event.clientX - gesture.x, event.clientY - gesture.y, gesture.pointerType)) return;
     if(gesture.altPick&&!gesture.active){pendingPicker=null;if(!editor.selected.includes(gesture.id))editor.choose(gesture.id,event.shiftKey||editor.additiveSelection);if(!editor.selected.includes(gesture.id)){cancelPointer();return;}gesture={...gesture,context:editor.selectionScope,ids:selectionMembers(slide,editor.selected,false,editor.selectionScope).map(e=>e.id)};snapScene=createSnapScene(deck,slide,gesture.ids,editor.selected,gesture.context);}
-    updatePreview(event.clientX,event.clientY,event.shiftKey,event.altKey);
-    if(!panFrame)panFrame=requestAnimationFrame(autoPan);
+    // Start the gesture and latch modifier changes synchronously. A burst of
+    // steady movement needs only its newest position for the next paint.
+    if(!gesture.active||gesture.shift!==event.shiftKey||gesture.alt!==event.altKey){
+      pendingDrag=undefined;
+      updatePreview(event.clientX,event.clientY,event.shiftKey,event.altKey);
+    }else{
+      pendingDrag={x:event.clientX,y:event.clientY,shift:event.shiftKey,alt:event.altKey};
+    }
+    if(!panFrame)panFrame=requestAnimationFrame(renderDragFrame);
   }
   function applyMarquee(){
     if(!marquee?.active||!marqueeBox)return;
@@ -435,16 +466,30 @@
     gesture={...gesture,dx:result.dx,dy:result.dy,axis,clientX,clientY,shift,alt,active:true,proportional};
   }
 
-  function autoPan() {
+  function renderDragFrame() {
     panFrame=0;if(!gesture?.active)return;
-    const stage=host.closest<HTMLElement>('.canvas-stage');if(!stage)return;
-    const r=stage.getBoundingClientRect(),{clientX:x,clientY:y}=gesture;
-    if(x<r.left-32||x>r.right+32||y<r.top-32||y>r.bottom+32)return;
+    const sample=pendingDrag;
+    pendingDrag=undefined;
+    const {x,y,shift,alt}=sample??{x:gesture.clientX,y:gesture.clientY,shift:gesture.shift,alt:gesture.alt};
+    const panned=panCanvas(x,y);
+    if(sample||panned)updatePreview(x,y,shift,alt);
+    if(panned)panFrame=requestAnimationFrame(renderDragFrame);
+  }
+  function panCanvas(x:number,y:number) {
+    const stage=host.closest<HTMLElement>('.canvas-stage');
+    if(!stage||!gesture)return false;
+    const horizontal=gesture.axis!=='y'&&stage.scrollWidth-stage.clientWidth>=3;
+    const vertical=gesture.axis!=='x'&&stage.scrollHeight-stage.clientHeight>=3;
+    if(!horizontal&&!vertical)return false;
+    const r=stage.getBoundingClientRect();
+    if(x<r.left-32||x>r.right+32||y<r.top-32||y>r.bottom+32)return false;
     const velocity=(p:number,start:number,end:number)=>p<start+24?-Math.min(16,(start+24-p)*.6):p>end-24?Math.min(16,(p-end+24)*.6):0;
-    const sx=gesture.axis==='y'||stage.scrollWidth-stage.clientWidth<3?0:velocity(x,r.left,r.right),sy=gesture.axis==='x'||stage.scrollHeight-stage.clientHeight<3?0:velocity(y,r.top,r.bottom);
-    if(!sx&&!sy)return;const beforeX=stage.scrollLeft,beforeY=stage.scrollTop;stage.scrollLeft+=sx;stage.scrollTop+=sy;
-    if(stage.scrollLeft===beforeX&&stage.scrollTop===beforeY)return;
-    updatePreview(x,y,gesture.shift,gesture.alt);panFrame=requestAnimationFrame(autoPan);
+    const sx=horizontal?velocity(x,r.left,r.right):0,sy=vertical?velocity(y,r.top,r.bottom):0;
+    if(!sx&&!sy)return false;
+    const beforeX=stage.scrollLeft,beforeY=stage.scrollTop;
+    if(sx)stage.scrollLeft+=sx;
+    if(sy)stage.scrollTop+=sy;
+    return stage.scrollLeft!==beforeX||stage.scrollTop!==beforeY;
   }
   function finish(event: PointerEvent) {
     if(pointerCapture&&capturedViewport!==pointerViewport()){cancelPointer();return;}
@@ -456,7 +501,7 @@
     if(gesture.active)updatePreview(event.clientX,event.clientY,event.shiftKey,event.altKey);
     const g = gesture,scene=canvasScene,drop=canvasDrop;
     const settle=g.active&&g.mode==='move'&&scene?.flowInteraction?captureCanvasLayout(host):undefined;
-    gesture = null;canvasScene=null;canvasDrop=null; snapGuides=[];snapScene=null;cancelAnimationFrame(panFrame);panFrame=0;
+    pendingDrag=undefined;gesture = null;canvasScene=null;canvasDrop=null; snapGuides=[];snapScene=null;cancelAnimationFrame(panFrame);panFrame=0;
     releasePointer();
     if (!g.active) { if(g.tapTarget){editor.choose(g.tapTarget);return;}if (g.toggleSelection) editor.choose(g.targetId??g.id, true);else if(g.mode==='move'&&g.ids.length>1&&!g.shift&&!g.altPick&&!editor.additiveSelection&&!editor.selectedContainer)editor.choose(g.targetId??g.id);return; }
     if(editor.deck?.id!==g.deckId||editor.deck.revision!==g.revision||slide.id!==g.slideId){cancelCanvasLayoutMotion(host);return;}
@@ -473,53 +518,46 @@
   function saveText(event: FocusEvent, e: SlideElement) {
     if(mobileTextEditing)return;
     if (editing !== e.id) return;
-    if (formattingText || event.relatedTarget instanceof Element && event.relatedTarget.closest('[data-text-formatting],.selection-context,.ui-context-menu')) return;
-    finishTextEditing(cancelledText);
+    if (event.relatedTarget instanceof Element && event.relatedTarget.closest('[data-text-formatting],.selection-context,.ui-context-menu')) return;
+    finishTextEditing();
     if (!event.relatedTarget) void tick().then(() => { if (document.hasFocus() && document.activeElement === document.body) void focusCanvasSelection(); });
   }
-  function edit(e: SlideElement) {
+  let textFontRequest = 0;
+  let loadingTextId = $state('');
+  let preparedText:{deck:string;revision:number;id:string}|undefined;
+  $effect(()=>{const id=editing;if(!id||bodyEditor?.dom.isConnected&&bodyEditor.element().id===id||preparedText&&preparedText.deck===editor.deck?.id&&preparedText.revision===editor.deck?.revision&&preparedText.id===id)return;const target=sourceSlide.elements.find(e=>e.id===id);if(target)untrack(()=>{editor.editingId='';void edit(target);});});
+  let readyTextFonts = $state(new Map<string,string>());
+  $effect(() => {
+    if (!interactive || original || !editor.deck) return;
+    const document=editor.deck,elements=sourceSlide.elements;
+    let active=true;
+    void import('../core/text-editing-fonts').then(({prepareNativeTextFonts})=>prepareNativeTextFonts(elements,document,(id,fingerprint)=>{if(active)readyTextFonts=new Map(readyTextFonts).set(id,fingerprint);})).catch(()=>{});
+    return ()=>{active=false;};
+  });
+  $effect(() => {
+    if (loadingTextId && (editor.selected.length !== 1 || editor.selected[0] !== loadingTextId)) {textFontRequest++; loadingTextId = '';}
+  });
+  async function edit(e: SlideElement) {
     if (!interactive || original || e.locked || !canEditText(e)) return;
-    mobileTextEditing=e.type==='text'&&matchMedia('(max-width:760px), (pointer:coarse)').matches;
-    editor.choose(e.id,false,true); editor.additiveSelection=false;editor.editingId = e.id;
+    const document = editor.deck!, slideId = sourceSlide.id, request = ++textFontRequest;
+    editor.choose(e.id,false,true); editor.additiveSelection=false;
+    loadingTextId = e.id;
+    try {
+      const {prepareTextEditingFonts} = await import('../core/text-editing-fonts');
+      await Promise.all([prepareTextEditingFonts(isTextShape(e) ? shapeTextElement(e) : e, document),loadRichText()]);
+      if (request !== textFontRequest || editor.deck?.id !== document.id || editor.deck.revision !== document.revision || sourceSlide.id !== slideId || editor.selected.length !== 1 || editor.selected[0] !== e.id || !interactive || original) return;
+      const native=nativeTextSpans(e);if(native)readyTextFonts=new Map(readyTextFonts).set(e.id,native.fingerprint);
+      mobileTextEditing=canEditText(e)&&matchMedia('(max-width:760px), (pointer:coarse)').matches;
+      preparedText={deck:document.id,revision:document.revision,id:e.id};editor.editingId=e.id;
+    } catch(error) {
+      if (request === textFontRequest && editor.deck?.id === document.id && editor.deck.revision === document.revision && editor.selected[0] === e.id) editor.notify((error as Error).message.startsWith('Text editing tools')?(error as Error).message:'The original font is unavailable. Import the font file or choose a font from the font library.', 'warning');
+    } finally {
+      if (request === textFontRequest) loadingTextId = '';
+    }
   }
   function editableText() { return host?.querySelector<HTMLElement>('[contenteditable="true"]'); }
-  export function getTextFormatState(): TextFormatState | null {
-    const root = editableText();
-    const source = textDraft?.element ?? slide.elements.find(e => e.id === editing);
-    const e = source && isTextShape(source) ? shapeTextElement(source) : source;
-    if (!root || !e) return null;
-    const range = readTextRange(root);
-    if (range) savedTextRange = {id: e.id, range};
-    const selected = savedTextRange?.id === e.id ? savedTextRange.range : {start: 0, end: 0};
-    const current = {...e, ...editedTextStyle(e, root.innerText)};
-    return {element: current, range: {start: Math.min(current.text.length, selected.start), end: Math.min(current.text.length, selected.end)}};
-  }
-  export async function formatText(patch: TextFormatPatch, selection?: TextRange) {
-    const state = getTextFormatState();
-    if (!state) return;
-    const range = selection ?? state.range;
-    const changed = textRangeStylePatch(state.element, patch, range);
-    if (!Object.keys(changed).length) return;
-    const focused = document.activeElement as HTMLElement | null;
-    formattingText = true;
-    const next = {...state.element, ...changed};
-    if (textDraft) textDraft = {...textDraft, element: next}; else {
-      const base = slide.elements.find(e => e.id === next.id)!;
-      formattedText = isTextShape(base) ? {...base, ...shapeTextPatch(base, next)} : next;
-    }
-    savedTextRange = {id: next.id, range};
-    formatVersion++;
-    await tick();
-    const root = editableText();
-    if (root) {
-      root.focus({preventScroll: true}); restoreTextRange(root, range);
-      if (focused?.isConnected && focused.closest('[data-text-formatting]') && focused.matches('input')) focused.focus({preventScroll: true});
-      if (!textDraft) updateLiveTextLayout(next);
-      if (textDraft) updateDraftLayout();
-    }
-    formattingText = false;
-    window.dispatchEvent(new Event('deck-studio-text-format'));
-  }
+  export function getTextFormatState(): TextFormatState | null {return bodyEditor?.formatState()??null;}
+  export async function formatText(patch:TextFormatPatch,range?:TextRange){await bodyEditor?.format(patch,range);}
   function keepArtworkStill() {
     void tick().then(() => {
       if (!host) return;
@@ -546,20 +584,16 @@
     } else liveTextSize = {id: current.id, ...size};
     keepArtworkStill();
   }
+  function clearTextEditing(){editor.editingId='';mobileTextEditing=false;liveTextSize=null;lineLabelSize=null;formattedText=null;}
   export function finishTextEditing(cancel = false) {
     if (!editing) return;
-    const base = sourceSlide.elements.find(e => e.id === editing), root = editableText();
-    if (!base || !root) return;
-    const source = formattedText?.id === editing ? formattedText : base;
-    const draft = isTextShape(source) ? shapeTextElement(source) : source;
-    const before = isTextShape(base) ? shapeTextElement(base) : base;
-    const current = {...draft, ...editedTextStyle(draft, root.innerText)};
-    if (!cancel) updateLiveTextLayout(current);
-    const layout = liveTextSize?.id === base.id ? liveTextSize : null;
-    const changed = JSON.stringify(textDraftPatch(current)) !== JSON.stringify(textDraftPatch(before));
-    const patch = {...(isTextShape(base) ? shapeTextPatch(base, current) : textDraftPatch(current)), ...(changed && layout?.x !== undefined ? {x: layout.x, y: layout.y, w: layout.w, h: layout.h, textSizing: layout.textSizing} : {})};
-    if (!cancel && changed) {const revision=editor.deck!.revision;editor.commit([{op:'update_element',slideId:sourceSlide.id,elementId:base.id,patch}]);if(editor.deck!.revision===revision){root.focus({preventScroll:true});return;}}
-    editor.editingId = ''; mobileTextEditing=false; liveTextSize = null; lineLabelSize=null; formattedText = null; savedTextRange = null; cancelledText = false;
+    if(cancel){clearTextEditing();return;}
+    if(!cancel&&bodyEditor?.composing()){editor.notify('Finish composing text before saving.','warning');return;}
+    if(!cancel&&bodyEditor&&!bodyEditor.current()){editor.notify('The document changed. Copy this text, then reopen it before saving.','warning');return;}
+    const base=sourceSlide.elements.find(e=>e.id===editing);if(!base||!bodyEditor)return;
+    updateLiveTextLayout(bodyEditor.element());const patch=bodyEditor.patch(base,liveTextSize);
+    if(patch){const revision=editor.deck!.revision;editor.commit([{op:'update_element',slideId:sourceSlide.id,elementId:base.id,patch}]);if(editor.deck!.revision===revision){bodyEditor.focus();return;}}
+    clearTextEditing();
   }
   function elementKey(event: KeyboardEvent, e: SlideElement) {
     if (!interactive || event.target !== event.currentTarget || editing || event.isComposing || event.keyCode===229) return;
@@ -610,7 +644,7 @@
     if(interactive&&!original)editor.hovered='';
     insertion=null;
     if(marquee&&editor.deck?.id===marquee.deckId&&editor.deck.revision===marquee.revision&&editor.activeId===marquee.slideId&&editor.editingGroup===marquee.scope){editor.selected=marquee.base;editor.selectedGroup=marquee.baseGroup;editor.editingGroupId=marquee.baseScope;editor.individualSelection=marquee.baseIndividual;}
-    gesture=null;canvasScene=null;canvasDrop=null;marquee=null;snapGuides=[];snapScene=null;cancelAnimationFrame(panFrame);panFrame=0;
+    pendingDrag=undefined;gesture=null;canvasScene=null;canvasDrop=null;marquee=null;snapGuides=[];snapScene=null;cancelAnimationFrame(panFrame);panFrame=0;
     releasePointer();
     pendingPicker=null;clearTimeout(pickerTimer);
     if(heldPoint){pendingPicker=heldPoint;deferredPicker();}
@@ -645,6 +679,7 @@
   $effect(() => { if (!interactive || original || gesture&&(gesture.deckId!==editor.deck?.id||gesture.context!==editor.selectionScope) || marquee&&(marquee.deckId!==editor.deck?.id||marquee.scope!==editor.editingGroup) || [gesture, marquee, insertion].some(g => g && (g.slideId !== slide.id || g.revision !== editor.deck?.revision))) { cancelPointer(); } });
   function cancelGesture(event: KeyboardEvent) {
     if (!interactive || original || event.isComposing || event.keyCode === 229 || event.defaultPrevented) return;
+    if (loadingTextId && event.key === 'Escape') {textFontRequest++; loadingTextId = '';}
     individualPointer=event.metaKey||event.ctrlKey;
     if(hoveredObject&&!gesture&&!marquee&&!editing&&!insertTool)previewHover(hoveredObject);
     if(insertTool){
@@ -662,21 +697,24 @@
       if(event.key==='Escape'){event.preventDefault();event.stopPropagation();cancelPointer();}
       else if(marquee&&['Alt','Shift','Meta','Control'].includes(event.key)){marquee={...marquee,mode:event.altKey?'contain':'intersect',individual:event.metaKey||event.ctrlKey,additive:event.shiftKey||editor.additiveSelection};applyMarquee();}
       else if(event.metaKey||event.ctrlKey)cancelPointer();
-      else if(gesture?.active&&(event.key==='Alt'||event.key==='Shift'))updatePreview(gesture.clientX,gesture.clientY,event.shiftKey,event.altKey);
+      else if(gesture?.active&&(event.key==='Alt'||event.key==='Shift')){
+        const point=pendingDrag;
+        pendingDrag=undefined;
+        updatePreview(point?.x??gesture.clientX,point?.y??gesture.clientY,event.shiftKey,event.altKey);
+      }
       else if(event.key.startsWith('Arrow')){event.preventDefault();event.stopPropagation();}
     }
   }
   onMount(() => {
     // text-layout owns cache invalidation; canvases only repaint after fonts load.
     const releaseFonts = observeFontLoading(document.fonts, () => {fontEpoch++; if(textDraft)void tick().then(updateDraftLayout);});
-    scale = host.getBoundingClientRect().width / deck.width;
-    let frame = 0;
-    const observer = new ResizeObserver(([entry]) => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => { const next = entry.contentRect.width / deck.width; if (Math.abs(next - scale) > .00001) {if(gesture||marquee||insertion)cancelPointer();scale = next;} });
-    });
-    observer.observe(host);
-    return () => {releaseFonts(); observer.disconnect(); cancelAnimationFrame(frame);};
+    // The workspace owns its fitted width. Thumbnails can wait for the
+    // observer before painting. Modal, playback and print callers keep their
+    // first synchronous measurement.
+    if (layoutWidth !== undefined) return releaseFonts;
+    if (!thumbnail) measuredWidth = host.getBoundingClientRect().width;
+    const releaseWidth = observeCanvasWidth(host, width => { if (width > 0) measuredWidth = width; });
+    return () => { releaseFonts(); releaseWidth(); };
   });
   // Preview canvases own rendering, not global editor interaction listeners.
   $effect(() => {
@@ -703,7 +741,12 @@
     window.addEventListener('pointermove',outsideMove,true);window.addEventListener('pointerup',outsideFinish,true);window.addEventListener('lostpointercapture',outsideLoss,true);
     const visibility=()=>{if(document.visibilityState==='hidden')cancelPointer();};document.addEventListener('visibilitychange',visibility);
     const scrollHost=host.closest<HTMLElement>('.canvas-stage');
-    const scrollDrag=()=>{if(gesture?.active)updatePreview(gesture.clientX,gesture.clientY,gesture.shift,gesture.alt);};
+    const scrollDrag=()=>{
+      if(gesture?.active){
+        pendingDrag??={x:gesture.clientX,y:gesture.clientY,shift:gesture.shift,alt:gesture.alt};
+        if(!panFrame)panFrame=requestAnimationFrame(renderDragFrame);
+      }
+    };
     scrollHost?.addEventListener('scroll',scrollDrag);
     return () => { document.removeEventListener('pointerdown',additionalPointer,true);window.visualViewport?.removeEventListener('resize',cancelPointer);stopLayoutMotion();host.removeEventListener('pointerdown',stopLayoutMotion,true);window.removeEventListener('keydown',stopLayoutMotion,true);window.removeEventListener('resize',stopLayoutMotion);scrollHost?.removeEventListener('scroll',scrollDrag); cancelAnimationFrame(panFrame);clearTimeout(pickerTimer);clearHold(); window.removeEventListener('keydown', cancelGesture, true);
       window.removeEventListener('keyup', cancelGesture, true);
@@ -712,7 +755,7 @@
   $effect(() => {
     if (!interactive || original) return;
     const leave = (event: FocusEvent) => {
-      if (!interactive || original || formattingText || mobileTextEditing || !(event.target instanceof Element)) return;
+      if (!interactive || original || mobileTextEditing || !(event.target instanceof Element)) return;
       const root = editableText();
       if (!root || root.contains(event.target) || event.target.closest('[data-text-formatting],.selection-context,.ui-context-menu')) return;
       if (editing) finishTextEditing(); else if (textDraft) finishTextDraft();
@@ -722,25 +765,33 @@
   });
 </script>
 {#snippet elementText(e: SlideElement, shape = false, mobile = false)}
-            {#key `${editing === e.id}:${editing === e.id ? formatVersion : 0}`}
+            <!-- The editable canvas uses the same font/run flow before, during
+                 and after editing. Source glyphs remain in previews/exports. -->
+            {@const sourceText=nativeTextSpans(e)}
+            {@const editableFlow=interactive&&!original&&!e.locked&&canEditText(e)&&(!sourceText||readyTextFonts.get(e.id)===sourceText.fingerprint)}
+            {@const rendered=mobile?mobileTextPresentation(e):editableFlow?e:renderedNativeText(e)}
+            {@const native=editableFlow?undefined:nativeTextSpans(e)}
+            {#key editing === e.id}
             <!-- svelte-ignore a11y_no_static_element_interactions, a11y_no_noninteractive_tabindex -->
-            <div class="text-content" class:shape-text={shape} style={visual(e) + textBoxStyle(liveTextSize?.id === e.id && liveTextSize.textSizing ? {...e, textSizing: liveTextSize.textSizing} : e)} data-dialog-autofocus={mobile?true:undefined} aria-multiline={mobile?true:undefined} contenteditable={editing === e.id && (mobile===mobileTextEditing)} role={editing === e.id && (mobile===mobileTextEditing) ? 'textbox' : undefined} tabindex={editing === e.id ? 0 : undefined} onblur={(event) => saveText(event, e)} oninput={event => { if (editing === e.id) { updateLiveTextLayout({...e, ...editedTextStyle(e, event.currentTarget.innerText)}); } }}
-              aria-label={editing === e.id ? `Edit ${e.name}` : undefined}
-              onpaste={pasteInlineText} onkeydown={event => { if (editing) textKey(event); }}>
-              <div class="text-flow" style={editing===e.id?undefined:textFlowStyle(e)}>{#if e.paragraphs?.length}{#each e.paragraphs as p}<div class="text-paragraph" data-bullet={p.bullet || undefined} style={paragraphStyle(p, e)}>{#each p.runs as run}<span style={runStyle(run)}>{run.text}</span>{/each}</div>{/each}{:else if e.runs?.length}{#each e.runs as run}<span style={runStyle(run)}>{run.text}</span>{/each}{:else}{e.text}{/if}</div>
+            <div class="text-content" class:shape-text={shape} style={visual(rendered) + textBoxStyle(liveTextSize?.id === e.id && liveTextSize.textSizing ? {...rendered, textSizing: liveTextSize.textSizing} : rendered)+(editing===e.id?'overflow:auto;justify-content:safe '+(rendered.verticalAlign==='middle'?'center':rendered.verticalAlign==='bottom'?'flex-end':'flex-start')+';':'')} onkeydown={event => { if (editing) textKey(event); }}>
+              {#if editing===e.id&&RichTextEditor&&(mobile===mobileTextEditing)}
+                <RichTextEditor element={e} scale={mobile?rendered.fontSize/e.fontSize:1} {mobile} current={()=>editing===e.id} onchange={bodyChanged} onready={setBodyEditor} onblur={event=>saveText(event,e)} onerror={()=>{finishTextEditing(true);void focusCanvasSelection();}}/>
+              {:else}
+              {#if native}<svg class="native-text-spans" width={e.w} height={e.h} viewBox={`0 0 ${e.w} ${e.h}`} aria-hidden="true" style={`position:absolute;inset:0;width:${e.w}px;height:${e.h}px;overflow:visible`}>{#if native.outline}<image href={native.outline.src} x={native.outline.x} y={native.outline.y} width={native.outline.w} height={native.outline.h} transform={native.outline.transform?`matrix(${native.outline.transform.join(" ")})`:undefined}/>{:else}{#each native.spans??[] as span}<text x={span.x} y={span.y} fill={span.color??e.fill} style={`${runStyle(span,e)}white-space:pre;`}>{span.text}</text>{/each}{/if}</svg><span class="sr-only">{e.text}</span>{:else}<div class="text-flow" style={textFlowStyle(editing===e.id?{...rendered,maxLines:undefined}:rendered)}>{#if rendered.paragraphs?.length}{#each rendered.paragraphs as p}<div class="text-paragraph" data-bullet={p.bullet || undefined} style={paragraphStyle(p, rendered)}>{#each p.runs as run}<span style={runStyle(run,rendered)}>{run.text}</span>{/each}</div>{/each}{:else if rendered.runs?.length}{#each rendered.runs as run}<span style={runStyle(run,rendered)}>{run.text}</span>{/each}{:else}<span style={runStyle({text:rendered.text},rendered)}>{rendered.text}</span>{/if}</div>{/if}
+              {/if}
             </div>
             {/key}
 {/snippet}
 
 
-<div class="canvas-wrap" class:editable-wrap={interactive&&!original} bind:this={host} style:aspect-ratio="{deck.width} / {deck.height}">
-  {#if mobileTextEditing&&editing&&MobileTextEditor}{@const text=sourceSlide.elements.find(e=>e.id===editing)}{#if text}<MobileTextEditor fontSize={text.fontSize} oncommit={()=>{finishTextEditing();void focusCanvasSelection();}} onclose={()=>{finishTextEditing(true);void focusCanvasSelection();}}>{@render elementText(text,false,true)}</MobileTextEditor>{/if}{/if}
+<div class="canvas-wrap" class:editable-wrap={interactive&&!original} bind:this={host} style:aspect-ratio="{deck.width} / {deck.height}" style:visibility={thumbnail && measuredWidth === undefined ? 'hidden' : undefined}>
+  {#if mobileTextEditing&&editing&&MobileTextEditor}{@const raw=slide.elements.find(e=>e.id===editing)}{#if raw}{@const text=isTextShape(raw)?shapeTextElement(raw):raw}<MobileTextEditor fontSize={text.fontSize} readInline={getTextFormatState} onformat={formatText} oncommit={()=>{finishTextEditing();void focusCanvasSelection();}} onclose={()=>{finishTextEditing(true);void focusCanvasSelection();}}>{@render elementText(text,isTextShape(raw),true)}</MobileTextEditor>{/if}{/if}
   <!-- svelte-ignore a11y_no_static_element_interactions, a11y_no_noninteractive_tabindex -->
-  <div class="slide-render" class:editable={interactive && !original} class:gesturing={gesture?.active||marquee?.active} style:--canvas-scale={scale} style:width={fmt(deck.width)} style:height={fmt(deck.height)} style:transform="scale({scale})" style:background={slide.background} role={interactive?'group':undefined} aria-label={interactive?'Editable slide':undefined}
+  <div class="slide-render" class:editable={interactive && !original} class:gesturing={gesture?.active||marquee?.active} style:--canvas-scale={scale} style:width={fmt(deck.width)} style:height={fmt(deck.height)} style:transform="scale({scale})" style:background={pageBackground(slide.background)} role={interactive?'group':undefined} aria-label={interactive?'Editable slide':undefined}
     onpointerdown={startMarquee} onpointermove={move} onpointerup={finish} onpointercancel={cancelPointer} onlostpointercapture={event=>{if(pointerCapture?.target===event.target&&pointerCapture.id===event.pointerId)cancelPointer();}}
     data-slide-id={slide.id} data-view={original ? 'source' : 'editable'}>
     {#if original && slide.source?.render}
-      <img class="source-render" src={slide.source.render} alt="Slide source reference" draggable="false" />
+      <ResourceImage class="source-render" src={slide.source.render} {thumbnail} alt="Slide source reference" draggable="false" />
     {:else}
       {#if interactive&&!original&&!editing&&!insertTool}
         {#await containersView then Containers}{#if Containers}<Containers.default mode="hit" {slide} page={deck} selected={selectionUnits} onhover={hoverCanvas} onleave={leaveCanvas} onstart={startContainer}/>{/if}{/await}
@@ -748,21 +799,22 @@
       {#each slide.elements.filter(e => !e.hidden) as e (e.id)}
         <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_static_element_interactions -->
         <div class="slide-element" class:is-erasing={erasingIds.includes(e.id)} class:decorative-pattern={e.designPattern} class:block-sizing-frame={sizingFrames.has(e.id)} class:shape-frame={interactive&&!original&&(['line','ellipse','diamond'].includes(e.type)||Boolean(e.shape))} class:is-selected={interactive && selectedIds.has(e.id)} class:is-hovered={interactive && editor.hovered === e.id} class:is-locked={e.locked} class:is-movable={movableIds.has(e.id)} class:is-dragging={gesture?.active && gestureIds.has(e.id)} class:text-element={e.type === 'text'} class:editing={editing === e.id}
-          style={position(e)} data-element-id={e.id} data-element-type={e.type} aria-hidden={e.designPattern||sizingFrames.has(e.id)?true:undefined} tabindex={interactive&&!e.designPattern&&!sizingFrames.has(e.id) ? 0 : undefined}
+          style={position(e)} style:mix-blend-mode={e.blendMode??'normal'} data-element-id={e.id} data-element-type={e.type} aria-busy={loadingTextId===e.id?true:undefined} aria-hidden={e.designPattern||sizingFrames.has(e.id)?true:undefined} tabindex={interactive&&!e.designPattern&&!sizingFrames.has(e.id) ? 0 : undefined}
           role={interactive&&!e.designPattern&&!sizingFrames.has(e.id) ? editing===e.id?'group':'button' : undefined} aria-label={interactive&&!e.designPattern ? `${e.name}${e.locked ? ' · Locked' : ''}` : undefined} aria-pressed={interactive&&!e.designPattern&&editing!==e.id ? selectedIds.has(e.id) : undefined}
           onkeydown={(ev) => elementKey(ev, e)}
           onpointerenter={ev=>hoverCanvas(ev,e.id)} onpointermove={ev=>hoverCanvas(ev,e.id)} onpointerleave={()=>leaveCanvas(e.id)}
           onfocus={(ev) => { if (interactive && ev.target === ev.currentTarget && !editing && ev.currentTarget.matches(':focus-visible')) editor.hovered = ''; }} onblur={(ev) => { if (interactive && ev.target === ev.currentTarget && editor.hovered === e.id) editor.hovered = ''; }}
           onpointerdown={(event) => {const cell=e.type==='table'?(event.target as Element).closest<HTMLElement>('[data-table-row]'):null;tablePointerCell=cell?{id:e.id,row:Number(cell.dataset.tableRow),column:Number(cell.dataset.tableColumn)}:null;start(event,e);}}
           ondblclick={(event) => { if(!interactive||original||e.designPattern)return;event.stopPropagation();if(editor.drillInto(e.id))return;if(canEditText(e))edit(e);else {editor.choose(e.id,false,true);if(!e.locked&&e.type==='table'){const cell=(event.target as Element).closest<HTMLElement>('[data-table-row]');const hit=tablePointerCell?.id===e.id?tablePointerCell:null;openCell(e.id,Number(cell?.dataset.tableRow??hit?.row??0),Number(cell?.dataset.tableColumn??hit?.column??0));}else if(!e.locked&&e.type==='chart')openChartPoint(e.id);else if(!e.locked&&e.type==='image'&&!e.sourceRegion&&!isDrawingElement(e))editor.croppingId=e.id;} }}>
-          <div class="element-motion" use:playElement={{animation: e.animation, enabled: playback, step, replay, reduced, paused, entering, restored:restored || sharedIds.includes(e.id), orders, offset: Math.min(700, Math.max(0, autoOrder.indexOf(e.animation?.order??-1)) * 70)}}>
+          <div class="element-motion" use:lazyElementPlayback={{slide,elementId:e.id,animation:e.animation,enabled:playback,step,replay,reduced,paused,entering,restored,shared:sharedIds.includes(e.id)}}>
           <div class="element-visual" style:visibility={interactive&&editor.croppingId===e.id?'hidden':undefined} style:opacity={e.opacity} style:filter={shadowFilter(e)}>
           {#if e.type === 'prototype' && e.prototype}
             <AsyncFeature feature="prototype-embed" props={{prototype:e.prototype,label:e.name,live:playback,focusable:playback,clientId,oninteractionchange:onprototypeinteraction?(active:boolean)=>onprototypeinteraction(`${sourceSlide.id}:${e.id}`,active):undefined,onfocus:onprototype&&!playback?()=>onprototype(e):undefined}} />
           {:else if e.type === 'text'}
             {@render elementText(e)}
+            {#if playback&&textLinkUrl(e.link)}<a href={textLinkUrl(e.link)} target="_blank" rel="noopener noreferrer" aria-label={e.text||e.name} style="position:absolute;inset:0;display:block"></a>{/if}
           {:else if e.type === 'image'}
-            <div class="image-clip" style:border-radius={fmt(e.radius)}>{#if e.sourceRegion && !slide.source?.render && !e.src}<div class="source-object-placeholder">Attach a source PDF to display this shape</div>{:else}<AsyncFeature feature="framed-image" props={{image:e.sourceRegion&&slide.source?.render?{...e,crop:e.sourceRegion}:e,src:e.sourceRegion&&slide.source?.render?slide.source.render:renderedImage(e)}}/>{/if}</div>
+            <div class="image-clip" style:border-radius={fmt(e.radius)}>{#if e.sourceRegion && !slide.source?.render && !e.src}<div class="source-object-placeholder">Attach a source PDF to display this shape</div>{:else}<AsyncFeature feature="framed-image" props={{thumbnail,image:e.sourceRegion&&slide.source?.render?{...e,crop:e.sourceRegion}:e,src:e.sourceRegion&&slide.source?.render?slide.source.render:renderedImage(e)}}/>{/if}</div>
           {:else if e.type === 'diamond' || e.type === 'rect' && e.shape}
             <svg class="shape-svg" viewBox="0 0 {e.w} {e.h}" aria-hidden="true"><path style:pointer-events={e.designPattern?'none':'auto'} d={shapePath(e)} fill={e.fill} stroke={e.stroke} stroke-width={e.strokeWidth} /></svg>
           {:else if e.type === 'line'}
@@ -772,13 +824,13 @@
           {:else if e.type === 'table'}
             {#if TableGrid&&interactive&&!original&&!e.locked&&!e.designPattern&&selectedLeaves.has(e.id)&&editor.selected.length===1&&!editor.selectedContainer&&!gesture}
               <TableGrid element={tableDraft(e)} system={deck.designSystem} {scale} style={visual(e)} activeCell={cellEditor?.id===e.id?{row:cellPreview?.row??cellEditor.row,column:cellPreview?.column??cellEditor.column}:undefined} oncell={(row,column,initialValue)=>openCell(e.id,row,column,initialValue)} onselection={oncellselection} onrange={(range,moving,resizing)=>tableInteraction={id:e.id,range,moving,resizing}} onmove={event=>start(event,e,'move','se','',host?.querySelector<HTMLElement>(`[data-element-id="${e.id}"]`)??undefined)}/>
-            {:else}<TableVisual element={tableDraft(e)} system={deck.designSystem} style={visual(e)} editable={interactive&&!original&&!e.locked&&selectedIds.has(e.id)} activeCell={cellEditor?.id===e.id?{row:cellPreview?.row??cellEditor.row,column:cellPreview?.column??cellEditor.column}:undefined} oncell={(row,column)=>openCell(e.id,row,column)}/>{/if}
+            {:else}<AsyncFeature feature="table-visual" props={{onlineFonts:deck.onlineFonts,element:tableDraft(e),system:deck.designSystem,style:visual(e),editable:interactive&&!original&&!e.locked&&selectedIds.has(e.id),activeCell:cellEditor?.id===e.id?{row:cellPreview?.row??cellEditor.row,column:cellPreview?.column??cellEditor.column}:undefined,oncell:(row:number,column:number)=>openCell(e.id,row,column)}}/>{/if}
           {:else if e.type === 'chart'}
-            <ChartVisual element={chartDraft(e)} fonts={deck.fonts} editable={interactive&&!original&&!e.locked&&!e.designPattern&&selectedLeaves.has(e.id)&&editor.selected.length===1&&!editor.selectedContainer&&!gesture} activePoint={chartActivePoint?.id===e.id?chartActivePoint:undefined} onpoint={(series,category)=>openChartPoint(e.id,series,category)} ontext={target=>openChartText(e.id,target)}/>
+            <ChartVisual background={slide.background} onlineFonts={deck.onlineFonts} element={chartDraft(e)} fonts={deck.fonts} editable={interactive&&!original&&!e.locked&&!e.designPattern&&selectedLeaves.has(e.id)&&editor.selected.length===1&&!editor.selectedContainer&&!gesture} activePoint={chartActivePoint?.id===e.id?chartActivePoint:undefined} onpoint={(series,category)=>openChartPoint(e.id,series,category)} ontext={target=>openChartText(e.id,target)}/>
           {/if}
           {#if e.type==='line' && (e.text || editing===e.id)}
             {@const label=canvasLineLabel(e)}
-            <div class="line-label" style={lineLabelStyle(e,lineLabelSize?.id===e.id?{...label,...lineLabelSize}:label)} style:background={slide.background}>{@render elementText(label)}</div>
+            <div class="line-label" style={lineLabelStyle(e,lineLabelSize?.id===e.id?{...label,...lineLabelSize}:label)} style:background={pageBackground(slide.background)}>{@render elementText(label)}</div>
           {:else if isTextShape(e) && (e.text || editing === e.id)}{@render elementText(shapeTextElement(e), true)}{/if}
           </div>
           </div>
@@ -812,9 +864,11 @@
         {/if}
       {/if}
       {#if textDraft}
-        {#key formatVersion}
+        {#key textDraft.element.id}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div bind:this={draftInput} class="insertion-text-draft" style="left:{fmt(draftBounds!.x)};top:{fmt(draftBounds!.y)};width:{draftBounds!.textSizing === 'auto-width' ? 'max-content' : fmt(draftBounds!.w)};min-height:{fmt(draftBounds!.h)};{visual(textDraft.element)};white-space:{draftBounds!.textSizing === 'auto-width' ? 'pre' : 'pre-wrap'}" contenteditable="true" role="textbox" tabindex="0" aria-label="New text" aria-multiline="true" data-placeholder="Type here…" onpaste={pasteInlineText} onkeydown={event=>textKey(event,true)} oninput={updateDraftLayout} onblur={event=>{if(!formattingText&&!(event.relatedTarget instanceof Element&&event.relatedTarget.closest('[data-text-formatting],.selection-context,.ui-context-menu')))finishTextDraft();}}>{#if textDraft.element.runs?.length}{#each textDraft.element.runs as run}<span style={runStyle(run)}>{run.text}</span>{/each}{:else}{textDraft.element.text}{/if}</div>
+        <div bind:this={draftInput} class="insertion-text-draft" style="left:{fmt(draftBounds!.x)};top:{fmt(draftBounds!.y)};width:{draftBounds!.textSizing === 'auto-width' ? 'max-content' : fmt(draftBounds!.w)};min-height:{fmt(draftBounds!.h)};{visual(textDraft.element)};white-space:{draftBounds!.textSizing === 'auto-width' ? 'pre' : 'pre-wrap'}" onkeydown={event=>textKey(event,true)}>
+          {#if RichTextEditor}<RichTextEditor element={textDraft.element} label="New text" placeholder="Type here…" current={()=>Boolean(textDraft)} onchange={bodyChanged} onready={value=>{setBodyEditor(value);value?.focus();}} onblur={event=>{if(!(event.relatedTarget instanceof Element&&event.relatedTarget.closest('[data-text-formatting],.selection-context,.ui-context-menu')))finishTextDraft();}} onerror={()=>finishTextDraft(true)}/>{/if}
+        </div>
         {/key}
       {/if}
     {/if}
@@ -853,7 +907,6 @@
         </div>
       {/if}
       {#if transformReadout&&!displayGuides.length&&bounds}<div class="marquee-readout" style:left={fmt(Math.max(0,Math.min(deck.width-220/scale,bounds.x)))} style:top={fmt(Math.max(0,Math.min(deck.height-28/scale,bounds.y+bounds.h+34/scale)))}>{transformReadout}</div>{/if}
-      {#if marquee?.active&&marqueeBox}<div class="marquee-readout" style:left={fmt(Math.max(0,Math.min(deck.width-220/scale,marqueeBox.x)))} style:top={fmt(Math.max(0,Math.min(deck.height-28/scale,marqueeBox.y+marqueeBox.h+8/scale)))}>{marquee.mode==='contain'?'Inside':'Touching'}{marquee.individual?' · Members':''} · {editor.selected.length} {editor.selected.length===1?'object':'objects'}</div>{/if}
     </div>
   {/if}
   {#if interactive}<p class="sr-only" role="status">{canvasDrop?.reason??canvasDrop?.label??''}</p>{/if}
@@ -871,7 +924,7 @@
 {/if}
 
 {#if interactive&&cellEditor}
-  {#key cellEditor.id}{@const target=cellEditor}<AsyncFeature feature="table-cell" props={{elementId:cellEditor.id,initialRow:cellEditor.row,initialColumn:cellEditor.column,initialValue:cellEditor.initialValue,anchor:(row,column)=>cellNode(target.id,row,column),onpreview:(row,column,value)=>cellPreview=value===null?null:{id:target.id,row,column,value},onclose:()=>{cellPreview=null;cellEditor=null;},onfull:()=>dataEditorId=editor.selected[0]}}/>{/key}
+  {#key cellEditor.id}{@const target=cellEditor}<AsyncFeature feature="table-cell" props={{elementId:cellEditor.id,initialRow:cellEditor.row,initialColumn:cellEditor.column,initialValue:cellEditor.initialValue,anchor:(row,column)=>cellNode(target.id,row,column),onpreview:(row:number,column:number,patch:TableCellTextPatch|null)=>cellPreview=patch===null?null:{id:target.id,row,column,patch},onclose:()=>{cellPreview=null;cellEditor=null;},onfull:()=>dataEditorId=editor.selected[0]}}/>{/key}
 {/if}
 
 {#if interactive&&chartValueId}{#key chartValueSequence}{@const id=chartValueId}{@const sequence=chartValueSequence}{@const initial=chartInitialPoint}
@@ -881,10 +934,9 @@
 
 <style>
   .insertion-preview.region-preview img{object-fit:fill}
-  :global(.text-paragraph::after){content:var(--deck-end-content,none);font-size:var(--deck-end-size,inherit);font-family:var(--deck-end-font,inherit);pointer-events:none}
   .text-paragraph[data-bullet]::before{content:attr(data-bullet) " ";}
 
-  .canvas-wrap{position:relative;width:100%;overflow:hidden;background:var(--surface-page);isolation:isolate}
+  .canvas-wrap{position:relative;width:100%;overflow:hidden;isolation:isolate}
   .canvas-wrap.editable-wrap{overflow:visible}
   .interaction-overlay{position:absolute;inset:0 auto auto 0;transform-origin:top left;pointer-events:none;z-index:50}
   .interaction-overlay.manipulating :global(.container-label){visibility:hidden}
@@ -903,7 +955,7 @@
   .insertion-preview svg{width:100%;height:100%;overflow:visible}
   .insertion-text-draft{position:absolute;z-index:62;white-space:pre-wrap;overflow-wrap:break-word;outline:calc(1.5px / var(--canvas-scale)) solid var(--canvas-selection);outline-offset:calc(2px / var(--canvas-scale));cursor:text;user-select:text}
   .insertion-text-draft:empty::before{content:attr(data-placeholder);opacity:.45;pointer-events:none}
-  .slide-render{position:absolute;inset:0 auto auto 0;transform-origin:top left;color-scheme:light;overflow:hidden;letter-spacing:0}
+  .slide-render{isolation:isolate;position:absolute;inset:0 auto auto 0;transform-origin:top left;color-scheme:light;overflow:hidden;letter-spacing:0}
   .slide-element.decorative-pattern,.slide-element.block-sizing-frame{pointer-events:none}
   .slide-element{position:absolute;transform-origin:center;outline:none;}
   .slide-element.is-erasing{visibility:hidden;}
@@ -932,7 +984,7 @@
   /* Selected objects already have a focus indicator in the selection layer. */
   .editable .slide-element:focus-visible:not(.is-selected):not(.editing){outline:calc(2px / var(--canvas-scale)) solid var(--canvas-selection);outline-offset:calc(3px / var(--canvas-scale))}
   .slide-element :global(img),.shape-content,.text-content,.shape-svg{width:100%;height:100%;display:block}
-  .source-render{width:100%;height:100%;object-fit:contain;display:block}
+  .slide-render :global(.source-render){width:100%;height:100%;object-fit:contain;display:block}
   .shape-svg{overflow:visible}
   .shape-text{position:absolute;inset:0;pointer-events:none;box-sizing:border-box}
   .line-label{pointer-events:auto;z-index:2;border-radius:2px;}

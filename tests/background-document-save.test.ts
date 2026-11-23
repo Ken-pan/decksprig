@@ -43,6 +43,30 @@ test('failure after dispatch rejects the save and never replays an uncertain wri
   assert.equal(fallback,0);assert.equal(worker.terminated,true);
 });
 
+test('a silent worker timeout releases every pending save without replay and permits a fresh explicit request',async context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const workers:FakeWorker[]=[];let fallback=0;
+  const saver=new BackgroundDocumentSaver(()=>{const w=new FakeWorker();workers.push(w);return w.asWorker();},15,'Save did not complete',25);
+  const first=saver.save('/api/decks/a',{},async()=>{fallback++;});
+  const second=saver.save('/api/decks/b',{},async()=>{fallback++;});
+  const rejected=Promise.all([assert.rejects(first,/Save did not complete/),assert.rejects(second,/Save did not complete/)]);
+  workers[0].reply({type:'ready'});await turn();context.mock.timers.tick(25);await rejected;
+  assert.equal(workers[0].messages.length,2);assert.equal(workers[0].terminated,true);assert.equal(fallback,0);
+  const retry=saver.save('/api/decks/a',{});workers[1].reply({type:'ready'});await turn();
+  workers[1].reply({type:'result',id:workers[1].messages[0].id,value:{ok:true}});assert.deepEqual(await retry,{ok:true});
+  context.mock.timers.tick(35);assert.equal(workers[1].terminated,true);
+});
+
+test('successful replies clear the request watchdog without interrupting later saves',async context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const worker=new FakeWorker(),saver=new BackgroundDocumentSaver(()=>worker.asWorker(),100,'Timed out',40);
+  const first=saver.save('/api/decks/a',{});worker.reply({type:'ready'});await turn();
+  worker.reply({type:'result',id:worker.messages[0].id});await first;
+  context.mock.timers.tick(30);
+  const second=saver.save('/api/decks/a',{});await turn();context.mock.timers.tick(20);
+  assert.equal(worker.terminated,false);worker.reply({type:'result',id:worker.messages[1].id,value:true});assert.equal(await second,true);
+});
+
 test('a recovery worker reports its own failure without claiming that a backup was retained',async()=>{
   const worker=new FakeWorker(),saver=new BackgroundDocumentSaver(()=>worker.asWorker(),15,'Recovery write failed');let fallback=0;
   const pending=saver.save('drafts',{record:{id:'branch'}},async()=>{fallback++;});
@@ -89,27 +113,10 @@ test('minimal editor writes skip successful document echo bodies but preserve er
  assert.deepEqual(await jsonRequest('/api/decks/a','POST',{},async()=>Response.json({schema:'deck-studio/1',revision:1})),{schema:'deck-studio/1',revision:1});
 });
 
-test('a silent worker timeout releases every pending save without replay and permits a fresh explicit request',async context=>{
-  context.mock.timers.enable({apis:['setTimeout']});
-  const workers:FakeWorker[]=[];let fallback=0;
-  const saver=new BackgroundDocumentSaver(()=>{const w=new FakeWorker();workers.push(w);return w.asWorker();},15,'Save did not complete',25);
-  const first=saver.save('/api/decks/a',{},async()=>{fallback++;});
-  const second=saver.save('/api/decks/b',{},async()=>{fallback++;});
-  const rejected=Promise.all([assert.rejects(first,/Save did not complete/),assert.rejects(second,/Save did not complete/)]);
-  workers[0].reply({type:'ready'});await turn();context.mock.timers.tick(25);await rejected;
-  assert.equal(workers[0].messages.length,2);assert.equal(workers[0].terminated,true);assert.equal(fallback,0);
-  const retry=saver.save('/api/decks/a',{});workers[1].reply({type:'ready'});await turn();
-  workers[1].reply({type:'result',id:workers[1].messages[0].id,value:{ok:true}});assert.deepEqual(await retry,{ok:true});
-  context.mock.timers.tick(35);assert.equal(workers[1].terminated,true);
+test('document creation can read an acknowledged minimal receipt without reading a legacy full echo',async()=>{
+  const receipt = {id:'deck-a', revision:0, updatedAt:'2026-11-17T00:00:00.000Z'};
+  const save = (response:Response) => jsonRequest('/api/decks','POST',receipt,async () => response,{minimal:'receipt'});
+  assert.deepEqual(await save(Response.json(receipt,{headers:{'Preference-Applied':'return=minimal'}})),receipt);
+  assert.equal(await save(new Response('A legacy success body can be arbitrarily large.')),undefined);
+  await assert.rejects(save(Response.json({error:'Already saved'},{status:409})),/Already saved/);
 });
-
-test('successful replies clear the request watchdog without interrupting later saves',async context=>{
-  context.mock.timers.enable({apis:['setTimeout']});
-  const worker=new FakeWorker(),saver=new BackgroundDocumentSaver(()=>worker.asWorker(),100,'Timed out',40);
-  const first=saver.save('/api/decks/a',{});worker.reply({type:'ready'});await turn();
-  worker.reply({type:'result',id:worker.messages[0].id});await first;
-  context.mock.timers.tick(30);
-  const second=saver.save('/api/decks/a',{});await turn();context.mock.timers.tick(20);
-  assert.equal(worker.terminated,false);worker.reply({type:'result',id:worker.messages[1].id,value:true});assert.equal(await second,true);
-});
-

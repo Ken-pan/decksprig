@@ -1,4 +1,4 @@
-import {contentBounds,pageLayout} from './page-layout';
+import {contentBounds,pageLayout} from './page-layout-geometry';
 import type { Deck, Slide, SlideElement } from './model';
 import { applyOperations, ProposalSchema, type Operation, type Proposal } from './operations';
 import { scaledTextStyle } from './text-sizing';

@@ -61,7 +61,7 @@ export function createLineGeometry(paths=createLinePaths()) {
       const body=kind==='circle'||kind==='circle-outline'?`<circle cx="${-size*.4}" cy="0" r="${size*.4}" fill="${kind==='circle'?safe:'none'}" ${attrs}/>`:`<path d="${d}" fill="${fill}" ${attrs}/>`;
       return `<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n(angle)})">${body}</g>`;
     }
-    return `<path d="${g.path}" fill="none" stroke="${safe}" stroke-width="${width}" stroke-linecap="${s?.dash==='dotted'?'round':s?.cap??'round'}" stroke-linejoin="round" stroke-dasharray="${lineDash(s?.dash,width)}"/>${marker(s?.start,g.start,g.startAngle)}${marker(s?.end,g.end,g.endAngle)}`;
+    return `<path d="${g.path}" fill="none" stroke="${safe}" stroke-width="${width}" stroke-linecap="${s?.dash==='dotted'?'round':s?.cap??'round'}" stroke-linejoin="round" stroke-dasharray="${s?.dashArray?.join(' ')??lineDash(s?.dash,width)}"/>${marker(s?.start,g.start,g.startAngle)}${marker(s?.end,g.end,g.endAngle)}`;
   }
 
   return {lineGeometry,lineDash,lineMarkup,lineHit};

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {fontFamilyKey,sameFontFamily} from '../core/font-stack';
   import {canEditText} from '../core/shapes';
   import '../fonts.css';
   import FeedbackState from './FeedbackState.svelte';
@@ -23,10 +24,11 @@
     elements: editor.selection.filter(e => canEditText(e) && !e.locked).map(e => ({id: e.id, text: e.text, family: e.fontFamily, weight: e.fontWeight}))})));
   const originalText = target.elements[0]?.text.trim().slice(0, 240) || 'Designing for clearer decisions';
   const originalFamily = target.elements[0]?.family ?? 'Manrope';
-  const storedFont = untrack(() => editor.deck?.onlineFonts?.find(f => f.family === originalFamily));
+  const storedFont = untrack(() => editor.deck?.onlineFonts?.find(f => sameFontFamily(f.family,originalFamily)));
   const local = $derived(localFontChoices(editor.deck, originalFamily));
-  let source = $state<'local' | 'online'>(storedFont ? 'online' : 'local');
-  let chosen = $state<FontChoice>(storedFont ? onlineFontItem(storedFont) : untrack(()=>local.find(f => f.family === originalFamily) ?? FONT_LIBRARY[0]));
+  const documentFace=untrack(()=>local.find(f=>f.origin==='document'&&sameFontFamily(f.family,originalFamily)));
+  let source = $state<'local' | 'online'>(storedFont&&!documentFace ? 'online' : 'local');
+  let chosen = $state<FontChoice>(documentFace??(storedFont ? onlineFontItem(storedFont) : untrack(()=>local.find(f => sameFontFamily(f.family,originalFamily)) ?? FONT_LIBRARY[0])));
   let online = $state<FontChoice[]>([]), catalogLoading = $state(false), catalogError = $state(''), limit = $state(40);
   let reference = $state<OnlineFont | null>(storedFont ?? null), loadedOnline = $state<string[]>([]), retry = $state(0);
   let query = $state(''), category = $state('all'), language = $state('all'), onlyFavorites = $state(false);
@@ -54,8 +56,8 @@
     catalogLoading = true; catalogError = '';
     try {
       const result = await onlineCatalog(refresh); if (disposed) return;
-      const imported = new Set(editor.deck?.fonts?.map(f => f.family));
-      online = result.filter(f => !imported.has(f.family));
+      const imported = new Set(editor.deck?.fonts?.map(f => fontFamilyKey(f.family)));
+      online = result.filter(f => !imported.has(fontFamilyKey(f.family)));
       if (source === 'online' && !online.some(f => f.id === chosen.id)) choose(online.find(f => f.id === 'figtree') ?? online[0]);
     } catch { if (!disposed) catalogError = 'The online catalog is unavailable. You can use local fonts.'; }
     finally { if (!disposed) catalogLoading = false; }
@@ -65,10 +67,11 @@
     if (next === 'online') {
       if (!online.length) void fetchCatalog();
       else if (!online.some(f => f.id === chosen.id)) choose(online.find(f => f.id === 'figtree') ?? online[0]);
-    } else if (chosen.online) choose(local.find(f => f.family === originalFamily) ?? FONT_LIBRARY[0]);
+    } else if (chosen.online) choose(local.find(f => sameFontFamily(f.family,originalFamily)) ?? FONT_LIBRARY[0]);
   }
+  function isFavorite(family:string){return favorites.some(f=>sameFontFamily(f,family));}
   function favorite(family: string) {
-    favorites = favorites.includes(family) ? favorites.filter(f => f !== family) : [...favorites, family];
+    favorites = isFavorite(family) ? favorites.filter(f => fontFamilyKey(f) !== fontFamilyKey(family)) : [...favorites, family];
     try { localStorage.setItem('deck-studio-font-favorites', JSON.stringify(favorites)); } catch { /* Session favorites remain usable. */ }
   }
   function choose(font: typeof chosen | undefined) { if (!font || applying) return; reference = null; chosen = font; weight = nearestWeight(font.weights, weight); error = ''; }
@@ -134,7 +137,7 @@
             <span class="font-row-meta">{#if fontDisplayName(font) !== font.family}<small>{font.family}</small>{/if}{#if font.origin}<small>{font.origin === 'document' ? 'Document' : 'System'}</small>{:else if font.chinese}<small>Chinese</small>{/if}</span>
             {#if chosen.id === font.id}<Check class="font-selected" size={14} />{/if}
           </button>
-          <button class="icon-btn small font-favorite" aria-label="{favorites.includes(font.family) ? 'Remove from favorites' : 'Add to favorites'} {font.family}" aria-pressed={favorites.includes(font.family)} onclick={() => favorite(font.family)}><Star size={14} fill={favorites.includes(font.family) ? 'currentColor' : 'none'} /></button>
+          <button class="icon-btn small font-favorite" aria-label="{isFavorite(font.family) ? 'Remove from favorites' : 'Add to favorites'} {font.family}" aria-pressed={isFavorite(font.family)} onclick={() => favorite(font.family)}><Star size={14} fill={isFavorite(font.family) ? 'currentColor' : 'none'} /></button>
         </div>
       {:else}
         {#if source === 'online' && (catalogLoading || catalogError)}<FeedbackState density="compact" state={catalogLoading ? 'loading' : 'error'} title={catalogLoading ? 'Loading online fonts…' : 'Font catalog unavailable'} description={catalogLoading ? '' : 'Try again or browse fonts available locally.'}>

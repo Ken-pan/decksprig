@@ -1,8 +1,10 @@
 # Decksprig
 
+本地代码、文档和开发工作已统一到 `~/Projects/decksprig/`；`~/Projects/deck-studio/` 仅是兼容链接。当前本地开发版本为 0.1.11，以下 v0.1.8 下载链接保留为历史发布入口。
+
 本地优先的演示文稿编辑器：编辑幻灯片、审阅可选的 AI 修改、导出自己的作品。
 
-[**直接试用可编辑示例**](https://decksprig.kens-toolbox.com/app?demo=1) · [演示与视频](https://decksprig.kens-toolbox.com/demo.html) · [中文使用指南](docs/open-source/getting-started.zh-CN.md) · [English](README.md) · [下载 v0.1.8](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.8)
+[**直接试用可编辑示例**](https://decksprig.kens-toolbox.com/app?demo=1) · [演示与视频](https://decksprig.kens-toolbox.com/demo.html) · [中文使用指南](docs/open-source/getting-started.zh-CN.md) · [English](README.md) · [下载](https://github.com/Ken-pan/decksprig/releases/latest)
 
 ![实际编辑器画面](public/website/assets/editor-light.jpg)
 
@@ -76,4 +78,6 @@ Decksprig 原名 Deckleaf。0.1.1 保留文档格式、`deck-studio-*` 存储标
 
 ## 分包发行
 
-运行 `npm run package:distribution`，会在新的 output 目录生成应用、网站和导出源资源三个独立目录、tar.gz、哈希清单与实际体积记录。应用保留完整可编辑 PPTX/POTX 字体、网页字体及模板原图，离线导出不需要下载源资源包。原始 TTF、源清单、许可证和字体制作输入保存在独立源包中，仓库原件保留。`npm run build:website` 单独构建网站，已有 `build:web` 保留组合托管布局。
+运行 `npm run package:distribution`，会在新的 output 目录生成应用、网站和导出源资源三个独立目录、tar.gz、哈希清单与实际体积记录。应用保留完整可编辑 PPTX/POTX 字体、网页字体及模板原图。解压后用 Node.js 22.14 或更新版本执行 `node app/runtime/server.mjs`，即可打开 [本地编辑器](http://127.0.0.1:4310/)。应用包已内置生产服务、MCP 服务和运行依赖。
+
+文档默认保存在 `app/.data`。把 `DECK_STUDIO_DATA` 设为现有资料库的绝对路径即可继续使用它。使用 stdio MCP 时，执行 `node /path/to/app/runtime/mcp.mjs` 并使用同一个资料库路径。服务通过原有 URL 读取 Brotli 资产，内容相同的模板和图库图片共享存储。原始 TTF、源清单、许可证和字体制作输入保存在独立源包中。`npm run build:website` 单独构建网站，`build:web` 保留组合托管布局。

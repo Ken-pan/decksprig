@@ -1,6 +1,6 @@
 import type {CollectionId,LayoutId} from './template-collections';
 import type {PageLayout} from './model';
-import {contentBounds,columnBounds} from './page-layout';
+import {contentBounds,columnBounds} from './page-layout-geometry';
 
 type Horizontal={x:number;w:number};
 export type TemplatePageGrid=ReturnType<typeof templatePageGrid>;

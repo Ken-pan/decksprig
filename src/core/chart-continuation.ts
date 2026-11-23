@@ -11,7 +11,8 @@ export function continueChart(slide:Slide,id:string):Slide[]{
   const overhead=24+(c.title?font*1.8:0)+(c.subtitle?font*1.6:0)+font+24+(c.source?font*1.8:0)+(c.legend?font*2:0)+font*1.4+(c.valueTitle?font*2.5:0);
   const cap=Math.max(1,Math.min(8,Math.floor((e.h-overhead)/(lines*font*1.25+6))));
   if(c.labels.length<=cap)return [slide];
-  const {min,max}=readableChartRange(e.chart.series.flatMap(s=>s.values)),axisRange={min,max};
+  const authored=e.chart.axisRange,range=readableChartRange([...e.chart.series.flatMap(s=>s.values),...[authored?.min,authored?.max].filter((v):v is number=>v!==undefined)]);
+  const min=authored?.min??Math.min(range.min,(authored?.max??range.max)-range.step),max=authored?.max??Math.max(range.max,min+range.step),axisRange={min,max};
   return Array.from({length:Math.ceil(c.labels.length/cap)},(_,i)=>{
     const begin=i*cap,chart={...e.chart!,axisRange,labels:e.chart!.labels.slice(begin,begin+cap),series:e.chart!.series.map(s=>({...s,values:s.values.slice(begin,begin+cap)}))};
     if(!i)return {...slide,elements:slide.elements.map(v=>v.id===id?{...v,chart}:v)};

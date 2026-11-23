@@ -42,3 +42,34 @@ test('deferred block search preserves aliases, availability and the selected des
   assert.equal(findSearchActions(actions, 'Gantt plan')[0].id, 'block:gantt');
   assert.equal(blockSearchActions(() => {}, true).every(action => action.disabled), true);
 });
+
+test('reused search actions reflect edited text, scope, suggestions and availability', () => {
+  const item = action('mutable', 'Original', {detail: 'First detail', searchText: 'Old alias', suggested: true});
+  const actions = [item];
+  assert.equal(findSearchActions(actions, 'old alias')[0], item);
+  item.label = 'Updated'; item.detail = 'New detail'; item.searchText = '新别名'; item.kind = 'object';
+  item.suggested = false; item.disabled = true;
+  for (const old of ['Original', 'First detail', 'Old alias']) assert.equal(findSearchActions(actions, old).length, 0);
+  for (const text of ['updated', 'new detail', '新别名']) assert.equal(findSearchActions(actions, text, 'object')[0], item);
+  assert.equal(findSearchActions(actions, 'updated', 'command').length, 0);
+  assert.equal(findSearchActions(actions, '', 'all', true).length, 0);
+  assert.equal(findSearchActions(actions, 'updated')[0].disabled, true);
+});
+
+test('slide results show a visible heading and hidden status without changing page identity', () => {
+  const deck = templateDeck('portfolio');
+  deck.slides = deck.slides.slice(0, 1);
+  const slide = deck.slides[0];
+  const text = slide.elements.find(object => object.type === 'text')!;
+  slide.elements = [{...text, id:'hidden', text:'Private heading', fontSize:200, hidden:true},
+    {...text, id:'caption', text:'Small caption', fontSize:12, hidden:false},
+    {...text, id:'heading', text:'Quarterly\n  results', fontSize:48, hidden:false}];
+  slide.hidden = true;
+  const before = JSON.stringify(deck), actions = documentSearchActions(deck, () => {});
+  const [result] = findSearchActions(actions, 'quarterly', 'slide');
+  assert.equal(result.label, 'Slide 1');
+  assert.equal(result.detail, 'Quarterly results · Hidden from presentation');
+  assert.equal(JSON.stringify(deck), before);
+  assert.equal(findSearchActions(actions, 'Private heading', 'slide').length, 1);
+  assert.equal(result.detail?.includes('Private'), false);
+});

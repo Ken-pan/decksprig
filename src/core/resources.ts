@@ -1,4 +1,5 @@
 import {z} from './schema';
+import {BRAND_NAME} from '../brand-name.js';
 import { element, uid, ResourceAttributionSchema, type ResourceAttribution, type SlideElement, type Deck } from './model';
 import { applyOperations, type Operation } from './operations';
 import { resourceReplacementPatch, type ResourceReplacementOptions } from './resource-replacement';
@@ -13,7 +14,7 @@ export type ResourceItem = ResourceAttribution & {previewUrl: string; width?: nu
 export type ResourcePage = {items: ResourceItem[]; page: number; hasMore: boolean; total?: number; facets?:{families:{id:string;label:string;count:number}[]}};
 export type EmbeddedResource = {src: string; resource: ResourceAttribution};
 export const ICON_SETS = [{id: 'lucide', label: 'Lucide'}, {id: 'tabler', label: 'Tabler'}, {id: 'ph', label: 'Phosphor'}, {id: 'heroicons', label: 'Heroicons'}, {id: 'bi', label: 'Bootstrap'}, {id: 'material-symbols', label: 'Material Symbols'}, {id: 'ri', label: 'Remix'}, {id: 'carbon', label: 'Carbon'}, {id: 'radix-icons', label: 'Radix'}, {id: 'iconoir', label: 'Iconoir'}];
-export const ILLUSTRATION_SETS = [{id: 'all', label: 'All collections'}, {id: 'deck-graphics', label: 'Decksprig · Recolorable'}, {id: 'blue-black', label: 'Duoquill · Recolorable'}, {id: 'doodles', label: 'Open Doodles · Hand-drawn'}, {id: 'illlustrations', label: 'illlustrations · Color'}];
+export const ILLUSTRATION_SETS = [{id: 'all', label: 'All collections'}, {id: 'deck-graphics', label: `${BRAND_NAME} · Recolorable`}, {id: 'blue-black', label: 'Blue & Black · Recolorable'}, {id: 'doodles', label: 'Open Doodles · Hand-drawn'}, {id: 'illlustrations', label: 'illlustrations · Color'}];
 export const GRAPHIC_CATEGORIES = [{id: '', label: 'All'}, {id: 'pattern', label: 'Patterns'}, {id: 'texture', label: 'Textures'}];
 export const RESOURCE_CATEGORIES = [{id: '', label: 'All topics'}, {id: 'work', label: 'Work and collaboration'}, {id: 'technology', label: 'Technology and devices'}, {id: 'people', label: 'People and activities'}, {id: 'nature', label: 'Nature and animals'}, {id: 'lifestyle', label: 'Life and travel'}];
 export const PHOTO_SOURCES = [{id: '', label: 'All sources'}, {id: 'unsplash', label: 'Unsplash'}, {id: 'pexels', label: 'Pexels'}, {id: 'flickr', label: 'Flickr'}, {id: 'wikimedia', label: 'Wikimedia Commons'}, {id: 'wordpress', label: 'WordPress Photos'}, {id: 'stocksnap', label: 'StockSnap'}, {id: 'nasa', label: 'NASA'}, {id: 'rawpixel', label: 'Rawpixel'}, {id: 'europeana', label: 'Europeana'}, {id: 'smithsonian_national_museum_of_natural_history', label: 'Smithsonian · Natural history'}, {id: 'smithsonian_air_and_space_museum', label: 'Smithsonian · Air and space'}];

@@ -15,6 +15,12 @@ import {selectMovedLayers} from '../src/core/moved-layer-selection';
 import type { Editor as EditorType } from '../src/core/editor.svelte';
 import {clearTextSizeCache} from '../src/core/text-layout';
 import {clipboardContent} from '../src/core/clipboard';
+import {duplicateLibraryDocument,renameLibraryDocument} from '../src/core/document-library-actions';
+import {deleteTableSelection,tableTabNavigation} from '../src/core/table-keyboard';
+import {changeTableAxis} from '../src/core/table-structure';
+import {createBlankTableWithStyle} from '../src/core/table-creation';
+import {propertyColor} from '../src/core/property-color';
+import {textRangeStylePatch} from '../src/core/text-range-format';
 
 // Exercise the actual rune module in Node, with only HTTP replaced. This uses
 // the same Svelte compiler as the app, without duplicating the save algorithm.
@@ -26,6 +32,110 @@ const compiled=compileModule(javascript,{generate:'client',filename:'editor.svel
   .replace(/(['"])svelte\/internal\/client\1/g,()=>JSON.stringify(import.meta.resolve('svelte/internal/client')));
 await writeFile(join(directory,'editor.mjs'),compiled);
 const {Editor}=await import(pathToFileURL(join(directory,'editor.mjs')).href) as {Editor:new()=>EditorType};
+
+test('alpha text color commits only the chosen Unicode range and one Undo restores content, styles and links',()=>{
+ const e=new Editor(),text=element('text',{id:'alpha-text',text:'A中文🙂B',fill:'#111111',link:'https://example.com',design:{fill:'ink',overrides:[]},runs:[{text:'A',italic:true,color:'#112233'},{text:'中文🙂',bold:true,color:'#445566'},{text:'B',underline:true,color:'#778899'}]}),sibling=element('text',{text:'Keep',fill:'#abcdef'}),slide={...blankSlide(),elements:[text,sibling]};
+ e.deck=newDeck('Alpha text history',[slide]);e.activeId=slide.id;e.scheduleSave=()=>{};e.choose(text.id);
+ const before=structuredClone(e.deck),fill=propertyColor('#3355AA80');assert.equal(fill,'#3355aa80');
+ e.commit([{op:'update_element',slideId:slide.id,elementId:text.id,patch:textRangeStylePatch(e.selection[0],{fill},{start:1,end:5})}]);
+ assert.equal(e.error,'');assert.equal(e.deck.revision,1);assert.equal(e.past.length,1);
+ assert.deepEqual(e.selection[0].runs,[text.runs![0],{...text.runs![1],color:'#3355aa80'},text.runs![2]]);
+ assert.equal(e.selection[0].text,text.text);assert.equal(e.selection[0].link,text.link);assert.deepEqual(e.selection[0].design,text.design);assert.deepEqual(e.slide!.elements[1],sibling);
+ const changed=structuredClone(e.selection[0]);e.undo();assert.deepEqual(e.deck.slides,before.slides);assert.equal(e.past.length,0);
+ e.redo();assert.deepEqual(e.selection[0],changed);assert.equal(e.selection[0].runs![1].color,'#3355aa80');
+});
+
+test('reference preference never locks a page without a source and survives navigation and undo',()=>{
+ const e=new Editor(),reference=blankSlide(),editable=blankSlide();reference.source={provider:'QA',fidelity:'converted',warnings:[],render:'data:image/png;base64,aA=='};editable.elements=[element('rect',{id:'editable-card',x:20})];e.deck=newDeck('Mixed references',[reference,editable]);e.savedRevision=0;e.chooseSlide(reference.id);e.sourceMode=true;
+ try{assert.equal(e.sourceMode,true);e.chooseSlide(editable.id);assert.equal(e.sourceMode,false);assert.equal(e.preferredSourceMode,true);e.chooseSlide(reference.id);assert.equal(e.sourceMode,true);e.chooseSlide(editable.id);e.choose('editable-card');e.patch({x:40});assert.equal(e.sourceMode,false);e.undo();assert.equal(e.selection[0].x,20);assert.equal(e.sourceMode,false);assert.equal(e.preferredSourceMode,true);e.chooseSlide(reference.id);assert.equal(e.sourceMode,true);e.sourceMode=false;e.chooseSlide(editable.id);e.chooseSlide(reference.id);assert.equal(e.sourceMode,false);}finally{clearTimeout(e.timer);}
+});
+
+test('a library copy does not replace a later selection, pending navigation, edit or dismissed context',async()=>{
+ const originalFetch=globalThis.fetch;
+ for(const phase of ['later-document','pending-navigation','edit','dismiss']){
+  const e=new Editor(),source=newDeck('Copy source',[blankSlide()]),later=newDeck('Later choice',[blankSlide()]);e.deck=source;e.activeId=source.slides[0].id;e.savedRevision=0;const origin={deck:e.deck,navigation:e.navigationVersion,mode:true};let release!:(r:Response)=>void;const calls:string[]=[];let signal:AbortSignal|undefined;
+  globalThis.fetch=async(url,options)=>{calls.push(`${options?.method??'GET'} ${url}`);if(options?.method==='POST')return Response.json({ok:true});if(String(url).endsWith(later.id)){if(phase==='pending-navigation'){signal=options?.signal as AbortSignal;return new Promise<Response>(r=>release=r);}return Response.json(later);}throw new Error('Copy must not navigate to '+url);};
+  try{
+   let opening:Promise<boolean>|undefined;
+   if(phase==='later-document')await e.open(later.id);
+   if(phase==='pending-navigation'){opening=e.open(later.id);await new Promise(r=>setImmediate(r));}
+   if(phase==='edit'){e.commit([{op:'rename_deck',title:'Keep this newer edit'}]);clearTimeout(e.timer);}
+   const before=e.deck,copy=await duplicateLibraryDocument(e,source,origin,()=>phase!=='dismiss');assert.equal(copy.opened,false);assert.equal(e.deck,before);assert.equal(calls.filter(c=>c.startsWith('POST')).length,1);assert(!calls.some(c=>c===`GET /api/decks/${copy.id}`));
+   if(opening){assert.equal(signal?.aborted,false);release(Response.json(later));assert.equal(await opening,true);assert.equal(e.deck!.id,later.id);}
+  }finally{globalThis.fetch=originalFetch;clearTimeout(e.timer);}
+ }
+});
+
+test('a copied library document gets its own view default instead of another document reference mode',async()=>{
+ const originalFetch=globalThis.fetch,e=new Editor(),reference=blankSlide();reference.source={provider:'QA',fidelity:'converted',warnings:[],render:'data:image/png;base64,aA=='};const current=newDeck('Current reference',[reference]),source=newDeck('Plain copy',[blankSlide()]);e.deck=current;e.activeId=reference.id;e.savedRevision=0;e.sourceMode=true;
+ globalThis.fetch=async(url,options)=>options?.method==='POST'?Response.json({ok:true}):Response.json({...source,id:String(url).split('/').at(-1)});
+ try{const origin={deck:e.deck,navigation:e.navigationVersion};e.deck={...current};const result=await duplicateLibraryDocument(e,source,origin);assert.equal(result.opened,true);assert.equal(e.deck!.id,result.id);assert.equal(e.preferredSourceMode,false);assert.equal(e.sourceMode,false);}finally{globalThis.fetch=originalFetch;clearTimeout(e.timer);}
+});
+
+test('library rename writes the submitted target and title with optimistic concurrency without changing another document',async()=>{
+ const originalFetch=globalThis.fetch,e=new Editor(),current=newDeck('Keep current',[blankSlide()]),target=newDeck('Target',[blankSlide()]);target.revision=4;e.deck=current;e.activeId=current.slides[0].id;e.savedRevision=0;let release!:(r:Response)=>void,body:any;
+ globalThis.fetch=async(url,options)=>{assert.equal(String(url),`/api/decks/${target.id}`);if(options?.method==='PUT'){body=JSON.parse(String(options.body));return Response.json({ok:true});}return new Promise<Response>(r=>release=r);};
+ try{const renaming=renameLibraryDocument(e,target.id,'Submitted title');await new Promise(r=>setImmediate(r));release(Response.json(target));await renaming;assert.equal(body.deck.title,'Submitted title');assert.equal(body.expectedRevision,4);assert.equal(body.deck.revision,5);assert.equal(e.deck,current);assert.equal(e.past.length,0);}finally{globalThis.fetch=originalFetch;clearTimeout(e.timer);}
+});
+
+test('a late document response cannot replace the latest requested document, including a stale failure',async()=>{
+  const original=globalThis.fetch,editor=new Editor();
+  const a=newDeck('Slow document',[blankSlide()]),b=newDeck('Latest document',[blankSlide()]);
+  const requests=new Map<string,(response:Response)=>void>();
+  const signals=new Map<string,AbortSignal>();
+  globalThis.fetch=async(url,options)=>{signals.set(String(url),options!.signal!);return new Promise<Response>(resolve=>requests.set(String(url),resolve));};
+  try {
+    const first=editor.open(a.id),second=editor.open(b.id);
+    assert.equal(signals.get(`/api/decks/${a.id}`)!.aborted,true);
+    requests.get(`/api/decks/${b.id}`)!(Response.json(b));await second;
+    requests.get(`/api/decks/${a.id}`)!(Response.json(a));await first;
+    assert.equal(editor.deck!.id,b.id);
+    const stale=editor.open(a.id);await new Promise(ok=>setImmediate(ok));
+    const latest=editor.open(b.id);await new Promise(ok=>setImmediate(ok));
+    requests.get(`/api/decks/${b.id}`)!(Response.json(b));await latest;
+    requests.get(`/api/decks/${a.id}`)!(Response.json({error:'Old request failed'},{status:500}));await stale;
+    assert.equal(editor.deck!.id,b.id);assert.equal(editor.error,'');
+  } finally {globalThis.fetch=original;clearTimeout(editor.timer);}
+});
+
+test('a document created during a later selection or edit stays in the library without replacing current work',async()=>{
+  const original=globalThis.fetch;
+  for(const change of ['selection','edit']) {
+    const editor=new Editor(),current=newDeck('Current',[blankSlide()]),created=newDeck('Created copy',[blankSlide()]),chosen=newDeck('Chosen later',[blankSlide()]);
+    editor.deck=current;editor.activeId=current.slides[0].id;editor.savedRevision=0;
+    let release!:(response:Response)=>void,seen!:()=>void;const posted=new Promise<void>(resolve=>seen=resolve);const methods:string[]=[];
+    globalThis.fetch=async(url,options)=>{
+      methods.push(`${options?.method??'GET'} ${url}`);
+      if(options?.method==='POST'){seen();return new Promise<Response>(resolve=>release=resolve);}
+      return Response.json(chosen);
+    };
+    try {
+      const creating=editor.create(created);await posted;
+      if(change==='selection')await editor.open(chosen.id);
+      else {editor.commit([{op:'rename_deck',title:'Preserved edit'}]);clearTimeout(editor.timer);}
+      const active=editor.deck;
+      const rejected=assert.rejects(creating,/created in the library/);release(Response.json({ok:true}));await rejected;
+      assert.equal(editor.deck,active);assert.equal(editor.deck!.title,change==='selection'?'Chosen later':'Preserved edit');
+      assert.equal(methods.filter(method=>method.startsWith('POST')).length,1);
+      assert(!methods.includes(`GET /api/decks/${created.id}`));
+    } finally {globalThis.fetch=original;clearTimeout(editor.timer);}
+  }
+});
+
+test('editing while another document loads preserves the unsaved revision and undo history',async()=>{
+  const original=globalThis.fetch,editor=new Editor(),slide=blankSlide();
+  editor.deck=newDeck('Current document',[slide]);editor.activeId=slide.id;editor.savedRevision=0;
+  const next=newDeck('Requested document',[blankSlide()]);let release!:(response:Response)=>void;
+  globalThis.fetch=async()=>new Promise<Response>(resolve=>release=resolve);
+  try {
+    const opening=editor.open(next.id);await new Promise(ok=>setImmediate(ok));
+    editor.commit([{op:'rename_deck',title:'Keep this unsaved edit'}]);clearTimeout(editor.timer);
+    const current=editor.deck,past=editor.past;
+    release(Response.json(next));await assert.rejects(opening,/changed while opening/);
+    assert.equal(editor.deck,current);assert.equal(editor.past,past);assert.equal(editor.dirty,true);
+    editor.undo();assert.equal(editor.deck!.title,'Current document');
+  } finally {globalThis.fetch=original;clearTimeout(editor.timer);}
+});
 
 test('property drags form one undo entry across pauses and isolate the next gesture',()=>{
   const e=new Editor(),slide=blankSlide();slide.elements=[element('rect',{id:'a',x:20})];e.deck=newDeck('Numeric gesture',[slide]);e.activeId=slide.id;e.choose('a');
@@ -462,6 +572,48 @@ test('auto layout creation requires multiple objects or a selected group, includ
   }finally{clearTimeout(e.timer);}
 });
 
+test('accepted rendering caches preserve the authored edit as one undo step',()=>{
+ const editor=new Editor(),original=newDeck('Native rendering',[{...blankSlide(),elements:[element('text',{text:'Original'})]}]);editor.deck=original;editor.scheduleSave=()=>{};
+ const edited=structuredClone(original);edited.slides[0].elements[0].text='Edited';editor.replace(edited);const cache=structuredClone(editor.deck!);cache.slides[0].elements[0].nativeTextLayout={fingerprint:'render-cache',runs:[{text:'Edited'}]};editor.replace(cache,false);assert.equal(editor.past.length,1);editor.undo();assert.equal(editor.deck!.slides[0].elements[0].text,'Original');editor.redo();assert.equal(editor.deck!.slides[0].elements[0].text,'Edited');
+});
+
+test('table end Tab saves its draft and appends a row as one undo step; axis deletion is separate',()=>{
+ const e=new Editor(),table=element('table',{cells:[['Header','Value'],['Before','Old']],tableStyle:{rowHeights:[1,2],columnWidths:[1,2],cellStyles:[{row:1,column:1,italic:true}]}}),slide={...blankSlide(),elements:[table]};
+ e.deck=newDeck('Table keyboard history',[slide]);e.activeId=slide.id;e.scheduleSave=()=>{};e.choose(table.id);
+ const next=tableTabNavigation(table,{row:1,column:1},false,'Saved with row');assert.equal(next.kind,'append');if(next.kind!=='append')return;
+ e.commit([{op:'update_element',slideId:slide.id,elementId:table.id,patch:next.patch}],'','manual',e.deck.revision);
+ assert.equal(e.error,'');assert.equal(e.past.length,1);assert.equal(e.selection[0].cells?.length,3);assert.equal(e.selection[0].cells?.[1][1],'Saved with row');
+ e.undo();assert.deepEqual(e.selection[0].cells,table.cells);assert.deepEqual(e.selection[0].tableStyle,table.tableStyle);assert.equal(e.past.length,0);
+ e.redo();assert.equal(e.selection[0].cells?.length,3);assert.equal(e.selection[0].cells?.[1][1],'Saved with row');
+ const beforeDelete=structuredClone(e.selection[0]),patch=deleteTableSelection(beforeDelete,{anchor:{row:1,column:0},head:{row:1,column:1}},'row');
+ e.commit([{op:'update_element',slideId:slide.id,elementId:table.id,patch}]);assert.equal(e.past.length,2);assert.equal(e.selection[0].cells?.length,2);
+ e.undo();assert.deepEqual(e.selection[0].cells,beforeDelete.cells);assert.deepEqual(e.selection[0].tableStyle,beforeDelete.tableStyle);
+});
+
+test('native-reference column draft applies geometry and data together and each structural edit has one Undo',()=>{
+ const e=new Editor(),table=element('table',{w:384,h:128,cells:[['A1','B1'],['A2','B2']],tableStyle:{headerRow:false,columnWidths:[144,240],rowHeights:[64,64],cellStyles:[{row:1,column:1,strikethrough:true}]},nativeTableLayout:{fingerprint:'reference',src:'data:image/png;base64,AQ=='}}),slide={...blankSlide(),elements:[table]};
+ e.deck=newDeck('Native column history',[slide]);e.activeId=slide.id;e.scheduleSave=()=>{};e.choose(table.id);
+ const draft=changeTableAxis(table,'column',2,1,true);draft.cells[1][2]='C2';
+ assert.equal(e.deck.revision,0);assert.equal(e.selection[0].w,384);assert.equal(e.selection[0].cells?.[0].length,2);
+ e.commit([{op:'update_element',slideId:slide.id,elementId:table.id,patch:draft}],'','manual',e.deck.revision);
+ assert.equal(e.error,'');assert.equal(e.deck.revision,1);assert.equal(e.past.length,1);assert.equal(e.selection[0].w,624);assert.equal(e.selection[0].cells?.[1][2],'C2');assert.deepEqual(e.selection[0].tableStyle?.columnWidths,[144,240,240]);
+ e.undo();assert.equal(e.past.length,0);assert.deepEqual(e.selection[0],table);e.redo();
+ const appended=structuredClone(e.selection[0]),removed=deleteTableSelection(appended,{anchor:{row:0,column:2},head:{row:1,column:2}},'column');
+ e.commit([{op:'update_element',slideId:slide.id,elementId:table.id,patch:removed}]);assert.equal(e.past.length,2);assert.equal(e.selection[0].w,384);assert.deepEqual(e.selection[0].cells,table.cells);assert.deepEqual(e.selection[0].tableStyle?.cellStyles,table.tableStyle?.cellStyles);
+ e.undo();assert.equal(e.past.length,1);assert.deepEqual(e.selection[0],appended);
+});
+
+test('style-based blank table creation selects one new independent table and restores the original selection in one Undo',()=>{
+ const e=new Editor(),table=element('table',{id:'style-source',sourceId:'210:21',x:100,y:200,w:384,h:128,cells:[['A1','B1'],['A2','B2']],tableStyle:{headerRow:false,columnWidths:[144,240],rowHeights:[64,64]},nativeTableLayout:{fingerprint:'original',src:'data:image/png;base64,AQ=='}}),slide={...blankSlide(),elements:[table]};
+ e.deck=newDeck('Blank style history',[slide]);e.activeId=slide.id;e.scheduleSave=()=>{};e.choose(table.id);
+ const before=structuredClone(e.deck),id=createBlankTableWithStyle(e,table.id);assert(id);assert.equal(e.deck.revision,1);assert.equal(e.past.length,1);assert.deepEqual(e.selected,[id]);
+ assert.equal(e.slide!.elements.length,2);assert.deepEqual(e.slide!.elements[0],table);assert.deepEqual(e.selection[0].cells,[['',''],['','']]);assert.equal(e.selection[0].sourceId,'210:21');
+ e.undo();assert.equal(e.slide!.elements.length,1);assert.deepEqual(e.selected,[table.id]);assert.deepEqual(e.deck.slides,before.slides);assert.equal(e.past.length,0);
+ e.redo();assert.equal(e.slide!.elements.length,2);assert.deepEqual(e.selected,[id]);
+ const current=e.deck.revision;e.selected=[table.id,id];assert.equal(createBlankTableWithStyle(e,table.id),undefined);assert.equal(e.deck.revision,current);
+ e.selected=[table.id];assert.equal(createBlankTableWithStyle(e,id),undefined);assert.equal(e.deck.revision,current);
+});
+
 
 test('recovery selection distinguishes same-document branches and captures the chosen copy before navigation',async()=>{
  const e=new Editor(),a=newDeck('Branch A',[blankSlide()]),b={...structuredClone(a),title:'Branch B',revision:7};
@@ -476,4 +628,22 @@ test('recovery selection distinguishes same-document branches and captures the c
  let release!:()=>void;e.create=async deck=>{copies.push(deck);await new Promise<void>(resolve=>release=resolve);};
  e.recoveryIndex=1;const pending=e.recoverAsCopy();e.recoveryIndex=0;release();await pending;
  assert.equal(copies.at(-1)!.title,'Branch B · Recovery draft');assert.deepEqual(e.recoveries,originals);
+});
+
+test('document open restores isolated workspace positions without changing data, history or save requests',async()=>{
+ const {WORKSPACE_POSITION_KEY,writeWorkspacePosition,readWorkspacePosition}=await import('../src/core/workspace-position');
+ const oldFetch=globalThis.fetch,descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),values=new Map<string,string>(),writes:string[]=[];
+ const storage={getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>{values.set(key,value);writes.push(key);}};
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage});
+ const a=newDeck('Position A',[blankSlide(),blankSlide(),blankSlide()]),b=newDeck('Position B',[blankSlide(),blankSlide()]);a.slides[2].source={provider:'QA',fidelity:'source-render',warnings:[],render:'data:image/png;base64,aA=='};a.slides[2].elements=[element('text',{text:'Unchanged source data'})];const snapshot=JSON.stringify(a),calls:string[]=[];
+ writeWorkspacePosition(a.id,{slideId:a.slides[2].id,index:2,sourceMode:true},storage);writeWorkspacePosition(b.id,{slideId:b.slides[1].id,index:1,sourceMode:true},storage);values.set('deck-studio-settings','keep-model-and-theme');
+ let docs=new Map([[a.id,a],[b.id,b]]);globalThis.fetch=async(url,options)=>{calls.push(`${options?.method??'GET'} ${url}`);assert(!options?.method||options.method==='GET','Navigation must not send a document save');return Response.json(docs.get(String(url).split('/').at(-1)!)!);};
+ const e=new Editor();try{
+  assert(await e.open(a.id));assert.equal(e.activeId,a.slides[2].id);assert.equal(e.sourceMode,true);assert.equal(e.deck!.revision,0);assert.equal(e.past.length,0);assert.equal(e.dirty,false);assert.deepEqual(e.deck!.slides,a.slides);assert.deepEqual(e.selectedSlides,[e.activeId]);
+  e.sourceMode=false;e.chooseSlide(a.slides[1].id);assert(await e.open(b.id));assert.equal(e.activeId,b.slides[1].id);assert.equal(e.sourceMode,false,'Missing source leaves the restored page editable');assert.equal(e.preferredSourceMode,true);assert.equal(readWorkspacePosition(a.id,storage)?.slideId,a.slides[1].id);assert.equal(readWorkspacePosition(a.id,storage)?.sourceMode,false);
+  assert(await e.open(a.id));assert.equal(e.activeId,a.slides[1].id);assert.equal(e.preferredSourceMode,false);assert.equal(values.get('deck-studio-settings'),'keep-model-and-theme');
+  writeWorkspacePosition(a.id,{slideId:a.slides[2].id,index:2,sourceMode:true},storage);const fresh=new Editor();docs.set(a.id,{...a,slides:[a.slides[2],a.slides[0],a.slides[1]]});await fresh.open(a.id);assert.equal(fresh.activeId,a.slides[2].id);assert.equal(readWorkspacePosition(a.id,storage)?.index,0,'Reordered identity takes priority and updates its fallback index');
+  docs.set(a.id,{...a,slides:a.slides.slice(0,2)});writeWorkspacePosition(a.id,{slideId:'removed',index:2,sourceMode:true},storage);const removed=new Editor();await removed.open(a.id);assert.equal(removed.activeId,a.slides[1].id);assert.equal(removed.sourceMode,false);assert.equal(removed.past.length,0);assert.equal(removed.deck!.revision,0);assert(!JSON.stringify(removed.deck).includes(WORKSPACE_POSITION_KEY));assert.equal(JSON.stringify(a),snapshot);
+  const before=writes.length;removed.scheduleSave=()=>{};removed.commit([{op:'rename_deck',title:'Rename only'}]);assert.equal(writes.length,before,'Ordinary edits do not serialize unchanged position records');
+ }finally{globalThis.fetch=oldFetch;if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else delete(globalThis as{localStorage?:unknown}).localStorage;clearTimeout(e.timer);}
 });

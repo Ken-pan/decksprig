@@ -15,6 +15,40 @@ export function notificationPlacement(size:{width:number;height:number}, viewpor
   return {left,top:Math.max(topEdge,bottom-height),width,maxHeight:available,hidden:available<Math.min(size.height,80)};
 }
 
+/** A modal's confirmation may wait; its editing area must remain usable. */
+export function dialogNotificationPlacement(height:number,available:number,viewportHeight:number,bodyMinimum=120){
+  const maxHeight=Math.max(0,Math.min(viewportHeight*.3,available-bodyMinimum-16));
+  return {maxHeight,hidden:maxHeight<height};
+}
+
+export function positionDialogNotification(node:HTMLElement,owner:HTMLDialogElement){
+  const body=owner.querySelector<HTMLElement>('.modal-body');
+  let frame=0,lastField:HTMLElement|undefined;
+  const apply=()=>{
+    const occupied=[...owner.children].filter(child=>child!==body&&child!==node).reduce((total,child)=>{
+      const css=getComputedStyle(child);return total+child.getBoundingClientRect().height+(parseFloat(css.marginTop)||0)+(parseFloat(css.marginBottom)||0);
+    },0);
+    const viewport=visualBounds();
+    // Measure the full message even while its slot is collapsed. A partially
+    // visible confirmation should wait rather than become another scroll box.
+    node.style.setProperty('--notification-max-height',`${viewport.height}px`);
+    const height=[...node.children].reduce((total,child)=>total+child.getBoundingClientRect().height,0);
+    const result=dialogNotificationPlacement(height,owner.clientHeight-occupied,viewport.height,Math.max(120,parseFloat(getComputedStyle(owner).fontSize)*6));
+    node.style.maxHeight=`${result.hidden?0:result.maxHeight}px`;
+    // Pause through the same visibility event used by workspace notifications.
+    const hidden=String(result.hidden);
+    if(node.dataset.notificationHidden!==hidden){node.dataset.notificationHidden=hidden;node.dispatchEvent(new Event('notificationvisibilitychange'));}
+    if(result.hidden&&node.contains(document.activeElement))(lastField?.isConnected?lastField:owner.querySelector<HTMLElement>('.modal-head button'))?.focus({preventScroll:true});
+  };
+  const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(apply);};
+  const focus=(event:FocusEvent)=>{if(event.target instanceof HTMLElement&&body?.contains(event.target))lastField=event.target;};
+  const resize=new ResizeObserver(schedule);
+  for(const element of [owner,...owner.children,...node.children])resize.observe(element);
+  owner.addEventListener('focusin',focus);window.addEventListener('resize',schedule);window.visualViewport?.addEventListener('resize',schedule);
+  apply();
+  return {destroy(){cancelAnimationFrame(frame);resize.disconnect();owner.removeEventListener('focusin',focus);window.removeEventListener('resize',schedule);window.visualViewport?.removeEventListener('resize',schedule);}};
+}
+
 // Use the actual footer and canvas geometry: wrapping tools, panel visibility,
 // text sizing and short screens change their size independently of breakpoints.
 export function positionNotification(node:HTMLElement) {

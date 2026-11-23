@@ -1,4 +1,11 @@
 import type { SlideElement, TextParagraph, TextRun } from './model';
+import {scaledTextStyle} from './text-sizing';
+
+// Fit the mobile field without replacing imported faces or losing the relative
+// sizes of rich runs. This is a view only; edits still use the authored element.
+export function mobileTextPresentation(e: SlideElement): SlideElement {
+  return {...e, ...scaledTextStyle(e, Math.max(16, Math.min(24, e.fontSize)))};
+}
 
 type Style = Omit<TextRun, 'text'>;
 type Character = {text: string; style: Style; paragraph: number; boundary?: boolean};
@@ -37,8 +44,8 @@ function runs(characters: Character[]): TextRun[] {
   return result.length ? result : [{text: ''}];
 }
 
-export function editedTextStyle(element: SlideElement, value: string): Partial<SlideElement> {
-  const text = value.replace(/\r\n?/g, '\n');
+export function editedTextStyle(element: SlideElement, value: string, options:{normalizeNewlines?:boolean}={}): Partial<SlideElement> {
+  const text = options.normalizeNewlines===false?value:value.replace(/\r\n?/g, '\n');
   if (text === element.text) return {};
   if (!element.paragraphs?.length && !element.runs?.length) return {text};
   const paragraphs = element.paragraphs ?? [{runs: element.runs!, align: element.align, spaceBefore: 0, spaceAfter: 0, indent: 0, firstLineIndent: 0}];
@@ -84,4 +91,13 @@ export function editedTextStyle(element: SlideElement, value: string): Partial<S
   }
   const changed: TextParagraph[] = groups.map((characters, index) => ({...paragraphs[paragraphIndices[index] ?? inheritedParagraph], runs: runs(characters)}));
   return {text, paragraphs: changed};
+}
+
+/** Native editing uses the same character correspondence as the document model.
+ * Apply these UTF-16 ranges from last to first to retain untouched native styles. */
+export function textEditRanges(before:string,after:string){
+ const old=Array.from(before),next=Array.from(after),match=correspondence(old,next),offsets=[0];for(const c of old)offsets.push(offsets.at(-1)!+c.length);
+ const edits:Array<{start:number;end:number;text:string;useStyle:'BEFORE'|'AFTER'}>=[];let a=0,b=0;
+ const add=(endA:number,endB:number)=>{if(a!==endA||b!==endB)edits.push({start:offsets[a],end:offsets[endA],text:next.slice(b,endB).join(''),useStyle:endA>a?'AFTER':'BEFORE'});};
+ for(let i=0;i<next.length;i++){const same=match[i];if(same===undefined)continue;add(same,i);a=same+1;b=i+1;}add(old.length,next.length);return edits;
 }

@@ -53,7 +53,7 @@ export function installUIMotion() {
   const change = () => { if (reducedUI()) stopUIMotion(); };
   const start = (event: Event) => {
     const node = event.target;
-    if (reducedUI() && node instanceof HTMLElement && node.hasAttribute('data-ui-transition')) {
+    if (node instanceof HTMLElement && node.hasAttribute('data-ui-transition') && reducedUI()) {
       // Svelte creates its main animation just after the start event.
       queueMicrotask(() => { if (node.isConnected && reducedUI()) finishTransition(node); });
     }
@@ -69,9 +69,10 @@ export function installUIMotion() {
 }
 
 export function uiPresence(node: HTMLElement, { x = 0, y = 6, surface = false }: { x?: number; y?: number; surface?: boolean } = {}, { direction }: { direction: 'in' | 'out' | 'both' }) {
-  node.dataset.uiTransition = '';
   const configure = (phase: 'in' | 'out') => {
     const duration = reducedUI() ? 0 : timing(phase === 'out' ? 'exit' : surface ? 'surface' : 'reveal', surface ? 240 : 180);
+    // A zero-duration transition has no animation to query or finish.
+    node.toggleAttribute('data-ui-transition', duration > 0);
     if (surface) node.dataset.uiLeaving = String(phase === 'out');
     return { duration, easing: cubicOut,
       css: (t: number) => `opacity:${t};translate:${(1 - t) * x}px ${(1 - t) * y}px;${surface ? `--ui-surface-progress:${t};` : ''}` };

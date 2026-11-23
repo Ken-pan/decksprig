@@ -5,6 +5,8 @@ import {applyOperations, type Operation} from '../src/core/operations';
 import {type TextSizeMeasure} from '../src/core/text-layout';
 import {createLayout} from '../src/core/templates';
 import {createLayoutCandidate, layoutProposal} from '../src/core/auto-layout';
+import {nativeTextSpans,textLayoutFingerprint} from '../src/core/native-text-render';
+import {textMetricsFingerprint,renderedPptxText} from '../src/core/native-text-layout';
 
 const measure: TextSizeMeasure = e => ({w: e.text.length * e.fontSize, h: Math.ceil(e.text.length * e.fontSize / e.w) * e.fontSize * e.lineHeight});
 function fixture(mode: 'fixed' | 'auto-width' | 'auto-height') {
@@ -56,4 +58,38 @@ test('automatic layout retains authored text sizing modes while repositioning te
   assert(proposal);
   const after=applyOperations(d,proposal.operations,proposal.baseRevision);
   assert.equal(after.slides[0].elements[0].textSizing,'auto-height');
+});
+
+
+test('case and paragraph-edge policy resize automatic text atomically for manual and AI edits',()=>{
+  for(const actor of ['manual','ai'] as const)for(const policy of ['case','paragraph-edges']){
+    const d=fixture(policy==='case'?'auto-width':'auto-height'),s=d.slides[0],e=s.elements[0];e.paragraphs=[{runs:[{text:e.text}],align:'left',spaceBefore:26,spaceAfter:22,indent:0,firstLineIndent:0}];const before=JSON.stringify(d),patch=policy==='case'?{textCase:'upper' as const}:{paragraphSpacingAtEdges:false};let measured=0;
+    const result=applyOperations(d,[{op:'update_element',slideId:s.id,elementId:e.id,patch}],d.revision,actor,()=>{measured++;return {w:777,h:78};});
+    assert(measured>0);assert.equal(result.revision,d.revision+1);assert.equal(result.slides[0].elements[0].w,policy==='case'?777:e.w);assert.equal(result.slides[0].elements[0].h,78);assert.equal(JSON.stringify(d),before);
+    assert.throws(()=>applyOperations(d,[{op:'update_element',slideId:s.id,elementId:e.id,patch}],99,actor,()=>({w:777,h:78})));assert.equal(JSON.stringify(d),before);
+  }
+});
+
+test('changing paragraph-edge policy invalidates native positions while preserving source metrics and untouched snapshots',()=>{
+  for(const actor of ['manual','ai'] as const)for(const mode of ['fixed','auto-height'] as const){
+    const d=fixture(mode),s=d.slides[0],e=s.elements[0];
+    e.paragraphSpacingAtEdges=false;
+    e.paragraphs=[{runs:[{text:e.text}],align:'left',spaceBefore:26,spaceAfter:22,indent:0,firstLineIndent:0}];
+    e.nativeTextLayout={fingerprint:textLayoutFingerprint(e),metricsFingerprint:textMetricsFingerprint(e),runs:[{text:'Source wrapping'}],lineSpacing:42,intrinsicLineHeight:1.25};
+    const before=JSON.stringify(d),snapshot=structuredClone(e.nativeTextLayout);
+    for(const patch of [{paragraphSpacingAtEdges:false},{x:50}]){
+      const same=applyOperations(d,[{op:'update_element',slideId:s.id,elementId:e.id,patch}],0,actor,()=>{throw Error('Untouched native geometry must survive');});
+      assert.deepEqual(nativeTextSpans(same.slides[0].elements[0]),snapshot);
+    }
+    let measured=0;
+    const patch={paragraphSpacingAtEdges:true},result=applyOperations(d,[{op:'update_element',slideId:s.id,elementId:e.id,patch}],0,actor,()=>{measured++;return {w:300,h:208};}),changed=result.slides[0].elements[0];
+    assert.equal(nativeTextSpans(changed),undefined);
+    assert.deepEqual(changed.nativeTextLayout,{...snapshot,fingerprint:''});
+    assert.equal(renderedPptxText(changed).text,e.text);
+    assert.equal(renderedPptxText(changed).lineHeight,1.25);
+    assert.equal(measured>0,mode==='auto-height');assert.equal(changed.h,mode==='fixed'?160:208);
+    assert.equal(result.revision,1);assert.equal(JSON.stringify(d),before);
+    assert.throws(()=>applyOperations(d,[{op:'update_element',slideId:s.id,elementId:e.id,patch}],99,actor));
+    assert.equal(JSON.stringify(d),before);
+  }
 });

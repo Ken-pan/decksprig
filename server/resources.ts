@@ -1,6 +1,5 @@
 import {themedIllustrationSvg,standaloneIllustrationSvg} from '../public/resources/illustration-engine.js';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import {assetPath,readAsset,readAssetText} from './runtime-assets';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { getIconData, iconToSVG } from '@iconify/utils';
 import { ResourceAttributionSchema, type ResourceAttribution } from '../src/core/model';
@@ -19,7 +18,7 @@ export { resourceCatalog } from './resource-catalog';
 
 let iconLicenses: Promise<Record<string, {url: string}>> | undefined;
 function iconLicenseIndex() {
-  return iconLicenses ??= readFile(resolve('public/resources/licenses/index.json'), 'utf8').then(raw => JSON.parse(raw) as Record<string, {url: string}>).catch(error => {iconLicenses = undefined; throw error;});
+  return iconLicenses ??= readAssetText(assetPath('resources/licenses/index.json')).then(raw => JSON.parse(raw) as Record<string, {url: string}>).catch(error => {iconLicenses = undefined; throw error;});
 }
 const imageLimit = 12_000_000;
 const cache = new Map<string, {expires: number; page: ResourcePage}>();
@@ -144,14 +143,14 @@ async function downloadResource(id: string, color = '#26362c', preview = false, 
     const name = id.slice(8), found = DOODLES.find(([key]) => key === name);
     if (!found) throw new Error('This illustration does not exist.');
     item = doodleItem(...found.slice(0, 2) as [string, string]);
-    bytes = await readFile(resolve('public/resources/doodles', `${name}.svg`)); type = 'image/svg+xml';
+    bytes = await readAsset(assetPath('resources/doodles', `${name}.svg`)); type = 'image/svg+xml';
     bytes = Buffer.from(sanitizeSvg(bytes.toString('utf8')).replace(/#FF5678/gi, color));
   } else if (id.startsWith('illlustrations:')) {
     const name = id.slice('illlustrations:'.length), found = (await illustrationLibrary()).find(item => item.id === name);
     if (!found) throw new Error('This illustration does not exist.');
     item = illustrationItem(found);
     const file=id==='illlustrations:day34-ticket'?'day34-ticket.svg':found.file;
-    bytes = await readFile(resolve('public/resources/illlustrations', file));
+    bytes = await readAsset(assetPath('resources/illlustrations', file));
     if (file.endsWith('.svg')) { type = 'image/svg+xml'; bytes = Buffer.from(themedIllustrationSvg(sanitizeSvg(standaloneIllustrationSvg(bytes.toString('utf8'),id)), color, id)); }
     else { const detected = imageMime(bytes); if (!detected) throw new Error('Unsupported illustration format.'); type = detected; }
   } else if (id.startsWith('iconify:')) {
@@ -160,7 +159,7 @@ async function downloadResource(id: string, color = '#26362c', preview = false, 
     const icon = await localIcon(prefix, name);
     if (!icon) throw new Error('This icon does not exist.');
     type = 'image/svg+xml'; bytes = Buffer.from(iconSvg(icon, color));
-    item.licenseNotice = await readFile(resolve('public/resources/licenses', `${prefix}.txt`), 'utf8');
+    item.licenseNotice = await readAssetText(assetPath('resources/licenses', `${prefix}.txt`));
   } else if (/^pexels:[1-9]\d{0,15}$/.test(id)) {
     const photo = await photoProviders.photo(id); item = photo;
     const data = await remote(preview ? photo.thumbnailUrl : photo.imageUrl); bytes = data.bytes;

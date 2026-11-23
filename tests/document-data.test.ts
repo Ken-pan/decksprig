@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { cloneDocumentData, sameDocumentData } from '../src/core/document-data';
 import { blankSlide, element, newDeck, validateDeck } from '../src/core/model';
 import { applyOperations } from '../src/core/operations';
-import { resolveDraft, draftRecord } from '../src/core/drafts';
+import {  draftRecord } from '../src/core/drafts';
+import {resolveDraft} from '../src/core/draft-resolution';
 import { LatestWriteQueue } from '../src/core/latest-write-queue';
 
 test('document copies isolate editable containers while preserving embedded media, typography and source data', () => {

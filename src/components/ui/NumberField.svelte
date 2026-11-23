@@ -154,7 +154,7 @@
   .prefix-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .field-prefix:disabled{cursor:default}.field-prefix small{font-size:var(--ui-meta);color:var(--text-link)}
   .field-prefix:not(:disabled):hover{color:var(--text-primary);background:var(--state-hover)}
-  .number-field.snapped{border-color:var(--border-strong);background:var(--state-selected)}
+  .number-field.snapped{background:var(--state-selected)}
   .number-field.snapped input{font-weight:var(--ui-weight-medium)}
   .scrubbing,.number-field:focus-within{outline:2px solid var(--accent-line);outline-offset:0}
   input{flex:1;min-width:0;width:100%;height:auto;min-height:0;padding:0;border:0;background:transparent;box-shadow:none;font:inherit;color:var(--text-primary);text-align:right;font-variant-numeric:tabular-nums;appearance:textfield}
@@ -165,8 +165,8 @@
   .number-presets button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;height:auto;padding:6px 8px;border:0;border-radius:var(--r-sm);background:transparent;text-align:left;font:inherit;color:inherit}
   .number-presets button:hover,.number-presets button[aria-selected='true']{background:var(--state-hover)}
   .number-presets button:focus-visible{outline:2px solid var(--accent-line);outline-offset:-2px}.number-presets button>span:first-child{flex:1}.preset-value{color:var(--text-secondary);font-variant-numeric:tabular-nums}
-  .has-error{border-color:var(--danger)}.field-error{margin-top:4px;font-size:var(--ui-meta);color:var(--danger-text)}
+  .has-error{border-color:var(--danger-text)}.field-error{margin-top:4px;font-size:var(--ui-meta);color:var(--danger-text)}
   .compact .number-field{padding:2px 4px;border-color:transparent;background:transparent}.compact .field-prefix{min-width:0;font-size:var(--ui-meta)}
-  @media(max-width:760px),(pointer:coarse){.number-field{min-height:var(--property-control-height,44px);padding-block:0}input{font-size:max(16px,var(--ui-label))}.field-prefix{min-height:44px}.number-presets button{min-height:44px}.compact .number-field{padding-block:0}}
+  @media(max-width:760px),(pointer:coarse){.number-field{min-height:var(--property-control-height,44px);padding-block:0}input{font-size:max(16px,var(--ui-label));height:44px}.field-prefix{min-height:44px}.number-presets button{min-height:44px}.compact .number-field{padding-block:0}}
   @media(pointer:coarse){.field-prefix,.compact .field-prefix{min-width:24px}}
 </style>

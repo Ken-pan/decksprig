@@ -1,3 +1,4 @@
+import {nativeColorXml} from './pptx-color';
 import {lineGeometry,lineDash} from './lines';
 import type {SlideElement} from './model';
 import {shapePath} from './shape-geometry';
@@ -21,15 +22,15 @@ export function shadowXml(e: SlideElement): string {
   const s = e.shadow;
   if (!s || !s.opacity) return '';
   const direction = (Math.atan2(s.y,s.x)*180/Math.PI+360)%360;
-  return `<a:effectLst><a:outerShdw blurRad="${Math.round(s.blur*9525)}" dist="${Math.round(Math.hypot(s.x,s.y)*9525)}" dir="${Math.round(direction*60000)}" algn="ctr" rotWithShape="1"><a:srgbClr val="${s.color.slice(1).toUpperCase()}"><a:alpha val="${Math.round(s.opacity*100000)}"/></a:srgbClr></a:outerShdw></a:effectLst>`;
+  return `<a:effectLst><a:outerShdw blurRad="${Math.round(s.blur*9525)}" dist="${Math.round(Math.hypot(s.x,s.y)*9525)}" dir="${Math.round(direction*60000)}" algn="ctr" rotWithShape="1">${nativeColorXml(s.color,s.opacity)}</a:outerShdw></a:effectLst>`;
 }
 
 /** Editable DrawingML routes, dash rhythm and standard arrowhead semantics. */
 export function lineStyleXml(e:SlideElement):string {
-  const s=e.line,width=e.strokeWidth||2,color=(e.stroke==='transparent'?e.fill:e.stroke).replace('#','');
+  const s=e.line,width=e.strokeWidth||2,color=e.stroke==='transparent'?e.fill:e.stroke;
   const dash=lineDash(s?.dash,1).split(' ').filter(Boolean).map(Number);
   const dashXml=dash.length?`<a:custDash>${Array.from({length:dash.length/2},(_,i)=>`<a:ds d="${Math.max(1,Math.round(dash[i*2]*100000))}" sp="${Math.round(dash[i*2+1]*100000)}"/>`).join('')}</a:custDash>`:'<a:prstDash val="solid"/>';
-  return `<a:ln w="${Math.round(width*9525)}" cap="${s?.dash==='dotted'||s?.cap==='round'?'rnd':s?.cap==='square'?'sq':'flat'}"><a:solidFill><a:srgbClr val="${color}"><a:alpha val="${Math.round(e.opacity*100000)}"/></a:srgbClr></a:solidFill>${dashXml}<a:round/><a:headEnd type="none"/><a:tailEnd type="none"/></a:ln>`;
+  return `<a:ln w="${Math.round(width*9525)}" cap="${s?.dash==='dotted'||(s?.cap??'round')==='round'?'rnd':s?.cap==='square'?'sq':'flat'}"><a:solidFill>${nativeColorXml(color,e.opacity,undefined,true)}</a:solidFill>${dashXml}<a:round/><a:headEnd type="none"/><a:tailEnd type="none"/></a:ln>`;
 }
 
 /** Marker outlines are separate filled subpaths so a dashed shaft keeps solid ends. */

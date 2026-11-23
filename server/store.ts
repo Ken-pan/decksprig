@@ -1,23 +1,45 @@
-import { readFile, writeFile, mkdir, readdir, rename, stat } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { validateDeck, type Deck } from '../src/core/model';
 import { ProposalSchema, applyOperations, type Proposal } from '../src/core/operations';
-import {writeDocumentJsonFile} from './document-json-file';
+import {cloneDeckHistory,fileSignature as storageSignature,historyCloneSignature,readDeckDelivery,readDeckForSave,readDeckStorage,writeDeckHistory,writeDeckStorage,withStorageLock} from './media-storage';
 import {summarizeDeck, requirePreviewRevision, type LibrarySummary, type LibraryPreview} from '../src/core/library-summary';
+import {HISTORY_LIMIT} from '../src/core/history-summary';
+import {HistorySummaryCache} from './history-summary-cache';
+import {readDocumentFile} from '../src/core/document-file';
+import {MEDIA_UPDATE_SCHEMA} from '../src/core/document-media-update';
+import {mediaUpdateSchema,resolveMediaUpdate,type MediaUpdate} from './document-media-update';
+import {packagedRoot} from './runtime-assets';
 
-export const DATA = resolve(process.env.DECK_STUDIO_DATA || '.data');
+export const DATA = resolve(process.env.DECK_STUDIO_DATA || (packagedRoot ? resolve(packagedRoot, '.data') : '.data'));
 const safeId = (id: string) => { if (!/^[a-zA-Z0-9_.:-]{1,120}$/.test(id)) throw new Error('Invalid ID'); return id; };
 export async function initStore() {
   await Promise.all(['decks', 'history', 'imports', 'proposals'].map(n => mkdir(resolve(DATA, n), {recursive: true})));
 }
 async function atomic(path: string, data: unknown) {
-  if((data as Deck)?.schema==='deck-studio/1')return writeDocumentJsonFile(path,data as Deck);
   const temp = `${path}.${crypto.randomUUID()}.tmp`;
   await writeFile(temp, JSON.stringify(data), {mode: 0o600});
   await rename(temp, path);
 }
 export async function readDeck(id: string): Promise<Deck> {
-  return validateDeck(JSON.parse(await readFile(resolve(DATA, 'decks', `${safeId(id)}.json`), 'utf8')));
+  return readDeckStorage(resolve(DATA,'decks',`${safeId(id)}.json`),DATA);
+}
+
+// A revision number describes the editor transaction. The file token also
+// distinguishes migrations and external replacements at the same revision.
+const mediaTokenGeneration = crypto.randomUUID();
+function tokenForSignature(id: string, signature: string) {
+  return createHash('sha256').update(`${mediaTokenGeneration}:${id}:${signature}`).digest('base64url');
+}
+async function mediaToken(id: string): Promise<string> {
+  return tokenForSignature(id, await fileSignature(id));
+}
+export async function readDeckWithMediaToken(id:string,preferFrames:boolean) {
+  const before = await mediaToken(id);
+  const delivery=await readDeckDelivery(resolve(DATA,'decks',`${safeId(id)}.json`),DATA,preferFrames);
+  const after = await mediaToken(id).catch(() => undefined);
+  return {...delivery,mediaToken:before===after?before:undefined};
 }
 // Boot only needs one valid document; listing every embedded preview can wait
 // until the user opens the library. Malformed source files remain untouched.
@@ -47,8 +69,7 @@ function cachePreview(id: string, signature: string, entry: LibraryPreview) {
   while (previews.size > 64 || previewBytes > CACHE_BYTES) forgetPreview(previews.keys().next().value!);
 }
 async function fileSignature(id: string) {
-  const info = await stat(resolve(DATA, 'decks', `${safeId(id)}.json`), {bigint: true});
-  return `${info.ino}:${info.size}:${info.mtimeNs}:${info.ctimeNs}`;
+  return storageSignature(resolve(DATA, 'decks', `${safeId(id)}.json`));
 }
 async function libraryEntry(id: string, withPreview: boolean): Promise<LibraryPreview> {
   const signature = await fileSignature(id);
@@ -65,7 +86,7 @@ async function libraryEntry(id: string, withPreview: boolean): Promise<LibraryPr
       // content with the new file signature. Retry without touching the source.
       let before = signature;
       for (let attempt = 0; attempt < 3; attempt++) {
-        const deck = await readDeck(id), after = await fileSignature(id);
+        const deck = withPreview?await readDeck(id):await readDeckStorage(resolve(DATA,'decks',`${safeId(id)}.json`),DATA,true), after = await fileSignature(id);
         if (before !== after) { before = after; continue; }
         const entry = summarizeDeck(deck);
         summaries.set(id, {signature: after, entry});
@@ -106,22 +127,51 @@ export async function listDecks(includePreview = true): Promise<LibraryPreview[]
   return entries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
 }
 const queues = new Map<string, Promise<unknown>>();
-export async function saveDeck(deck: Deck, expectedRevision: number | null) {
-  const d = validateDeck(deck);
-  safeId(d.id);
-  const previous = queues.get(d.id) ?? Promise.resolve();
-  const run = previous.catch(() => {}).then(async () => {
-    let old: Deck | undefined;
-    try { old = await readDeck(d.id); } catch (error: any) { if (error.code !== 'ENOENT') throw error; }
-    if (old && (expectedRevision === null || old.revision !== expectedRevision || d.revision <= old.revision)) throw Object.assign(new Error('This document was updated in another window. Your current changes are preserved. Export a copy before continuing.'), {status: 409});
+const staleRevision = () => Object.assign(new Error('This document was updated in another window. Your current changes are preserved. Export a copy before continuing.'), {status: 409});
+export async function saveDeck(deck: unknown, expectedRevision: number | null) {
+  const d = readDocumentFile(deck);
+  return (await saveRevision(d.id, d, expectedRevision, false)).deck;
+}
+export function saveDeckForId(id: string, input: unknown, expectedRevision: number | null, wantMediaToken: boolean) {
+  const next = (input as {schema?: string})?.schema === MEDIA_UPDATE_SCHEMA
+    ? mediaUpdateSchema.parse(input)
+    : readDocumentFile(input);
+  if (next.id !== id) throw new Error('ID mismatch');
+  return saveRevision(id, next, expectedRevision, wantMediaToken);
+}
+async function saveRevision(id: string, next: Deck | MediaUpdate, expectedRevision: number | null, wantMediaToken: boolean) {
+  safeId(id);
+  const previous = queues.get(id) ?? Promise.resolve();
+  const run = previous.catch(() => {}).then(()=>withStorageLock(DATA,async () => {
+    const path = resolve(DATA, 'decks', `${id}.json`);
+    const update = next.schema === MEDIA_UPDATE_SCHEMA ? next : undefined;
+    const cloneSignature = await historyCloneSignature(path);
+    const before = update ? await mediaToken(id).catch(() => undefined) : undefined;
+    const prior = await readDeckForSave(path,DATA);
+    const old = prior?.deck;
+    if (old && old.revision !== expectedRevision) throw staleRevision();
     if (!old && expectedRevision !== null) throw Object.assign(new Error('This document no longer exists.'), {status: 409});
-    if (old) await atomic(resolve(DATA, 'history', `${d.id}-${old.revision}.json`), old);
-    await atomic(resolve(DATA, 'decks', `${d.id}.json`), d);
-    forgetLibraryEntry(d.id);
-    return d;
-  });
-  queues.set(d.id, run);
-  try { return await run; } finally { if (queues.get(d.id) === run) queues.delete(d.id); }
+    let d: Deck;
+    if (next.schema === MEDIA_UPDATE_SCHEMA) {
+      if (!old || before !== next.token || before !== await mediaToken(id).catch(() => undefined)) {
+        throw Object.assign(new Error('The saved media version changed. Send the complete document to save.'), {status: 412});
+      }
+      d = resolveMediaUpdate(next, old);
+    } else d = next;
+    if (old && d.revision <= old.revision) throw staleRevision();
+    if (old) {
+      const history = resolve(DATA, 'history', `${id}-${old.revision}.json`);
+      if (prior.snapshot || !cloneSignature || !await cloneDeckHistory(path, history, cloneSignature, DATA)) {
+        await writeDeckHistory(history,old,DATA,prior.snapshot);
+      }
+    }
+    let savedToken: string | undefined;
+    await writeDeckStorage(path,d,DATA,false,wantMediaToken ? signature=>{savedToken=tokenForSignature(id,signature);} : undefined,prior?.snapshot);
+    forgetLibraryEntry(id);
+    return {deck:d, mediaToken:savedToken};
+  }));
+  queues.set(id, run);
+  try { return await run; } finally { if (queues.get(id) === run) queues.delete(id); }
 }
 export async function storeProposal(deckId: string, raw: unknown) {
   const previous=queues.get(deckId)??Promise.resolve();
@@ -154,17 +204,18 @@ export async function resolveProposal(id: string, status: 'applied' | 'dismissed
 
 async function historyVersion(deckId: string, revision: number): Promise<Deck> {
   if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid revision');
-  return validateDeck(JSON.parse(await readFile(resolve(DATA, 'history', `${deckId}-${revision}.json`), 'utf8')));
+  return readDeckStorage(resolve(DATA,'history',`${deckId}-${revision}.json`),DATA);
 }
 export async function readHistory(deckId: string, revision: number): Promise<Deck> {
-  safeId(deckId); await readDeck(deckId);
+  safeId(deckId); await libraryEntry(deckId,false);
   return historyVersion(deckId, revision);
 }
+const historySummaries=new HistorySummaryCache();
 export async function listHistory(deckId: string) {
-  safeId(deckId); await readDeck(deckId);
+  safeId(deckId); await libraryEntry(deckId,false);
   const prefix = `${deckId}-`;
-  const revisions = (await readdir(resolve(DATA, 'history'))).filter(name => name.startsWith(prefix) && /^\d+\.json$/.test(name.slice(prefix.length))).map(name => Number(name.slice(prefix.length, -5))).sort((a,b) => b-a).slice(0,50);
+  const revisions = (await readdir(resolve(DATA, 'history'))).filter(name => name.startsWith(prefix) && /^(0|[1-9]\d*)\.json$/.test(name.slice(prefix.length))).map(name => Number(name.slice(prefix.length, -5))).filter(Number.isSafeInteger).sort((a,b) => b-a).slice(0,HISTORY_LIMIT);
   const entries = [];
-  for (const revision of revisions) { const deck = await historyVersion(deckId, revision); entries.push({revision, title: deck.title, updatedAt: deck.updatedAt, count: deck.slides.length}); }
+  for (const revision of revisions) entries.push({...await historySummaries.read(resolve(DATA,'history',`${deckId}-${revision}.json`)),revision});
   return entries;
 }

@@ -1,10 +1,21 @@
 {
-  "name": "Decksprig Export",
+  "name": "Decksprig · Slides sync",
   "id": "deck-studio-local-export",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma", "slides"],
+  "editorType": [
+    "figma",
+    "slides"
+  ],
   "documentAccess": "dynamic-page",
-  "networkAccess": { "allowedDomains": ["none"] }
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:4310"
+    ]
+  },
+  "enablePrivatePluginApi": true
 }

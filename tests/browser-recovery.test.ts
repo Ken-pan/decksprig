@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {resolveDraft,draftRecord} from '../src/core/drafts';
+import {draftRecord} from '../src/core/drafts';
+import {resolveDraft} from '../src/core/draft-resolution';
 import {newDeck,blankSlide} from '../src/core/model';
 const saved=()=>newDeck('Saved',[blankSlide()]);
 test('browser branches retain conflicting tab edits alongside a newer saved document',()=>{

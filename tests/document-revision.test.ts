@@ -1,11 +1,11 @@
 import {z} from 'zod';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {blankSlide,element,newDeck,validateDeck,type Deck} from '../src/core/model';
+import {blankSlide,element,newDeck,validateDeck,SlideSchema,ElementSchema,type Deck} from '../src/core/model';
 import {applyOperations,applyImmutableOperations,type Operation} from '../src/core/operations';
 import {adoptDeckRevision,takeDeckRevision,validateDeckRevision} from '../src/core/document-revision';
 import {cloneDocumentData} from '../src/core/document-data';
-import {DEFAULT_PAGE_ELEMENTS} from '../src/core/page-elements';
+import {DEFAULT_PAGE_ELEMENTS,refreshPageElements} from '../src/core/page-elements';
 import {DEFAULT_DESIGN_SYSTEM} from '../src/core/design-system-schema';
 
 function fixture():Deck {
@@ -52,6 +52,50 @@ test('changed metadata, removals and defaults retain complete canonical schema v
   for(const patch of [{width:99},{revision:-1},{extra:'Rejected'},{title:''}])assert.throws(()=>validateDeckRevision(base,{...base,...patch} as Deck));
   const defaulted={...base,slides:[{id:'defaults',elements:[]}] as unknown as Deck['slides']};
   assert.deepEqual(validateDeckRevision(base,defaulted),validateDeck(defaulted));
+});
+
+test('owned object reuse agrees with canonical parsing for every removed slide field and rejects invalid replacements',()=>{
+  const base=adoptDeckRevision(fixture());
+  const candidates:Deck['slides'][number][]=[];
+  for(const key of Object.keys(SlideSchema.shape)) {
+    const slide={...base.slides[0]};delete (slide as any)[key];candidates.push(slide);
+  }
+  for(const patch of [{elements:undefined},{elements:null},{elements:[null]},{elements:Array(3001).fill(base.slides[0].elements[0])},{elements:[{...base.slides[0].elements[0],opacity:2}]},{elements:[{...base.slides[0].elements[0],unexpected:true}]},{source:{...base.slides[0].source,warnings:[1]}},{groups:[{id:'bad',name:23}]},{unexpected:true}])candidates.push({...base.slides[0],...patch} as any);
+  for(const slide of candidates) {
+    const next={...base,slides:[slide,base.slides[1]]};
+    let canonical:Deck;
+    try {canonical=validateDeck(next);} catch {assert.throws(()=>validateDeckRevision(base,next));continue;}
+    assert.deepEqual(validateDeckRevision(base,next),canonical);
+  }
+});
+
+test('cached immutable page fields still follow titles, page order, hidden state and direct field edits',()=>{
+  let full=applyOperations(fixture(),[{op:'set_page_elements',settings:{...DEFAULT_PAGE_ELEMENTS,header:'{title}',numberFormat:'total',hideOnCover:false}}]);
+  let immutable=adoptDeckRevision(full);
+  for(const operations of [
+    [{op:'rename_deck',title:'First title'}],
+    [{op:'rename_deck',title:'Second title'}],
+    [{op:'reorder_slides',ids:['second','first']}],
+    [{op:'update_element',slideId:'first',elementId:immutable.slides[0].elements.find(e=>e.pageElement?.kind==='header')!.id,patch:{text:'Literal header',hidden:true}}],
+    [{op:'rename_deck',title:'Keep literal header'}],
+  ] as Operation[][]) {
+    full=applyOperations(full,operations,full.revision,'manual',measure);
+    immutable=applyImmutableOperations(immutable,operations,immutable.revision,'manual',measure);
+    assert.deepEqual(clean(immutable),clean(full));
+  }
+});
+
+test('mutable and externally shallow-frozen field arrays never retain stale field membership',()=>{
+  for(const freeze of [false,true]) {
+    const slide=blankSlide();slide.elements=[element('text',{id:'new-field',text:'Original'})];
+    const deck=newDeck('Current title',[slide]),page=deck.slides[0];
+    if(freeze)Object.freeze(page.elements);
+    refreshPageElements(deck);
+    page.elements[0].pageElement={kind:'header',value:'{title}'};
+    assert.equal(refreshPageElements(deck).slides[0].elements[0].text,'Current title');
+    delete page.elements[0].pageElement;page.elements[0].text='Authored text';
+    assert.equal(refreshPageElements({...deck,title:'Changed title'}).slides[0].elements[0].text,'Authored text');
+  }
 });
 
 test('reused immutable pages still obey document-wide identities and changed page dimensions',()=>{
@@ -105,4 +149,26 @@ test('immutable and full canonical paths agree through edits, hierarchy, page fi
     immutable=deterministic(()=>applyImmutableOperations(immutable,operations,immutable.revision,'manual',measure));
     assert.deepEqual(clean(immutable),clean(full));assert.deepEqual(validateDeck(immutable),immutable);
   }
+});
+
+test('owned element field validation agrees with canonical defaults, removals and rejected nested replacements',()=>{
+  const base=adoptDeckRevision(fixture()),source=base.slides[0].elements[0],candidates=[];
+  for(const key of Object.keys(ElementSchema.shape)){const e={...source};delete (e as any)[key];candidates.push(e);}
+  candidates.push(Object.assign([],source));
+  for(const patch of [{x:Infinity},{x:20001},{w:0},{opacity:2},{fontSize:0},{extra:true},{runs:[{text:'Original',fontSize:2000}]},{paragraphs:[{runs:[{text:'Mismatch'}]}]},{tableStyle:{bodyFill:'#invalid'}}])candidates.push({...source,...patch});
+  for(const e of candidates){const next={...base,slides:[{...base.slides[0],elements:[e,...base.slides[0].elements.slice(1)]},base.slides[1]]}as Deck;let canonical:Deck;try{canonical=validateDeck(next);}catch{assert.throws(()=>validateDeckRevision(base,next));continue;}assert.deepEqual(validateDeckRevision(base,next),canonical);}
+});
+
+test('manual and AI position updates preserve owned rich branches while mutable SDK results remain independent',()=>{
+  const base=adoptDeckRevision(fixture()),source=base.slides[0].elements[0],before=JSON.stringify(base);
+  const ops:Operation[]=[{op:'update_element',slideId:'first',elementId:'text',patch:{x:120,y:180,rotation:30,flipX:true}}];
+  for(const actor of ['manual','ai']as const){const next=applyImmutableOperations(base,ops,base.revision,actor,measure),plain=applyOperations(base,ops,base.revision,actor,measure),text=next.slides[0].elements[0];assert.deepEqual(clean(next),clean(plain));assert.equal(text.runs,source.runs);assert(Object.isFrozen(text.runs));assert.equal(next.slides[1],base.slides[1]);
+    const mutable=applyOperations(next,[{op:'update_element',slideId:'first',elementId:'text',patch:{x:220}}],next.revision,'manual',measure);mutable.slides[0].elements[0].runs![0].fontSize=90;assert.equal(text.runs![0].fontSize,20);}
+  assert.equal(JSON.stringify(base),before);
+});
+
+test('geometry reuse cannot bypass stale, locked or later invalid operations and does not mutate its base',()=>{
+  const base=adoptDeckRevision(fixture()),before=JSON.stringify(base),move:Operation={op:'update_element',slideId:'first',elementId:'text',patch:{x:500}};
+  for(const actor of ['manual','ai']as const){assert.throws(()=>applyImmutableOperations(base,[move],base.revision+1,actor,measure));assert.throws(()=>applyImmutableOperations(base,[move,{op:'update_element',slideId:'first',elementId:'text',patch:{runs:[{text:'Original',fontSize:2000}]}}],base.revision,actor,measure));assert.throws(()=>applyImmutableOperations(base,[{op:'update_element',slideId:'first',elementId:'locked',patch:{x:500}}],base.revision,actor,measure));}
+  assert.equal(JSON.stringify(base),before);
 });

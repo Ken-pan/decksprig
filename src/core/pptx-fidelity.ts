@@ -1,8 +1,11 @@
+import {nativeColorXml} from './pptx-color';
+import {preserveTableTextFlags} from './pptx-table-text';
 import {isTextShape, shapeTextElement} from './shape-text';
 import {customShapeXml, shadowXml, lineStyleXml} from './shape-pptx';
 import JSZip from 'jszip';
 import type { Deck, SlideElement, TextRun } from './model';
 import {writePptxTextMetadata} from './pptx-text-metadata';
+import {renderedPptxTextStyles} from './pptx-text-styles';
 import {yieldForInput} from './text-layout';
 const xml = (s: string) => s.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 const emu = (n: number) => Math.round(n * 9525);
@@ -24,11 +27,12 @@ export function normalizeNativeChartXml(source:string):string{
   });
 }
 export function textBodyXml(e: SlideElement,binding?:{fill?:string;font?:'mj'|'mn';absoluteLineSpacing?:boolean}) {
+  e=renderedPptxTextStyles(e);
   const p = e.padding ?? {left:0,right:0,top:0,bottom:0};
   const runProperties = (r: TextRun, tag = 'rPr') => {
-    const fill = r.color ?? e.fill, size = r.fontSize ?? e.fontSize;
-    const props = `sz="${Math.round(size*75)}" b="${(r.fontWeight ?? (r.bold === undefined ? e.fontWeight : r.bold ? 700 : 400))>=600?1:0}" i="${(r.italic ?? e.italic)?1:0}" u="${(r.underline ?? e.underline)?'sng':'none'}" spc="${Math.round((r.letterSpacing??e.letterSpacing)*75)}"${r.baseline && r.baseline!=='normal' ? ` baseline="${r.baseline==='super'?30000:-25000}"` : ''}`;
-    const pigment=!r.color&&binding?.fill?`<a:schemeClr val="${binding.fill}"/>`:`<a:srgbClr val="${fill.replace('#','')}"/>`;
+    const fill = r.color ?? e.fill, size = r.fontSize ?? e.fontSize, textCase=r.textCase??e.textCase;
+    const props = `cap="${textCase==='upper'?'all':textCase==='small-caps'?'small':'none'}" sz="${Math.round(size*75)}" b="${(r.fontWeight ?? (r.bold === undefined ? e.fontWeight : r.bold ? 700 : 400))>=600?1:0}" i="${(r.italic ?? e.italic)?1:0}" u="${(r.underline ?? e.underline)?'sng':'none'}" strike="${(r.strikethrough??e.strikethrough)?'sngStrike':'noStrike'}" spc="${Math.round((r.letterSpacing??e.letterSpacing)*75)}"${r.baseline && r.baseline!=='normal' ? ` baseline="${r.baseline==='super'?30000:-25000}"` : ''}`;
+    const pigment=nativeColorXml(fill,e.opacity,!r.color?binding?.fill:undefined);
     const latin=!r.fontFamily&&binding?.font?`+${binding.font}-lt`:r.fontFamily??e.fontFamily,ea=!r.fontFamily&&binding?.font?`+${binding.font}-ea`:r.fontFamily??e.fontFamily;
     return `<a:${tag} ${props}>${fill==='transparent'?'<a:noFill/>':`<a:solidFill>${pigment}</a:solidFill>`}<a:latin typeface="${xml(latin)}"/><a:ea typeface="${xml(ea)}"/></a:${tag}>`;
   };
@@ -56,17 +60,25 @@ export function textBodyXml(e: SlideElement,binding?:{fill?:string;font?:'mj'|'m
   // A source can intentionally overflow a fixed text box. Normal fit would
   // silently shrink that text in Keynote; keep its authored size instead.
   const fit = e.maxLines!==undefined ? '<a:noAutofit/>' : e.textSizing === 'auto-height' || e.textFit==='shape' ? '<a:spAutoFit/>' : e.textFit==='none' || minimumHeight > e.h + 1 ? '<a:noAutofit/>' : '<a:normAutofit fontScale="100000" lnSpcReduction="0"/>';
-  return `<p:txBody><a:bodyPr spcFirstLastPara="${e.paragraphSpacingAtEdges===false?0:1}" vertOverflow="${e.maxLines!==undefined?'ellipsis':e.clipText===false||binding?.absoluteLineSpacing&&e.textSizing==='auto-height'?'overflow':'clip'}" wrap="${e.wrap && e.textSizing !== 'auto-width'?'square':'none'}" lIns="${emu(p.left)}" rIns="${emu(p.right)}" tIns="${emu(p.top)}" bIns="${emu(p.bottom)}" anchor="${e.verticalAlign==='middle'?'ctr':e.verticalAlign==='bottom'?'b':'t'}">${fit}</a:bodyPr><a:lstStyle/>${paragraphs.map(p=>{const lineSpacing=p.lineSpacing??(binding?.absoluteLineSpacing?Math.max(e.fontSize,...p.runs.map(run=>run.fontSize??e.fontSize))*(p.lineHeight??e.lineHeight):undefined);return `<a:p><a:pPr algn="${({left:'l',center:'ctr',right:'r',justify:'just'})[p.align]}" marL="${emu(p.indent)}" indent="${emu(p.firstLineIndent)}"><a:lnSpc>${lineSpacing?`<a:spcPts val="${Math.round(lineSpacing*75)}"/>`:`<a:spcPct val="${Math.round((p.lineHeight??e.lineHeight)*100000)}"/>`}</a:lnSpc><a:spcBef><a:spcPts val="${Math.round(p.spaceBefore*75)}"/></a:spcBef><a:spcAft><a:spcPts val="${Math.round(p.spaceAfter*75)}"/></a:spcAft>${bulletXml(p.bullet)}${runProperties(p.runs.find(r=>r.text.length)??p.runs[0]??{text:''},'defRPr')}</a:pPr>${p.runs.map(run).join('')}${runProperties(p.endStyle??p.runs.filter(r=>r.text.length).at(-1)??p.runs[0]??{text:''},'endParaRPr')}</a:p>`;}).join('')}</p:txBody>`;
+  // Auto-height text must remain visible when a reader's font metrics exceed
+  // the measured browser box. A fixed box or explicit clip retains its crop.
+  const overflow=e.clipText===false||(binding?.absoluteLineSpacing||e.clipText!==true)&&e.textSizing==='auto-height';
+  return `<p:txBody><a:bodyPr spcFirstLastPara="${e.paragraphSpacingAtEdges===false?0:1}" vertOverflow="${e.maxLines!==undefined?'ellipsis':overflow?'overflow':'clip'}" wrap="${e.wrap && e.textSizing !== 'auto-width'?'square':'none'}" lIns="${emu(p.left)}" rIns="${emu(p.right)}" tIns="${emu(p.top)}" bIns="${emu(p.bottom)}" anchor="${e.verticalAlign==='middle'?'ctr':e.verticalAlign==='bottom'?'b':'t'}">${fit}</a:bodyPr><a:lstStyle/>${paragraphs.map(p=>{const lineSpacing=p.lineSpacing??(binding?.absoluteLineSpacing?Math.max(e.fontSize,...p.runs.map(run=>run.fontSize??e.fontSize))*(p.lineHeight??e.lineHeight):undefined);return `<a:p><a:pPr algn="${({left:'l',center:'ctr',right:'r',justify:'just'})[p.align]}" marL="${emu(p.indent)}" indent="${emu(p.firstLineIndent)}"><a:lnSpc>${lineSpacing?`<a:spcPts val="${Math.round(lineSpacing*75)}"/>`:`<a:spcPct val="${Math.round((p.lineHeight??e.lineHeight)*100000)}"/>`}</a:lnSpc><a:spcBef><a:spcPts val="${Math.round(p.spaceBefore*75)}"/></a:spcBef><a:spcAft><a:spcPts val="${Math.round(p.spaceAfter*75)}"/></a:spcAft>${bulletXml(p.bullet)}${runProperties(p.runs.find(r=>r.text.length)??p.runs[0]??{text:''},'defRPr')}</a:pPr>${p.runs.map(run).join('')}${runProperties(p.endStyle??p.runs.filter(r=>r.text.length).at(-1)??p.runs[0]??{text:''},'endParaRPr')}</a:p>`;}).join('')}</p:txBody>`;
 }
 export async function preservePptxFidelity(data: Uint8Array, deck: Deck, authored=deck) {
   const zip = await JSZip.loadAsync(data);
+  let chartPainter:typeof import('./pptx-chart-paint')|undefined;
   for(const [i,slide] of deck.slides.entries()){
     const rels=await zip.file(`ppt/slides/_rels/slide${i+1}.xml.rels`)?.async('string');if(!rels)continue;
     const paths=[...rels.matchAll(/Type="[^"]*\/chart" Target="([^"]+)"/g)].map(m=>m[1].startsWith('/')?m[1].slice(1):'ppt/'+m[1].replace(/^\.\.\//,''));
     const charts=slide.elements.filter(e=>e.type==='chart'&&!e.hidden);
     for(const [j,path] of paths.entries()){
-      const chart=charts[j]?.chart,file=zip.file(path);if(!chart||chart.forecastFrom===undefined||!['line','area'].includes(chart.type)||!file)continue;
-      let index=0;zip.file(path,(await file.async('string')).replace(/<c:ser>[\s\S]*?<\/c:ser>/g,ser=>{const forecast=index++>=chart.series.length;return ser.replace(/<c:spPr>[\s\S]*?<\/c:spPr>/,pr=>pr.replace(/<a:prstDash val="[^"]*"\/>/,`<a:prstDash val="${forecast?'dash':'solid'}"/>`));}));
+      const element=charts[j],file=zip.file(path);if(!element||!file)continue;const chart=element.chart;
+      let source=await file.async('string');
+      if(chart&&['line','area'].includes(chart.type))source=source.replace(/<c:(lineChart|areaChart)>/,(_,kind)=>`<c:${kind}><c:grouping val="${chart.stacked?'stacked':'standard'}"/>`).replace(/(<c:grouping[^>]*\/>)(?:\s*<c:grouping[^>]*\/>)+/,'$1');
+      if(chart&&chart.forecastFrom!==undefined){let index=0;source=source.replace(/<c:ser>[\s\S]*?<\/c:ser>/g,ser=>{const forecast=index++>=chart.series.length;return ser.replace(/<c:spPr>[\s\S]*?<\/c:spPr>/,pr=>pr.replace(/<a:prstDash val="[^"]*"\/>/,`<a:prstDash val="${forecast?'dash':'solid'}"/>`));});}
+      chartPainter??=await import('./pptx-chart-paint');
+      zip.file(path,chartPainter.paintNativeChart(source,element));
     }
   }
   for(const path of Object.keys(zip.files).filter(p=>/^ppt\/charts\/chart\d+\.xml$/.test(p)))zip.file(path,normalizeNativeChartXml(await zip.file(path)!.async('string')));
@@ -93,10 +105,11 @@ export async function preservePptxFidelity(data: Uint8Array, deck: Deck, authore
       if(e.type==='rect'&&e.radius)shape=shape.replace(/<a:prstGeom prst="roundRect">[\s\S]*?<\/a:prstGeom>/,`<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val ${Math.min(50000,Math.round(e.radius/Math.min(e.w,e.h)*100000))}"/></a:avLst></a:prstGeom>`);
       if(e.type==='line'&&e.line || e.type==='rect'&&e.shape || e.type==='diamond'&&e.radius)shape=shape.replace(/<a:prstGeom\b[^>]*>[\s\S]*?<\/a:prstGeom>/,customShapeXml(e));
       if(e.shadow)shape=shape.replace(/<p:spPr>([\s\S]*?)<\/p:spPr>/,(_,properties)=>`<p:spPr>${properties.replace(/<a:effectLst(?:\s[^>]*)?\/>|<a:effectLst\b[^>]*>[\s\S]*?<\/a:effectLst>/g,'')}${shadowXml(e)}</p:spPr>`);
-      if(e.type==='line'&&e.line)shape=shape.replace(/<a:ln\b[^>]*>[\s\S]*?<\/a:ln>/,lineStyleXml(e));
+      if(e.type==='line')shape=shape.replace(/<a:ln\b[^>]*>[\s\S]*?<\/a:ln>/,lineStyleXml(e));
       if(e.type==='line')shape=shape.replaceAll('p:sp>','p:cxnSp>').replaceAll('p:nvSpPr','p:nvCxnSpPr').replace(/<p:cNvSpPr[^>]*\/>/,'<p:cNvCxnSpPr/>').replace(/<p:txBody>[\s\S]*?<\/p:txBody>/,'');
       return shape;
     });
+    source=await preserveTableTextFlags(source,deck.slides[i],deck.designSystem);
     zip.file(path, source);
   }
   // Native fallback regions can share one large slide render with different crops.

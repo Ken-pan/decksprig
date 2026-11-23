@@ -1,20 +1,33 @@
 import type {Deck} from './model';
 
-type MediaReference = {slide:number;element:number;field:'render'|'src'|'poster';asset:number};
+export type MediaLocation = {slide:number;element:number;field:'render'|'src'|'poster'};
+type MediaReference = MediaLocation & {asset:number};
 export type PackedDocumentMedia = {deck:Deck;assets:string[];references:MediaReference[]};
+
+export function forEachDocumentImage(deck: Deck, visit: (value: string, location: MediaLocation) => void, minimumLength: number) {
+  const add = (slide: number, element: number, field: MediaLocation['field'], value?: string) => {
+    if (value?.startsWith('data:image/') && value.length >= minimumLength) visit(value, {slide, element, field});
+  };
+  deck.slides.forEach((slide, index) => {
+    add(index, -1, 'render', slide.source?.render);
+    slide.elements.forEach((element, position) => {
+      add(index, position, 'src', element.src);
+      add(index, position, 'poster', element.prototype?.poster);
+    });
+  });
+}
 
 // This is an internal transport envelope, never a saved document. Structured
 // cloning repeats large primitive strings even when many objects use one image.
 // Send repeated media once, then restore it before any builder or HTTP encoding.
-export function packDocumentMedia(deck:Deck,minimumLength=65_536):PackedDocumentMedia {
+export function packDocumentMedia(deck:Deck,minimumLength=65_536,minimumOccurrences=2):PackedDocumentMedia {
   const sites:{slide:number;element:number;field:MediaReference['field'];value:string}[]=[];
   const counts=new Map<string,number>();
-  const add=(slide:number,element:number,field:MediaReference['field'],value?:string)=>{
-    if(!value?.startsWith('data:image/')||value.length<minimumLength)return;
-    sites.push({slide,element,field,value});counts.set(value,(counts.get(value)??0)+1);
-  };
-  deck.slides.forEach((s,i)=>{add(i,-1,'render',s.source?.render);s.elements.forEach((e,j)=>{add(i,j,'src',e.src);add(i,j,'poster',e.prototype?.poster);});});
-  const assets=[...counts].filter(([,count])=>count>1).map(([value])=>value);
+  forEachDocumentImage(deck, (value, location) => {
+    sites.push({...location, value});
+    counts.set(value,(counts.get(value)??0)+1);
+  }, minimumLength);
+  const assets=[...counts].filter(([,count])=>count>=minimumOccurrences).map(([value])=>value);
   if(!assets.length)return {deck,assets:[],references:[]};
   const ids=new Map(assets.map((value,i)=>[value,i]));
   const slides=[...deck.slides],writable=new Set<number>(),references:MediaReference[]=[];

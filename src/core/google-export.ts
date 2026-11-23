@@ -1,3 +1,4 @@
+import {BRAND_NAME} from '../brand-name.js';
 import type {Deck} from './model';
 type GoogleSource=NonNullable<Deck['googleSource']>;
 export type GoogleExportPlan={source:GoogleSource;sourceFingerprint:string;requests:Record<string,any>[];edits:number};
@@ -33,7 +34,7 @@ export async function exportGoogle(input:any,transport:GoogleFetch=fetch,planFac
  const token=input.token.trim(),plan=await planFactory(input.source,input.state);
  const latest=await request(`https://slides.googleapis.com/v1/presentations/${plan.source.presentationId}`,token,undefined,transport);
  if(fingerprint(latest)!==plan.sourceFingerprint)throw new Error('The Google source changed after import. Import it again before exporting a native copy.');
- const title=typeof input.title==='string'?input.title.slice(0,300):'Decksprig export';
+ const title=typeof input.title==='string'?input.title.slice(0,300):`${BRAND_NAME} export`;
  const copy=await request(`https://www.googleapis.com/drive/v3/files/${plan.source.presentationId}/copy?fields=id,webViewLink`,token,{name:title,parents:['root']},transport);
  if(! /^[\w-]{10,200}$/.test(copy.id??''))throw new Error('Google did not return the exported copy.');
  const url=`https://docs.google.com/presentation/d/${copy.id}/edit`;

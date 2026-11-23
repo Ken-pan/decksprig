@@ -110,7 +110,7 @@ test('all source hashes, mask dimensions and alpha are preserved; each individua
 });
 test('character recipes travel with undoable document transactions and locked images reject replacement',()=>{
  const variant=manifest.variants[0],recipe=defaultCharacterRecipe(variant),deck=newDeck('Characters',[blankSlide()]);
- const resource={id:`character:${variant.id}`,kind:'illustration' as const,title:'Character',provider:'Characters',creator:'Decksprig',sourceUrl:'http://127.0.0.1:4310/characters.html',license:'本地生成素材',licenseUrl:'http://127.0.0.1:4310/characters.html',attribution:'Character',attributionRequired:false,originalSha256:variant.sha256,characterRecipe:recipe};
+ const resource={id:`character:${variant.id}`,kind:'illustration' as const,title:'Character',provider:'Characters',creator:'Deckleaf',sourceUrl:'http://127.0.0.1:4310/characters.html',license:'本地生成素材',licenseUrl:'http://127.0.0.1:4310/characters.html',attribution:'Character',attributionRequired:false,originalSha256:variant.sha256,characterRecipe:recipe};
  const legacyResource={...resource,characterRecipe:{...recipe,renderVersion:'2' as const}};
  assert.notEqual(shelfKey(legacyResource),shelfKey({...legacyResource,characterRecipe:{...legacyResource.characterRecipe,hairColor:'#6f5542'}}));
  assert.equal(shelfKey(resource),shelfKey({...resource,characterRecipe:{...recipe,hairColor:'#6f5542'}}));

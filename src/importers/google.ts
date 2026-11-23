@@ -1,4 +1,6 @@
 import { element, newDeck, blankSlide, type SlideElement, type TextRun, type TextParagraph } from '../core/model';
+import {tableColumnStyle} from '../core/table-columns';
+import type {TableCellStyle} from '../core/table-schema';
 const pt = (d: any) => Number(d?.magnitude ?? 0) * (d?.unit === 'EMU' ? 1 / 12700 : 1);
 const rgb = (c: any) => `#${[c?.red ?? 0, c?.green ?? 0, c?.blue ?? 0].map(n => Math.round(n * 255).toString(16).padStart(2, '0')).join('')}`;
 type Matrix = {a: number; b: number; c: number; d: number; x: number; y: number};
@@ -61,7 +63,7 @@ export function importGoogle(bundle: any) {
         const makeRun = (r: any, content: string): TextRun => {
           const st = {...defaultText, ...r.style};
           const family = st.weightedFontFamily?.fontFamily ?? st.fontFamily ?? 'Arial';
-          return {text: content.replace(/\u000b/g, '\n'), fontFamily: family, fontSize: Math.max(4, (pt(st.fontSize) || 18) * unitScale), fontWeight: st.bold ? Math.max(700, st.weightedFontFamily?.weight ?? 400) : st.weightedFontFamily?.weight ?? 400, bold: st.bold, italic: st.italic ?? false, underline: st.underline ?? false, color: color(st.foregroundColor?.opaqueColor), baseline: st.baselineOffset === 'SUPERSCRIPT' ? 'super' : st.baselineOffset === 'SUBSCRIPT' ? 'sub' : 'normal'};
+          return {text: content.replace(/\u000b/g, '\n'), fontFamily: family, fontSize: Math.max(4, (pt(st.fontSize) || 18) * unitScale), fontWeight: st.bold ? Math.max(700, st.weightedFontFamily?.weight ?? 400) : st.weightedFontFamily?.weight ?? 400, bold: st.bold, italic: st.italic ?? false, underline: st.underline ?? false, strikethrough:st.strikethrough||undefined, color: color(st.foregroundColor?.opaqueColor), baseline: st.baselineOffset === 'SUPERSCRIPT' ? 'super' : st.baselineOffset === 'SUBSCRIPT' ? 'sub' : 'normal'};
         };
         const markers = text.filter((v: any) => v.paragraphMarker), runs = text.filter((v: any) => v.textRun);
         const paragraphs: TextParagraph[] = (markers.length ? markers : [{startIndex: 0, endIndex: Infinity, paragraphMarker: {}}]).map((v: any) => {
@@ -91,7 +93,10 @@ export function importGoogle(bundle: any) {
       } else if (e.table) {
         const cells = e.table.tableRows?.map((r: any) => r.tableCells.map((c: any) => (c.text?.textElements ?? []).map((x: any) => x.textRun?.content ?? '').join(''))) ?? [];
         const style=e.table.tableRows?.[0]?.tableCells?.[0]?.text?.textElements?.find((v:any)=>v.textRun)?.textRun?.style ?? {};
-        s.elements.push(element('table', {...common, cells,fontFamily:style.weightedFontFamily?.fontFamily ?? style.fontFamily ?? 'Arial',fontWeight:style.bold?700:style.weightedFontFamily?.weight??400,fontSize:(pt(style.fontSize)||18)*factor,fill:color(style.foregroundColor?.opaqueColor)})); warnings.add('Review merged cells, cell dimensions, and table styles.');
+        const underline=Boolean(style.underline),strikethrough=Boolean(style.strikethrough),imported=element('table', {...common, cells,fontFamily:style.weightedFontFamily?.fontFamily ?? style.fontFamily ?? 'Arial',fontWeight:style.bold?700:style.weightedFontFamily?.weight??400,fontSize:(pt(style.fontSize)||18)*factor,fill:color(style.foregroundColor?.opaqueColor),underline,strikethrough});
+        const cellStyles:TableCellStyle[]=(e.table.tableRows??[]).flatMap((row:any,r:number)=>row.tableCells.flatMap((cell:any,c:number)=>{const s=cell.text?.textElements?.find((v:any)=>v.textRun)?.textRun?.style??{},u=Boolean(s.underline),strike=Boolean(s.strikethrough);return u!==underline||strike!==strikethrough?[{row:r,column:c,underline:u,strikethrough:strike}]:[];}));
+        if(cellStyles.length)imported.tableStyle={...tableColumnStyle(imported,Array.from({length:Math.max(1,...cells.map((row:string[])=>row.length))},()=>1)),cellStyles};
+        s.elements.push(imported); warnings.add('Per-cell text decorations are preserved. Review other table styles, merged cells and cell dimensions.');
       } else if (e.line) {
         const dx=(m.a*w+m.c*h)*factor,dy=(m.b*w+m.d*h)*factor, length=Math.hypot(dx,dy);
         s.elements.push(element('line', {...common,x:m.x*factor+dx/2-length/2,y:m.y*factor+dy/2-.5,w:Math.max(1,length),h:1,rotation:degrees(dy,dx),flipY:false,stroke: color(e.line.lineProperties?.lineFill?.solidFill?.color), strokeWidth: Math.max(1, pt(e.line.lineProperties?.weight) * factor)}));

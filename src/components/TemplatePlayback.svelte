@@ -24,7 +24,7 @@
   let run:PageTransitionRun|undefined,epoch=0,mounted=true;
   function settle(){epoch++;run?.cancel();run=undefined;outgoing=null;entering=false;}
   async function transition(){
-    const generation=++epoch;run?.cancel();entering=true;await tick();
+    const generation=++epoch;run?.cancel();entering=true;await tick();await import('../core/motion-runtime').catch(()=>{});await tick();
     if(!mounted||generation!==epoch)return;
     if(reduced||!visible||!incomingNode){outgoing=null;entering=false;return;}
     run=runPageTransition(incomingNode,outgoingNode??null,resolvePageTransition(outgoing,slide,direction),direction,{paused,lightweight:matchMedia('(max-width:760px)').matches,from:outgoing??undefined,to:slide,fromStep:outgoingStep,toStep:step});

@@ -12,11 +12,28 @@
     "fallbackIcon": "/favicon.ico?v=60dd18a86bab",
     "touchIcon": "/brand/apple-touch-icon.png?v=60dd18a86bab"
   },
+  "variants": {
+    "headerOutline": {
+      "authority": "brand/references/header-outline-vector.svg",
+      "sourceSha256": "d264e08be7ac2c40c0a8b46772527c6819104b9acc63be921ac583afc7a077ce",
+      "file": "brand/header-outline.svg",
+      "sha256": "d264e08be7ac2c40c0a8b46772527c6819104b9acc63be921ac583afc7a077ce",
+      "revision": "d264e08be7ac",
+      "url": "/brand/header-outline.svg?v=d264e08be7ac",
+      "opticalSize": 24,
+      "role": "Editor navigation only"
+    }
+  },
   "files": [
     {
       "path": "brand/logo.svg",
       "sha256": "60dd18a86bab041997b6a3ca9a53fa7ef83af3955dd6c572ac276a87a992638e",
       "bytes": 1403
+    },
+    {
+      "path": "brand/header-outline.svg",
+      "sha256": "d264e08be7ac2c40c0a8b46772527c6819104b9acc63be921ac583afc7a077ce",
+      "bytes": 534
     },
     {
       "path": "favicon.svg",

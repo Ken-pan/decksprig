@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {fontFamilyKey,sameFontFamily} from '../core/font-stack';
   import {canEditText} from '../core/shapes';
   import FeedbackState from './FeedbackState.svelte';
   import Notice from './ui/Notice.svelte';
@@ -44,11 +45,11 @@
   const familyLabel=$derived(mixedFamily?'Mixed fonts':fontDisplayName(findFont(currentFamily) ?? {family:currentFamily}));
   const canApply = $derived(Boolean(target?.ids.length));
   const documentChoices=$derived(documentFontChoices(editor.deck??{}));
-  const documentItems=$derived(documentChoices.map(c=>local.find(f=>f.family===c.family)??(editor.deck?.onlineFonts?.find(f=>f.family===c.family)?onlineFontItem(editor.deck.onlineFonts.find(f=>f.family===c.family)!):{...localFontChoices(editor.deck,c.family)[0],id:`style:${c.family}`})));
+  const documentItems=$derived(documentChoices.map(c=>local.find(f=>sameFontFamily(f.family,c.family))??(editor.deck?.onlineFonts?.find(f=>sameFontFamily(f.family,c.family))?onlineFontItem(editor.deck.onlineFonts.find(f=>sameFontFamily(f.family,c.family))!):{...localFontChoices(editor.deck,c.family)[0],id:`style:${c.family}`})));
   const fontLink=$derived(selected.length&&selected.every(e=>!e.design?.overrides?.includes('fontFamily')&&(e.design?.font??e.design?.text)===(selected[0].design?.font??selected[0].design?.text))?selected[0].design?.font??selected[0].design?.text:undefined);
   const items = $derived.by(() => {
     const result = searchFonts(query, source==='document'?'all':category, 'all', undefined, source==='document'?documentItems:source === 'local' ? local : online) as FontChoice[];
-    return query.trim() ? result : result.sort((a, b) => Number(b.family === currentFamily) - Number(a.family === currentFamily));
+    return query.trim() ? result : result.sort((a, b) => Number(sameFontFamily(b.family,currentFamily)) - Number(sameFontFamily(a.family,currentFamily)));
   });
   const visible = $derived(items.slice(start, start+pageSize));
   const catalogFailed = $derived(source === 'online' && !visible.length && !catalogLoading && Boolean(catalogError));
@@ -83,8 +84,8 @@
     generation++; targetKey = selectionKey();
     target = {deckId: editor.deck.id, slideId: editor.slide.id, revision: editor.deck.revision, ids: selected.map(e => e.id)};
     local = localFontChoices(editor.deck, currentFamily);
-    const stored = editor.deck.onlineFonts?.find(f => f.family === currentFamily);
-    preview = stored ? onlineFontItem(stored) : local.find(f => f.family === currentFamily) ?? local[0];
+    const stored = editor.deck.onlineFonts?.find(f => sameFontFamily(f.family,currentFamily));
+    preview = local.find(f=>f.origin==='document'&&sameFontFamily(f.family,currentFamily))??(stored ? onlineFontItem(stored) : local.find(f => sameFontFamily(f.family,currentFamily)) ?? local[0]);
     sample = selected[0]?.text.trim().slice(0, 120) || 'Aa Let type tell your story'; previewWeight = selected[0]?.fontWeight ?? 400;
     source = 'document'; query = ''; category = 'all'; resetList(); error = '';
     active = 0;
@@ -101,9 +102,9 @@
     catalogLoading = true; catalogError = '';
     try {
       const catalog = await onlineCatalog(refresh); if (disposed) return;
-      const imported = new Set(editor.deck?.fonts?.map(f => f.family));
+      const imported = new Set(editor.deck?.fonts?.map(f => fontFamilyKey(f.family)));
       const saved = editor.deck?.onlineFonts?.map(onlineFontItem) ?? [];
-      online = [...new Map([...catalog, ...saved].filter(f => !imported.has(f.family)).map(f => [f.family, f])).values()];
+      online = [...new Map([...catalog, ...saved].filter(f => !imported.has(fontFamilyKey(f.family))).map(f => [fontFamilyKey(f.family), f])).values()];
     } catch (e: any) { if (!disposed) catalogError = 'Online catalog unavailable'; }
     finally { if (!disposed) catalogLoading = false; }
   }
@@ -216,10 +217,10 @@
     <p class="font-dropdown-context">{source==='document'?'Document fonts · Size and spacing stay unchanged.':canApply ? target!.ids.length > 1 ? `Apply to ${countLabel(target!.ids.length, 'text object')}` : 'Custom font for selected text.' : 'Preview fonts. Select canvas text to apply.'}</p>
     <div class="font-dropdown-list" id="{id}-list" role={visible.length ? 'listbox' : undefined} aria-label="Font list" aria-busy={busy}>
       {#each visible as font, index (font.id)}
-        <button id="{id}-option-{start+index}" role="option" aria-setsize={items.length} aria-posinset={start+index+1} aria-selected={canApply ? !mixedFamily && font.family === currentFamily : font.family === preview?.family} class:highlighted={active === start+index} aria-disabled={busy} tabindex={active === start+index ? 0 : -1} onclick={() => choose(font)} onpointermove={event => {if(event.pointerType!=='touch'&&!event.buttons)hover(font,start+index);}} onfocus={() => { active = start+index; navigated=true; preview = font; }} onkeydown={key}>
+        <button id="{id}-option-{start+index}" role="option" aria-setsize={items.length} aria-posinset={start+index+1} aria-selected={canApply ? !mixedFamily && sameFontFamily(font.family,currentFamily) : Boolean(preview&&sameFontFamily(font.family,preview.family))} class:highlighted={active === start+index} aria-disabled={busy} tabindex={active === start+index ? 0 : -1} onclick={() => choose(font)} onpointermove={event => {if(event.pointerType!=='touch'&&!event.buttons)hover(font,start+index);}} onfocus={() => { active = start+index; navigated=true; preview = font; }} onkeydown={key}>
           <span class="font-dropdown-name" style:font-family={!font.online || loaded.includes(font.family) ? fontStack(font.family) : undefined}>{fontDisplayName(font)}</span>
-          {#if canApply && !mixedFamily && font.family === currentFamily}<Check size={13} />{/if}
-          {#if source==='document'}<small>{documentChoices.find(c=>c.family===font.family)?.label}</small>{:else if font.label || font.origin || font.chinese || (source === 'online' && !font.online)}<small>{font.label ? font.family : font.origin === 'document' ? 'Document fonts' : font.origin === 'system' ? 'System fonts' : font.chinese ? 'Chinese' : 'Built in'}</small>{/if}
+          {#if canApply && !mixedFamily && sameFontFamily(font.family,currentFamily)}<Check size={13} />{/if}
+          {#if source==='document'}<small>{documentChoices.find(c=>sameFontFamily(c.family,font.family))?.label}</small>{:else if font.label || font.origin || font.chinese || (source === 'online' && !font.online)}<small>{font.label ? font.family : font.origin === 'document' ? 'Document fonts' : font.origin === 'system' ? 'System fonts' : font.chinese ? 'Chinese' : 'Built in'}</small>{/if}
         </button>
       {:else}{#if source === 'online' && (catalogLoading || catalogError)}<FeedbackState density={height < 320 ? 'inline' : 'compact'} state={catalogLoading ? 'loading' : 'error'} title={catalogLoading ? 'Loading online fonts…' : 'Font catalog unavailable'} description={catalogLoading ? '' : 'Try again or browse local fonts.'}>
       </FeedbackState>{:else}<EmptyState density={height < 320 ? 'inline' : 'compact'} icon={Type} title="No matching fonts" description="Try another search or choose another category.">

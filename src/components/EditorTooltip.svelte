@@ -167,7 +167,7 @@
 <div bind:this={bubble} {id} popover="manual" role="tooltip" class="editor-tooltip" class:visible style:left="{x}px" style:top="{y}px" aria-hidden={!visible}>{label}</div>
 
 <style>
-  .editor-tooltip{position:fixed;inset:auto;margin:0;z-index:200;max-width:min(280px,calc(100vw - 16px));padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--overlay-border);background:var(--surface-overlay);color:var(--text-primary);box-shadow:var(--shadow-md);font:var(--ui-meta)/1.5 var(--font-ui);letter-spacing:normal;visibility:hidden;opacity:0;pointer-events:none;transition:opacity var(--ui-motion-feedback) ease,translate var(--ui-motion-feedback) var(--ui-ease-out),visibility 0s var(--ui-motion-feedback);translate:0 3px;white-space:pre-wrap}
+  .editor-tooltip{position:fixed;inset:auto;margin:0;z-index:200;max-width:min(280px,calc(100vw - 16px));padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--tooltip-border);background:var(--tooltip-surface);color:var(--tooltip-text);box-shadow:var(--shadow-md);font:var(--ui-meta)/1.5 var(--font-ui);letter-spacing:normal;visibility:hidden;opacity:0;pointer-events:none;transition:opacity var(--ui-motion-feedback) ease,translate var(--ui-motion-feedback) var(--ui-ease-out),visibility 0s var(--ui-motion-feedback);translate:0 3px;white-space:pre-wrap}
   .editor-tooltip.visible{visibility:visible;opacity:1;pointer-events:none;translate:0 0;transition-delay:0s}
   @media(prefers-reduced-motion:reduce){.editor-tooltip{transition:none}}
   @media print{.editor-tooltip{display:none}}

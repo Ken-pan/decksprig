@@ -1,0 +1,11 @@
+{
+  "source": "public/fonts/pptx/manrope-regular.ttf",
+  "sha256": "4c7f22e32ec6ba096e6aeb50b146e8545ce4b649101b705c1b488d90847a5bd3",
+  "generator": "build-cff-fixture.py",
+  "fontTools": "4.60.1",
+  "purpose": "Independent CFF/CFF2 reader, outline conversion and full-glyph tests; not runtime fonts",
+  "family": "Decksprig CFF Fixture",
+  "glyphs": 742,
+  "codepoints": 678,
+  "license": "OFL.txt"
+}

@@ -1,3 +1,4 @@
+import {automaticShapeTextColor} from '../src/core/shape-label-color';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import JSZip from 'jszip';
@@ -39,7 +40,7 @@ test('editing and formatting a shape label persists atomically without altering 
 });
 
 test('standalone HTML label rendering factory matches the editor without application imports',()=>{
-  const factory=runInNewContext(`(${createShapeTextRendering.toString()})`,{__name:(fn:Function)=>fn})();
+  const factory=runInNewContext(`(${createShapeTextRendering.toString()})`,{__name:(fn:Function)=>fn})(undefined,automaticShapeTextColor);
   const shape=element('ellipse',{text:'Hello',shapeText:{color:'#123456',align:'left'}});
   assert.equal(JSON.stringify(factory.shapeTextElement(shape)),JSON.stringify(shapeTextElement(shape)));
 });

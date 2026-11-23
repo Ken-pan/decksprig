@@ -1,104 +1,79 @@
 # Decksprig
 
-A local-first presentation editor. Make slides, review optional AI changes, and take your work with you.
+## 使用指导
 
-[**Try the editable sample**](https://decksprig.kens-toolbox.com/app?demo=1) · [Website & demo](https://decksprig.kens-toolbox.com/) · [Getting started](docs/open-source/getting-started.md) · [中文](README.zh-CN.md) · [Downloads](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.8)
+[简明中文指南](docs/open-source/getting-started.zh-CN.md) · [AI 提问示例](docs/open-source/prompt-examples.zh-CN.md) · [给 AI 的接入指南](docs/open-source/agent-guide.md) · [AI 阅读入口](llms.txt)
 
-![The actual Decksprig editor](public/website/assets/editor-light.jpg)
+## Public release
 
-An early **0.1.8** release by Ken Pan, developed with Codex. Code is [MIT licensed](LICENSE); commercial use and closed-source derivatives are welcome. Original decorative artwork is CC0 to the extent of the rights held; [fonts, icons, third-party assets and brand marks](ASSET_LICENSES.md) have separate terms.
+The canonical local workspace is `~/Projects/decksprig/`. It contains the current development code, local documents, imported originals and the public repository's Git history. The former `~/Projects/deck-studio/` path is a compatibility symlink to this same directory; it is not another checkout. Existing document identifiers, browser storage and environment variable names remain compatible.
 
-## Guides
+The [official source repository](https://github.com/Ken-pan/decksprig), [release downloads](https://github.com/Ken-pan/decksprig/releases), [live editor and demo](https://decksprig.kens-toolbox.com/) and [Chinese guide](https://decksprig.kens-toolbox.com/guide.zh-CN.html) remain separate delivery surfaces. Create release artifacts with the packaging scripts; a second sibling release checkout is no longer needed. The pre-consolidation release files and development Git metadata are retained under `output/local-consolidation-20261115/` for recovery. This directory is private local working material and is excluded from Git and packaged releases.
 
-- [User guide](docs/open-source/getting-started.md) · [中文指南](docs/open-source/getting-started.zh-CN.md)
-- [AI / MCP guide](docs/open-source/agent-guide.md) · [AI prompt examples (中文)](docs/open-source/prompt-examples.zh-CN.md) · [AI reading index](llms.txt)
+A local slide editor for portfolios, project reviews and design proposals. Create editable slides, review AI proposals, and export presentations.
 
-## Try it in five minutes
-
-1. [Open the sample](https://decksprig.kens-toolbox.com/app?demo=1). It creates a new three-slide document in this browser. Close the import report after reading it.
-2. Rename the document in the top bar. Select text and choose **Edit text**, or double-click it to edit; select an object to change its properties.
-3. Choose **Present** to preview. Press Escape to return.
-4. Open **Document menu → Export document → Deck file** to download an editable backup. Choose **PowerPoint** or **Web page** to share a presentation.
-
-No account, provider subscription or API key is required for this workflow. Browser documents stay in this browser; export a backup before clearing site data or changing browsers. Desktop is the primary editing surface. See the [walkthrough and video](https://decksprig.kens-toolbox.com/demo.html).
+An early 0.1 release by Ken Pan, built with Codex. Code is [MIT licensed](LICENSE): commercial use and closed-source derivatives are welcome. Project-created decorative artwork uses CC0; [third-party assets and branding](ASSET_LICENSES.md) have separate terms.
 
 ## Run locally
 
-Install **Node.js 22.14 or newer**, Git and a modern browser. No native conversion tools are needed for ordinary editing.
+Use Node.js 22.14 or newer and a modern browser.
 
 ```sh
-git clone https://github.com/Ken-pan/decksprig.git
-cd decksprig
 npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:4310/**. Choose a template, start blank, or select **Try sample**. Keep the terminal running. If port 4310 is occupied, stop your earlier Decksprig instance first; do not clear its data directory.
-
-To run a production build locally:
+Open [the local editor](http://127.0.0.1:4310/). The service listens on the local loopback address. Start with a template or import your own presentation. Templates contain fictional placeholders and project-generated artwork. Try the [three-slide introduction](public/examples/deckleaf-demo.deck.json) by downloading it and choosing Import document.
 
 ```sh
+npm run check
+npm test
 npm run build
 npm start
 ```
 
-Local documents, history and imported originals are stored in `.data/`; recovery drafts also use browser storage. Export Deck files regularly. Back up `.data/` with the app stopped before moving or upgrading a local installation. A browser demo and a local installation have separate document libraries.
+## Editing
 
-## What you can do
+- Text, images, shapes, tables and editable charts.
+- Groups, nested auto layout, alignment, snapping, layers and reversible layout suggestions.
+- Slide templates, document styles, speaker notes, transitions and presentation mode.
+- Local fonts and resource libraries, with retained source and license information.
+- Optional AI proposals that are reviewed before application and use the same revision and undo system as manual edits.
 
-- Edit text, images, shapes, tables and charts; arrange groups, layers and nested auto layout.
-- Use templates, document styles, local fonts, artwork libraries, speaker notes and motion.
-- Preview AI proposals, apply reviewed changes and undo them through the same document operations as manual editing.
-- Import your sources and export editable Deck files, PowerPoint, PDF through the browser print dialog, or standalone HTML.
+## Import and export
 
-| Capability | Browser demo | Local Node edition |
-| --- | --- | --- |
-| Manual editing, templates, presentation, Deck/PPTX/HTML export | Yes | Yes |
-| Document storage | This browser, IndexedDB | `.data/` and browser recovery drafts |
-| PowerPoint and PDF import | Supported content; conversion warnings apply | Supported content; optional source rendering |
-| Native Keynote conversion | Use a PPTX/PDF export from Keynote | macOS with Keynote; some rendering needs LibreOffice |
-| AI | Optional HTTPS provider with browser access, session key | Optional provider or compatible local model |
-| Figma / Google integrations | Optional token/plugin workflows; provider and browser restrictions | Optional configuration; Google Desktop OAuth supported |
-| Hosting connection / MCP | Export HTML and use your host | Optional local workflows |
+| Format | Current support |
+| --- | --- |
+| Deck JSON | Native editable documents, including embedded media and metadata |
+| PowerPoint | Editable import/export of supported objects; verify complex effects, charts and typography in the target app |
+| PDF | Reference rendering and extracted text; not a fully editable reconstruction |
+| Keynote | Local macOS conversion requires Keynote; reference rendering can also require LibreOffice |
+| Figma and Google Slides | Optional API/token or plugin workflows; supported objects and source references vary by source |
+| Structured slide JSON | User-supplied content, images and speaker notes |
+| HTML | Standalone presentation with embedded local media/fonts; remote images and prototypes may still need the network |
+| Broadser JSON | Local file exchange |
 
-PPTX import/export supports selected objects; review complex typography, charts, effects and fonts in the destination app. PDF import supplies references and extracted text rather than a fully editable reconstruction. Source renders do not establish editable conversion fidelity. PPTX/Keynote archives are bounded to 100 MB input, 15,000 entries, 40 MB per expanded entry and 256 MB total; unsafe, encrypted and ZIP64 archives are rejected. See [format limits and troubleshooting](docs/open-source/getting-started.md#formats-and-troubleshooting).
+PPTX/Keynote archive imports are limited to 100 MB of input, 15,000 entries, 40 MB per expanded entry and 256 MB in total. Encrypted, ZIP64 and unsafe archives are rejected; re-export a smaller PPTX or PDF from the source app.
 
-## Optional connections and privacy
+A preserved source render and an editable conversion have different purposes. Import reports describe unsupported content. No general pixel-exact or lossless round-trip claim is made.
 
-AI is optional and needs your own provider configuration. When requested, selected document context, prompts and relevant tool results go to that provider. Online fonts, remote images, prototypes and cloud imports contact their providers. Credentials belong in session memory or local environment configuration, never documents or Git. Read [connection setup](docs/open-source/connections.md), [data and network behavior](docs/open-source/data-and-network.md) and [privacy](PRIVACY.md).
+Saved Figma Slides connections reappear in the header after reload, with direct access to status, conflict review and reconnect. Native spring controls retain the full playback duration; editor, preview and HTML export share rebound approximations checked against native playback. See the [compatibility evidence and remaining limits](docs/figma-slides-compatibility.md) and [feature inventory](docs/figma-slides-feature-parity.md).
 
-The public demo has no document-upload service or AI-key endpoint. Its optional photo-search proxy is disabled. Hosting/CDN access logs can still contain IP addresses and request paths. The local Node server listens on loopback and is intended for one user.
+## Data and optional connections
 
-## Develop, build and self-host
+The local edition stores documents, history and imported files in `.data/`; recovery drafts also use browser storage. Back up Deck JSON files and the data directory. Browser-only builds use IndexedDB; export backups before clearing site data or changing browsers.
+
+Ordinary local editing needs no account or AI key. When you enable AI, selected document context, your prompt and relevant tool results are sent to your chosen provider. Resource search, online fonts, cloud import and embedded prototypes contact their providers. See [data and network behavior](docs/open-source/data-and-network.md).
+
+Keep credentials in session memory or local environment configuration. Never put them in a document, public frontend bundle or Git. Configure Google OAuth outside the repository using a personal Desktop OAuth client and enable the required Google APIs. Optional integrations are not required for local editing.
+
+## Browser build
 
 ```sh
-npm ci
-npm run licenses:generate
-npm run check
-npm test
-npm run build
 npm run build:web
 ```
 
-The browser website/editor is written to `output/website/dist`; optional resource functions to `output/web-editor/functions`. Use a host with the supplied headers and `/app` rewrite. [Self-hosting instructions](docs/open-source/self-hosting.md) include a static-only option and the Netlify configuration. Do not expose the local Node document server as a public shared service.
-
-```sh
-npm run package:source
-```
-
-Creates a fresh directory under `output/open-source/<timestamp>/` containing `decksprig-source.tar.gz`, a file manifest and `SHA256SUMS`. Local documents, credentials, private evidence and historical builds are excluded. The [v0.1.8 release](https://github.com/Ken-pan/decksprig/releases/tag/v0.1.8) contains a reviewed source archive, browser build, sample and demo video. `private:true` prevents accidental npm publication and does not restrict GitHub use.
-
-## License, support and contributions
-
-Read [asset licenses](ASSET_LICENSES.md), [complete third-party notices](THIRD_PARTY_NOTICES.md), [source provenance](docs/provenance.md), [security reporting](SECURITY.md) and [contributing](CONTRIBUTING.md). Report bugs with a fictional minimal reproduction. This early release has no commercial support or service-level commitment.
-
-Decksprig retains legacy `deck-studio` schema identifiers, storage keys and environment variables for document compatibility. Do not rename them in existing documents.
-
-[Duoquill](https://github.com/Ken-pan/duoquill) illustrations and [Clovlets](https://github.com/Ken-pan/clovlets) stickers are independent CC0 collections by the same creator. Decksprig retains a pinned artwork copy for local use.
-
-## Name and website change
-
-Decksprig was previously called Deckleaf. Version 0.1.1 keeps the same document format, `deck-studio-*` storage keys and resource IDs. Existing local `.data/` libraries continue to work. The old hosted editor remains available at [the previous address](https://deckleaf-kens-toolbox.netlify.app/app) for accessing documents saved there. Browser storage belongs to its exact origin: export Deck files at the old address, then import them at the new one. Nothing is automatically transferred between domains. Read [migration notes](docs/open-source/name-change.md).
+The browser publication package is prepared under `output/website/dist`, with resource functions under `output/web-editor/functions`. Publishing that package is a separate action. The local Node service is designed for one user on loopback; exposing it as a shared internet service requires a separate authentication, authorization and resource-limit design.
 
 ## Separate distribution packages
 
@@ -110,7 +85,44 @@ This builds a fresh local release under `output/distribution/<release-id>/`: `ap
 
 The app contains full editable PPTX/POTX font payloads, browser fonts and licenses, and original template media for offline export. Website assets and PPTX-builder source TTF files are kept in their separate packages; no export needs to download the source package. The source archive preserves the original font manifest, full TTF faces, generator and all hashed source inputs. Repository originals remain intact.
 
-These app archives contain the existing Vite frontend/runtime assets. Run them with the repository Node service using `DECK_STUDIO_DIST=/absolute/path/to/app npm start`; Node dependencies and native Keynote conversion tools remain separate requirements. Documents containing remote-only media, online fonts or interactive embeds still depend on their providers unless those resources have already been embedded.
+Extract the app archive and run `node app/runtime/server.mjs` with Node.js 22.14 or newer. The archive includes the production service, MCP service and runtime dependencies. Open [the local editor](http://127.0.0.1:4310/). Documents default to `app/.data`. Set `DECK_STUDIO_DATA` to an absolute path to use an existing library. For stdio MCP, use `node /path/to/app/runtime/mcp.mjs` with the same library setting.
+
+The service streams packed Brotli assets at their original URLs. Identical template and gallery images share a single copy on filesystems that preserve tar hard links. Native conversion uses separately installed tools such as Keynote or LibreOffice. Remote-only media, online fonts and interactive embeds depend on their providers.
+
+For a smaller download of the full app, build the compact offline installer from an existing distribution. Use Rust 1.89+, the `wasm32-wasip1` Rust target and a WASI SDK. The SDK is used only to build the installer. For example, for a distribution staged at `output/my-release`:
+
+```sh
+WASI_SDK_PATH=/path/to/wasi-sdk npm run package:compact -- --input output/my-release --output output/my-compact-release
+```
+
+Extract `decksprig-compact-offline.tar`, then run `node installer/unpack.mjs /path/to/new-folder`. The bundled decoder restores the original PNG bytes and verifies the installation against the release manifest before placing the app in the new folder. After installation, start `node /path/to/new-folder/app/runtime/server.mjs`.
+
+The same build tools can prepare a directly extractable app with a smaller on-disk footprint. Pass `--pack-artwork` to `package:distribution` with `WASI_SDK_PATH` set. The app includes the decoder, retains the original artwork at its existing URLs and uses prebuilt gallery thumbnails. Users extract and start the app with the standard commands above.
 
 `npm run build` produces only the app resources. `npm run build:website` produces a standalone marketing site under `output/website-only/dist`; its `/app` link is a hosting integration point. `npm run package:export-sources` creates only the font source archive. The existing `build:web` command deliberately assembles the compatible combined browser-hosting layout; setting `DECK_STUDIO_WEB_OUTPUT=output/my-browser-build` stages that build separately without changing the default publication output.
 
+## Source package
+
+The lockfile temporarily uses [a pinned patched Picomatch fork](https://github.com/ryotsu-kankichi/secured-picomatch/tree/3ab5a7627d480259e3d9ca67fbc14c125d374f0e) for build tools. This applies the parser correction for [CVE-2026-112366](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) while upstream publishes a fix. Remove the override after upgrading to a reviewed upstream release that passes the existing full dependency audit.
+
+```sh
+npm run package:source
+```
+
+This prepares `output/open-source/deckleaf-source.tar.gz` and `deckleaf-source-manifest.json` with SHA-256 hashes from explicit source inputs. It excludes local documents, private evidence, historical builds and extracted portfolio cases. Source artwork and original font/resource notices remain available. Illustration ZIP downloads are created on demand in the gallery; a duplicate full PNG archive is not bundled.
+
+The package is a reviewable local release candidate. Creating a public repository and deploying a demo are separate actions. See [release preparation](docs/open-source/release-checklist.md), [source provenance](docs/provenance.md), and [brand documentation](docs/branding.md).
+
+## Licenses and contributions
+
+Fonts, libraries, icons and illustrations retain their individual licenses. These are separate from the MIT code license. Notices are stored in `public/fonts`, `public/resources/licenses` and `public/licenses/charts`. Imported content and user-created documents remain subject to their own rights.
+
+Read [complete third-party notices](THIRD_PARTY_NOTICES.md), [privacy](PRIVACY.md), [security reporting](SECURITY.md) and [contribution guidelines](CONTRIBUTING.md). Small bug reports with fictional reproductions are especially useful.
+
+Decksprig and Broadser are personal tools by Ken Pan. Legacy `deck-studio` document identifiers, storage keys and environment variables remain compatible; no document migration is required.
+
+To enable stock-photo APIs on a local server, its maintainer may set `UNSPLASH_ACCESS_KEY` or `PEXELS_API_KEY` outside Git. Ordinary users do not need developer accounts. The browser edition uses open collections and links to provider websites; it never accepts stock-provider developer keys. The hosted open-photo proxy is disabled by default. Set `DECKLEAF_PHOTO_SEARCH_ENABLED=true` on a reviewed deployment to enable it; remove the variable or set it to `false` to shut it down.
+
+AI template authoring uses the native template catalog to match reader tasks and evidence. Create with AI can choose a family automatically or honor an explicit family; review shows the selected family and page layout. Mapped authored template pages can be read and adapted through `read_template` and `prepare_template_update`, with the same scoped, revision-bound proposals and undo as manual editing. Imported and older unmapped pages remain editable through their existing objects.
+
+Duoquill blue and black illustrations also have a standalone [CC0 collection](https://github.com/Ken-pan/duoquill). The editor retains its pinned local copy for offline use. [Clovlets](https://github.com/Ken-pan/clovlets) is a separate CC0 sticker collection from the personal Broadser project.

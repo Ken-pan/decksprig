@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import iconCounts from './icon-counts.json';
@@ -6,21 +5,24 @@ import { getIconData } from '@iconify/utils';
 import { ICON_SETS, DOODLES, resourceMatches, type ResourceCatalog } from '../src/core/resources';
 import { blueBlackLibrary } from './blue-black';
 import {graphicLibrary} from './deck-graphics';
+import {assetPath,packagedRoot,readAssetText} from './runtime-assets';
 const require = createRequire(import.meta.url);
 type IconInfo = {total: number; author: {name: string}; license: {title: string}};
 type IconLibrary = {data: any; info: IconInfo; names: string[]};
 const metadata = new Map<string, Promise<IconInfo>>();
 const libraries = new Map<string, Promise<IconLibrary>>();
 const counts = new Map<string, Promise<number>>();
+function iconFile(prefix: string, name: 'info' | 'icons') {
+  return packagedRoot ? resolve(packagedRoot, 'runtime/icons', prefix, name + '.json') : require.resolve(`@iconify-json/${prefix}/${name}.json`);
+}
 async function iconCount(prefix: string): Promise<number> {
   let request = counts.get(prefix);
   if (!request) {
     request = (async () => {
       const recorded = (iconCounts as Record<string, {version: string; count: number}>)[prefix];
-      const installed = require(`@iconify-json/${prefix}/package.json`).version;
-      if (recorded?.version === installed) return recorded.count;
+      if (recorded && (packagedRoot || recorded.version === require(`@iconify-json/${prefix}/package.json`).version)) return recorded.count;
       // Development dependency updates remain correct before regenerating the index.
-      const data = JSON.parse(await readFile(require.resolve(`@iconify-json/${prefix}/icons.json`), 'utf8'));
+      const data = JSON.parse(await readAssetText(iconFile(prefix, 'icons')));
       return Object.keys(data.icons).length;
     })().catch(error => {counts.delete(prefix); throw error;});
     counts.set(prefix, request);
@@ -31,7 +33,7 @@ export function iconInfo(prefix: string): Promise<IconInfo> {
   if (!ICON_SETS.some(s => s.id === prefix)) return Promise.reject(new Error('Unsupported icon collection.'));
   let request = metadata.get(prefix);
   if (!request) {
-    request = readFile(require.resolve(`@iconify-json/${prefix}/info.json`), 'utf8').then(raw => JSON.parse(raw) as IconInfo).catch(error => {metadata.delete(prefix); throw error;});
+    request = readAssetText(iconFile(prefix, 'info')).then(raw => JSON.parse(raw) as IconInfo).catch(error => {metadata.delete(prefix); throw error;});
     metadata.set(prefix, request);
   }
   return request;
@@ -40,7 +42,7 @@ export function iconLibrary(prefix: string): Promise<IconLibrary> {
   if (!ICON_SETS.some(s => s.id === prefix)) return Promise.reject(new Error('Unsupported icon collection.'));
   let request = libraries.get(prefix);
   if (!request) {
-    request = Promise.all([readFile(require.resolve(`@iconify-json/${prefix}/icons.json`), 'utf8'), iconInfo(prefix)]).then(([raw, info]) => {
+    request = Promise.all([readAssetText(iconFile(prefix, 'icons')), iconInfo(prefix)]).then(([raw, info]) => {
       const data = JSON.parse(raw); return {data, info, names: Object.keys(data.icons)};
     }).catch(error => {libraries.delete(prefix); throw error;});
     libraries.set(prefix, request);
@@ -72,7 +74,7 @@ export async function findIcons(prefix: string, query: string, style: string) {
 }
 export type IllustrationRecord = {id: string; file: string; title: string; sourceUrl: string; sha256: string};
 let illustrations: Promise<IllustrationRecord[]> | undefined;
-export function illustrationLibrary(): Promise<IllustrationRecord[]> { return illustrations ??= readFile(resolve('public/resources/illlustrations/manifest.json'), 'utf8').then(raw => JSON.parse(raw).items); }
+export function illustrationLibrary(): Promise<IllustrationRecord[]> { return illustrations ??= readAssetText(assetPath('resources/illlustrations/manifest.json')).then(raw => JSON.parse(raw).items); }
 export function illustrationCategory(text: string) {
   const value = text.toLowerCase().replace(/[_-]/g, ' ');
   if (/\b(dog|dogs|cat|cats|fish|whale|owl|farm|rainbow|plant|nature|flower|petting|pet|animal|snail)\b/.test(value)) return 'nature';

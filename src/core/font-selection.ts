@@ -1,6 +1,7 @@
 import type { Deck, OnlineFont } from './model';
 import type { Operation } from './operations';
-import { fontOperations, fontStack, type FontChoice } from './fonts';
+import { fontOperations, fontStack, fontFamilyKey, type FontChoice ,sameFontFamily} from './fonts';
+import {loadLibraryFont} from './font-loading';
 import { loadOnlineFont, onlineReference } from './online-fonts';
 import {documentFontRole} from './document-style-choices';
 import {canEditText} from './shapes';
@@ -10,8 +11,9 @@ import {canEditText} from './shapes';
 export async function fontSelectionOperations(deck: Deck, slideId: string, ids: string[], font: FontChoice, weight?: number, reference?: OnlineFont | null): Promise<Operation[]> {
   const elements = deck.slides.find(s => s.id === slideId)?.elements.filter(e => ids.includes(e.id) && canEditText(e) && !e.locked) ?? [];
   if (!elements.length) return [];
-  const stored = deck.onlineFonts?.find(f => f.family === font.family);
+  const stored = deck.onlineFonts?.find(f => sameFontFamily(f.family,font.family));
   const ref = font.online ? reference ?? stored ?? await onlineReference(font) : null;
+  if(!ref)await loadLibraryFont(font.family,deck.fonts);
   for (const element of elements) {
     const load = async (text: string, requestedWeight: number, italic: boolean) => {
       if (ref) await loadOnlineFont(ref, weight ?? requestedWeight, text || 'Aa', italic ? 'italic' : 'normal');
@@ -22,7 +24,7 @@ export async function fontSelectionOperations(deck: Deck, slideId: string, ids: 
       await load(run.text, run.fontWeight ?? (run.bold === true ? 700 : run.bold === false ? 400 : element.fontWeight), run.italic ?? element.italic);
     }
   }
-  const view = ref ? {...deck, onlineFonts: [...(deck.onlineFonts ?? []).filter(f => f.family !== font.family), ref]} : deck;
+  const view = ref ? {...deck, onlineFonts: [...(deck.onlineFonts ?? []).filter(f => fontFamilyKey(f.family) !== fontFamilyKey(font.family)), ref]} : deck;
   const operations = fontOperations(view, slideId, ids, font.family);
   if (weight !== undefined) for (const op of operations) if (op.op === 'update_element') {
     op.patch.fontWeight = weight;

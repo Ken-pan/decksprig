@@ -3,7 +3,7 @@
   import type {SlideElement} from '../core/model';
   import type {DesignSystem} from '../core/design-system-schema';
   import type {TableStyle} from '../core/table-schema';
-  import {tablePresentation} from '../core/table-appearance';
+  import {tablePresentation} from '../core/table-rendering';
   import {tableRowHeights} from '../core/table-fit';
   import {tableColumnStyle} from '../core/table-columns';
   import {resizeRowPair} from '../core/table-grid';

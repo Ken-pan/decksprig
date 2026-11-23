@@ -7,10 +7,10 @@ input[type='number']::-webkit-inner-spin-button { cursor: pointer; }
 .slide-thumb .slide-render { cursor: inherit; }
 
 /* :disabled includes controls disabled by a fieldset, not just attributes. */
-:root :where(button, input, textarea, select, summary, [role='button'], [role='menuitem'], [role='option']):is(:disabled, [aria-disabled='true']),
+:root :is(.editor-app, dialog, [popover]) :is(button, input, textarea, select, summary, [role='button'], [role='menuitem'], [role='option'], [role='radio'], [role='tab'], [role='switch'], [role='slider'], [role='separator']):is(:disabled, [aria-disabled='true']),
 :root label:has(:is(input, textarea, select):disabled) { cursor: not-allowed; }
 input[type='number']:disabled::-webkit-inner-spin-button { cursor: not-allowed; }
-:root button[aria-busy='true'] { cursor: progress; }
+:root :is(.editor-app, dialog, [popover]) :is(button, [role='button'])[aria-busy='true'] { cursor: progress; }
 
 /* Only an active pointer gesture overrides descendants. Release restores each
    control's own cursor, including disabled fields and editable text. */

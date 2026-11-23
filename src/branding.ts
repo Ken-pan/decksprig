@@ -1,7 +1,8 @@
+import {BRAND_NAME} from './brand-name.js';
 import { version } from '../package.json';
 import { BRAND_ASSETS } from './brand-assets';
 
-export const BRAND = { name: 'Decksprig', description: 'Portfolios and presentations', version } as const;
+export const BRAND = { name: BRAND_NAME, description: 'Portfolios and presentations', version } as const;
 
 let geometry: Promise<string> | undefined;
 let appearanceSignature = '', revision = 0;
@@ -35,7 +36,7 @@ function resolvedColor(role: string) {
 export function syncBrowserBrand() {
   const background = resolvedColor('--accent'), foreground = resolvedColor('--text-on-accent');
   const chrome = resolvedColor('--surface-chrome');
-  const palette = document.documentElement.dataset.palette || 'forest';
+  const palette = document.documentElement.dataset.palette || 'indigo';
   const signature = `${palette}:${background}:${foreground}:${chrome}`;
   if (signature === appearanceSignature) return;
   appearanceSignature = signature;
@@ -67,7 +68,7 @@ export function installSavedBrand() {
     try { const value = JSON.parse(localStorage.getItem('deck-studio-settings') || '{}'); if (value && typeof value === 'object') saved = value; } catch { /* retain defaults */ }
     if (saved.theme === 'system') delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = saved.theme === 'dark' ? 'dark' : 'light';
-    document.documentElement.dataset.palette = ['forest', 'graphite', 'paper', 'indigo', 'ocean', 'violet', 'rose'].includes(saved.palette || '') ? saved.palette : 'forest';
+    document.documentElement.dataset.palette = ['forest', 'graphite', 'paper', 'indigo', 'ocean', 'violet', 'rose'].includes(saved.palette || '') ? saved.palette : 'indigo';
     syncBrowserBrand();
   };
   restore();

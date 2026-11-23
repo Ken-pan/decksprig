@@ -7,6 +7,7 @@ export function textStylePatch(e: SlideElement, patch: Partial<SlideElement>) {
     ...(patch.italic !== undefined ? {italic: undefined} : {}),
     ...(patch.fill !== undefined ? {color: undefined} : {}),
     ...(patch.underline !== undefined ? {underline: undefined} : {}),
+    ...(patch.strikethrough !== undefined ? {strikethrough: undefined} : {}),
     ...(patch.letterSpacing !== undefined ? {letterSpacing: undefined} : {}),
   });
   return {...patch, ...(e.runs ? {runs: e.runs.map(changeRun)} : {}),

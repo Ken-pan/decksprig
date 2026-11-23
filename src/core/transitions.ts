@@ -1,3 +1,5 @@
+import {nativeSlideTransition} from './figma-transitions';
+import {nativeSpringEasing} from './figma-spring';
 import type { Slide, SlideTransition } from './model';
 import { runSmartTransition } from './smart-motion';
 
@@ -42,7 +44,7 @@ export const TRANSITIONS = TRANSITION_PRESETS.map(p => [p.id, p.label] as const)
 export function transitionPreset(effect: TransitionEffect) { return TRANSITION_PRESETS.find(p => p.id === effect)!; }
 
 // Self-contained: serialized verbatim into downloaded HTML. No document or iframe cloning.
-export function transitionFrames(effect: TransitionEffect, direction = 1, incoming = true, lightweight = false): Keyframe[] {
+export function transitionFrames(effect: TransitionEffect, direction = 1, incoming = true, lightweight = false, nativeStyle?: string): Keyframe[] {
   const d = direction < 0 ? -1 : 1, amplitude = lightweight ? .72 : 1;
   const perspective = 'perspective(var(--deck-transition-perspective,2000px))';
   const rest: Keyframe = {opacity:1,transform:'none',filter:'none',clipPath:'inset(0 0 0 0)',transformOrigin:'50% 50%',borderRadius:'0px'};
@@ -71,6 +73,16 @@ export function transitionFrames(effect: TransitionEffect, direction = 1, incomi
     }
     return polygon(points);
   }
+  if(nativeStyle){
+    if(nativeStyle==='NONE')return keep;
+    if(nativeStyle==='DISSOLVE'||nativeStyle==='SMART_ANIMATE')return incoming?[{...rest,opacity:0},rest]:keep;
+    const side=nativeStyle.split('_').at(-1),v=(side==='LEFT'?-1:1)*d,x=side==='LEFT'||side==='RIGHT',off=(sign:number)=>x?`translateX(${sign*v*100}%)`:`translateY(${sign*(side==='TOP'?-1:1)*d*100}%)`;
+    if(nativeStyle.startsWith('PUSH_'))return incoming?[{...rest,transform:off(1)},rest]:[rest,{...rest,transform:off(-1)}];
+    if(nativeStyle.startsWith('MOVE_FROM_'))return incoming?[{...rest,transform:off(1)},rest]:keep;
+    if(nativeStyle.startsWith('SLIDE_FROM_'))return incoming?[{...rest,transform:off(1)},rest]:[rest,{...rest,opacity:0}];
+    if(nativeStyle.startsWith('MOVE_OUT_'))return incoming?keep:[rest,{...rest,transform:off(1)}];
+    if(nativeStyle.startsWith('SLIDE_OUT_'))return incoming?[{...rest,opacity:0},rest]:[rest,{...rest,transform:off(1)}];
+  }
   if(effect==='none')return keep;
   if(['blinds','mosaic','pixels'].includes(effect))return incoming ? Array.from({length:13},(_,i)=>({offset:i/12,opacity:1,clipPath:tiled(effect,i/12)})) : keep;
   if(effect==='iris')return incoming ? [{clipPath:'circle(0% at 50% 50%)'},{clipPath:'circle(75% at 50% 50%)'}] : keep;
@@ -97,45 +109,54 @@ export function transitionFrames(effect: TransitionEffect, direction = 1, incomi
   return pair({opacity:0},{opacity:0});
 }
 
-// Returning across a smart boundary reverses the same state change. Other presets retain destination-page timing.
+// Figma transitions belong to the page being left; previous-page navigation is
+// immediate in the native audience view. Deck presets retain their own timing.
 export function resolvePageTransition(from: Slide | null | undefined, to: Slide, direction = 1): SlideTransition {
+  if(direction>0&&from?.transition?.native)return from.transition;
+  if(direction<0&&(from?.transition?.native||to.transition?.native))return {effect:'none',duration:100,easing:'linear'};
+  if(!from&&to.transition?.native)return {effect:'none',duration:100,easing:'linear'};
   return direction < 0 && from?.transition?.effect === 'smart' ? from.transition : to.transition ?? {effect:'fade',duration:480,easing:'smooth'};
 }
 
 export type PageTransitionRun = {animations: Animation[]; finished: Promise<unknown>; cancel: () => void; setPaused: (paused: boolean) => void};
 // Factory dependencies are passed explicitly so the editor, preview and download use the same runtime.
-export function createPageTransition(frames: typeof transitionFrames, easings: Record<string,string>, smart?: typeof runSmartTransition) {
+export function createPageTransition(frames: typeof transitionFrames, easings: Record<string,string>, smart?: typeof runSmartTransition, native?:typeof nativeSlideTransition, spring?:typeof nativeSpringEasing) {
+  const springCurves=new Map<string,string|undefined>();
   return function(incoming: HTMLElement, outgoing: HTMLElement | null, transition: SlideTransition, direction: number, options: {reduced?: boolean; paused?: boolean; lightweight?: boolean; from?:Slide; to?:Slide; fromStep?:number; toStep?:number} = {}): PageTransitionRun {
     const animations: Animation[] = [];
     const restore: (()=>void)[] = [];
     let active = true, backdrop: HTMLElement | undefined;
     const cancel = () => {if(!active)return;active=false;animations.forEach(a=>a.cancel());backdrop?.remove();restore.forEach(fn=>fn());};
     const setPaused = (paused: boolean) => animations.forEach(a=>{if(a.playState==='finished'||a.playState==='idle')return;if(paused)a.pause();else if(a.playState==='paused')a.play();});
+    const source=native?.(transition);
     if(!options.reduced && transition.effect!=='none' && typeof incoming.animate==='function') {
-      const settings={duration:transition.duration,easing:easings[transition.easing],fill:'both' as FillMode};
+      const nativeEasing:Record<string,string>={LINEAR:'linear',EASE_IN:'cubic-bezier(.42,0,1,1)',EASE_OUT:'cubic-bezier(0,0,.58,1)',EASE_IN_AND_OUT:'cubic-bezier(.42,0,.58,1)'};
+      if(source&&spring&&!springCurves.has(source.curve)){const curve=spring(source.curve);springCurves.set(source.curve,curve&&(typeof CSS==='undefined'||CSS.supports('animation-timing-function',curve))?curve:undefined);}
+      const settings={duration:source?source.duration*1000:transition.duration,easing:source?springCurves.get(source.curve)??nativeEasing[source.curve]??easings[transition.easing]:easings[transition.easing],fill:'both' as FillMode};
       const stage=incoming.parentElement, doc=incoming.ownerDocument;
-      // A flat color plane fills only the page footprint, never the letterbox or live iframe.
+      // Native spring overshoot can uncover the page edge. Slides reveals black
+      // there; a destination-colored plane incorrectly erases that movement.
       if(stage && doc && typeof getComputedStyle==='function') {
         const color=(target:HTMLElement|null)=>{const page=target?.querySelector<HTMLElement>('.slide-render,.slide,.transition-demo-page') ?? target;const value=page?getComputedStyle(page).backgroundColor:'';return value && value!=='rgba(0, 0, 0, 0)'?value:'rgb(24, 28, 25)';};
         const style=getComputedStyle(incoming);
         backdrop=doc.createElement('div');backdrop.dataset.transitionBackdrop='';backdrop.setAttribute('aria-hidden','true');
-        Object.assign(backdrop.style,{position:'absolute',pointerEvents:'none',left:incoming.offsetLeft+'px',top:incoming.offsetTop+'px',width:incoming.clientWidth+'px',height:incoming.clientHeight+'px',translate:style.translate || 'none',backgroundColor:color(incoming),zIndex:'0'});
+        Object.assign(backdrop.style,{position:'absolute',pointerEvents:'none',left:incoming.offsetLeft+'px',top:incoming.offsetTop+'px',width:incoming.clientWidth+'px',height:incoming.clientHeight+'px',translate:style.translate || 'none',backgroundColor:source?'#000':color(incoming),zIndex:'0'});
         stage.insertBefore(backdrop,outgoing ?? incoming);
-        try{animations.push(backdrop.animate([{backgroundColor:color(outgoing ?? incoming)},{backgroundColor:color(incoming)}],settings));}catch{/* Static tone remains if color animation is unavailable. */}
+        if(!source)try{animations.push(backdrop.animate([{backgroundColor:color(outgoing ?? incoming)},{backgroundColor:color(incoming)}],settings));}catch{/* Static tone remains if color animation is unavailable. */}
       }
       for(const [target,enter] of [[incoming,true],[outgoing,false]] as const) {
         if(!target)continue;
-        const oldZ=target.style.zIndex;target.style.zIndex=enter?'2':'1';restore.push(()=>{target.style.zIndex=oldZ;});
+        const oldZ=target.style.zIndex;target.style.zIndex=Boolean(enter)!==Boolean(source&&/_OUT_TO_/.test(source.style))?'2':'1';restore.push(()=>{target.style.zIndex=oldZ;});
         if(typeof target.style.setProperty==='function') {
           const key='--deck-transition-perspective',old=target.style.getPropertyValue(key);
           target.style.setProperty(key,Math.max(600,(incoming.clientWidth || 600)*2.4)+'px');
           restore.push(()=>{if(old)target.style.setProperty(key,old);else target.style.removeProperty(key);});
         }
       }
-      const handled=transition.effect==='smart' && outgoing && options.from && options.to && smart?.(incoming,outgoing,options.from,options.to,settings,animations,restore,{fromStep:options.fromStep,toStep:options.toStep});
+      const handled=transition.effect==='smart' && outgoing && options.from && options.to && smart?.(incoming,outgoing,options.from,options.to,settings,animations,restore,{fromStep:options.fromStep,toStep:options.toStep,native:source?.style==='SMART_ANIMATE'});
       if(!handled)for(const [target,enter] of [[incoming,true],[outgoing,false]] as const){
         if(!target)continue;
-        try {const values=frames(transition.effect,direction,enter,options.lightweight);if(typeof CSS!=='undefined' && values.some(f=>f.clipPath && !CSS.supports('clip-path',String(f.clipPath))))throw new Error('Unsupported mask');animations.push(target.animate(values,settings));}
+        try {const values=frames(transition.effect,direction,enter,options.lightweight,source?.style);if(typeof CSS!=='undefined' && values.some(f=>f.clipPath && !CSS.supports('clip-path',String(f.clipPath))))throw new Error('Unsupported mask');animations.push(target.animate(values,settings));}
         catch {try {animations.push(target.animate(enter?[{offset:0,opacity:0},{offset:.2,opacity:0},{offset:.62,opacity:1},{offset:1,opacity:1}]:[{offset:0,opacity:1},{offset:.08,opacity:1},{offset:.36,opacity:0},{offset:1,opacity:0}],settings));}catch {/* Immediate static fallback. */}}
       }
     }
@@ -148,4 +169,4 @@ export function createPageTransition(frames: typeof transitionFrames, easings: R
     return {animations,finished,cancel,setPaused};
   };
 }
-export const runPageTransition = createPageTransition(transitionFrames, TRANSITION_EASINGS, runSmartTransition);
+export const runPageTransition = createPageTransition(transitionFrames, TRANSITION_EASINGS, runSmartTransition,nativeSlideTransition,nativeSpringEasing);

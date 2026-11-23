@@ -1,10 +1,11 @@
 <script lang="ts">
+  import CellTextDetails from './CellTextDetails.svelte';
   import {numericFieldValidity} from './ui/numeric-validity.svelte';
   const numericFields=numericFieldValidity();
   import ColorField from './ui/ColorField.svelte';
   import NumberField from './ui/NumberField.svelte';
   import {onMount, tick, untrack} from 'svelte';
-  import {Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, ChevronDown, SlidersHorizontal, Baseline, Check, X} from '@lucide/svelte';
+  import {Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ChevronDown, SlidersHorizontal, Baseline, Check, X} from '@lucide/svelte';
   import {Button} from './ui';
   import PropertyChoice from './ui/PropertyChoice.svelte';
   import {deckDesignSystem,COLOR_LABELS,TEXT_LABELS} from '../core/deck-design-system';
@@ -13,21 +14,22 @@
   import {COLOR_ROLES,type ColorRole,type TextRole} from '../core/design-system-schema';
   import DocumentColorChoices from './DocumentColorChoices.svelte';
   import {swatchInk} from '../selection-color';
+  import {propertyColor} from '../core/property-color';
   import {positionFloating} from '../ui-viewport';
   import '../selection-tools.css';
   import {editor} from '../core/editor.svelte';
   import {textPropertyState, textToggleState} from '../core/text-properties';
   import {textRangeStylePatch, textRangeTarget, type TextFormatPatch, type TextFormatState, type TextRange} from '../core/text-range-format';
-  let {inline=false, readInline, onformat}: {inline?: boolean; readInline: () => TextFormatState | null; onformat: (patch: TextFormatPatch, range?: TextRange) => Promise<void> | void} = $props();
+  let {inline=false,allowCaret=false,characters=false,opaqueColor=false,alignmentLabel='Paragraph alignment',readInline,onformat}: {inline?:boolean;allowCaret?:boolean;characters?:boolean;opaqueColor?:boolean;alignmentLabel?:string; readInline: () => TextFormatState | null; onformat: (patch: TextFormatPatch, range?: TextRange) => Promise<void> | void} = $props();
   let context=$state<TextFormatState|null>(null), menu=$state<'size'|'color'|'style'|''>(''), opened=$state(false);
   let popup=$state<HTMLDivElement>(), sizeButton=$state<HTMLButtonElement>(), colorButton=$state<HTMLButtonElement>(), styleButton=$state<HTMLButtonElement>();
-  let numeric=$state<number|string|undefined>(''), hex=$state(''), colorValid=$state(true), popupFrame=0;
+  let numeric=$state<number|string|undefined>(''), hex=$state(''), colorValid=$state(true),generation=$state(0), popupFrame=0;
   const id=$props.id();
   const elements=$derived(inline&&context ? [textRangeTarget(context.element,context.range)] : editor.selection.filter(e=>e.type==='text'));
   const size=$derived(textPropertyState(elements,'fontSize')), color=$derived(textPropertyState(elements,'fill'));
   const alignment=$derived(textPropertyState(elements,'align'));
-  const bold=$derived(textToggleState(elements,'bold')), italic=$derived(textToggleState(elements,'italic')), underline=$derived(textToggleState(elements,'underline'));
-  const disabled=$derived(!elements.some(e=>!e.locked)||(inline&&(!context||context.range.start===context.range.end)));
+  const bold=$derived(textToggleState(elements,'bold')), italic=$derived(textToggleState(elements,'italic')), underline=$derived(textToggleState(elements,'underline')),strike=$derived(textToggleState(elements,'strikethrough'));
+  const disabled=$derived(!elements.some(e=>!e.locked)||(inline&&(!context||!(allowCaret||context.capabilities?.caret)&&context.range.start===context.range.end)));
   const system=$derived(deckDesignSystem(editor.deck??{}));
   const styleElements=$derived(elements.filter(e=>!e.locked&&!e.resource&&!e.sourceRegion));
   const choices=$derived(editor.deck?documentTextChoices(editor.deck,elements):[]);
@@ -50,14 +52,14 @@
   async function open(next:typeof menu) {
     refresh();if(disabled)return;
     if(menu===next&&popup?.matches(':popover-open')){close();return;}
-    popup?.hidePopover();menu=next; numeric=size.mixed?'':String(size.value??32);hex=color.mixed?'':String(color.value??'#111827');
+    popup?.hidePopover();menu=next;generation++;colorValid=true; numeric=size.mixed?'':String(size.value??32);hex=color.mixed?'':String(color.value??'#111827');
     await tick();popup?.showPopover();position();popup?.focus({preventScroll:true});
   }
   function close() { popup?.hidePopover();restoreFocus(origin()); }
   async function apply(patch:TextFormatPatch) {
     const focused = document.activeElement as HTMLElement | null, fromPopup = popup?.matches(':popover-open');
     const captured=inline?(readInline()??context):null;
-    if(inline){if(!captured||captured.range.start===captured.range.end)return;await onformat(patch,captured.range);}
+    if(inline){if(!captured||!(allowCaret||captured.capabilities?.caret)&&captured.range.start===captured.range.end)return;await onformat(patch,captured.range);}
     else if(editor.slide)editor.commit(editor.selection.filter(e=>e.type==='text'&&!e.locked).map(e=>({op:'update_element',slideId:editor.slide!.id,elementId:e.id,patch:textRangeStylePatch(e,patch)})));
     refresh();popup?.hidePopover();if(!inline)(fromPopup ? origin() : focused)?.focus({preventScroll:true});
   }
@@ -71,16 +73,16 @@
     if(editor.slide&&editor.deck){editor.commit(objectColorStyleOperations(editor.operationDocument(),editor.slide.id,styleElements.map(e=>e.id),'fill',role));close();}
   }
   function customSize(event:SubmitEvent) {event.preventDefault();const value=Number(numeric);if(String(numeric??'').trim()&&Number.isFinite(value)&&value>=4&&value<=500)void apply({fontSize:value});}
-  function customColor(event:SubmitEvent) {event.preventDefault();if(colorValid&&/^#[\da-f]{6}$/i.test(hex))void apply({fill:hex});}
+  function customColor(event:SubmitEvent) {event.preventDefault();const color=propertyColor(hex);if(colorValid&&color)void apply({fill:color});}
   function key(event:KeyboardEvent) {if(event.key==='Escape'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();event.stopPropagation();close();}}
   function formatKey(event: KeyboardEvent) {
     const key = event.key.toLowerCase(), target = event.target;
-    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey) || !['b','i','u'].includes(key)) return;
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey || !(event.metaKey || event.ctrlKey) || !(event.shiftKey?key==='x':['b','i','u'].includes(key))) return;
     if (!(target instanceof HTMLElement) || !target.closest('.canvas-stage,.layer-browser,.object-properties') || target.closest('input,textarea,select') || target.closest('[contenteditable="true"]') && !inline || document.querySelector('dialog:modal,[popover]:popover-open:not([role="tooltip"])')) return;
     event.preventDefault(); event.stopImmediatePropagation();
     refresh();
     if (event.repeat || disabled) return;
-    void apply(key === 'b' ? {fontWeight: bold === true ? 400 : 700} : key === 'i' ? {italic: italic !== true} : {underline: underline !== true});
+    void apply(key === 'b' ? {fontWeight: bold === true ? 400 : 700} : key === 'i' ? {italic: italic !== true} : key==='x'?{strikethrough:strike!==true,...(strike!==true?{underline:false}:{})}:{underline: underline !== true,...(underline!==true?{strikethrough:false}:{})});
   }
   onMount(()=>{
     const observer=new ResizeObserver(schedule);if(popup)observer.observe(popup);
@@ -100,11 +102,12 @@
   <button class="icon-btn" aria-label="Bold" title={disabled?'Select text to format':'Bold'} aria-pressed={bold} disabled={disabled} onpointerdown={event=>event.preventDefault()} onclick={()=>apply({fontWeight:bold===true?400:700})}><Bold size={16}/></button>
   <button bind:this={colorButton} class="text-btn quick-color" aria-label="Text color" aria-describedby={`${id}-color-description`} title={disabled?'Select text to format':'Text color'} aria-haspopup="dialog" aria-controls={id} aria-expanded={opened&&menu==='color'} disabled={disabled} onclick={()=>open('color')}><span class="selection-color-glyph text-color-glyph" aria-hidden="true"><Baseline size={16}/><span class="selection-color-mark" class:mixed={color.mixed} style:background={color.mixed?undefined:color.value}></span></span></button>
   <button bind:this={styleButton} class="text-btn quick-style" aria-label="More text formatting" title="More text formatting" aria-haspopup="dialog" aria-controls={id} aria-expanded={opened&&menu==='style'} disabled={disabled} onclick={()=>open('style')}><SlidersHorizontal size={16} aria-hidden="true"/><ChevronDown class="quick-chevron" size={14}/></button>
+  {#if inline&&(characters||context?.capabilities?.characters)}<CellTextDetails {readInline} {onformat} {disabled}/>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div bind:this={popup} id={id} use:popoverFocus={{close:()=>popup?.hidePopover(), origin:()=>origin()}} popover="auto" data-text-formatting class="text-format-popover selection-tools-popover ui-property-surface canvas-controls-popover" role="dialog" tabindex="-1" aria-label={menu==='size'?'Text style and size options':menu==='color'?'Text color options':'Text formatting options'} onbeforetoggle={event=>opened=event.newState==='open'} onkeydown={key}>
+  <div bind:this={popup} id={id} use:popoverFocus={{close:()=>popup?.hidePopover(), origin:()=>origin()}} popover="auto" data-text-formatting class="text-format-popover selection-tools-popover ui-property-surface canvas-controls-popover" role="dialog" tabindex="-1" aria-label={menu==='size'?'Text style and size options':menu==='color'?'Text color options':'Text formatting options'} onbeforetoggle={event=>opened=event.newState==='open'} onkeydowncapture={key}>
     <header><strong>{menu==='size'?'Text style and size':menu==='color'?'Text color':'Text style'}</strong><button class="icon-btn" aria-label="Close text formatting" onclick={close}><X size={16}/></button></header>
     <div class="selection-format-body">
-      {#if menu==='size'}
+      {#key generation}{#if menu==='size'}
         <span class="text-format-label">Document styles</span>
         <div class="document-text-choices" role="group" aria-label="Document text styles">{#each choices as choice}<button class="text-btn" aria-pressed={linkedRole===choice.role} disabled={!inline&&!styleElements.length} onclick={()=>chooseTextStyle(choice.role)}><span><strong>{choice.label}</strong><small>{choice.fontFamily}</small></span><span class="style-size">{choice.size===undefined?'Mixed':Math.round(choice.size*10)/10}</span></button>{/each}</div>
         <p class="hint">{inline?'Selected text only':linkedRole?`${TEXT_LABELS[linkedRole]} · ${typeOverrides?'Custom formatting':'Follows document styles'}`:'Choose a style to follow the document.'}</p>
@@ -113,12 +116,12 @@
       {:else if menu==='color'}
         <DocumentColorChoices value={colorRole} disabled={!inline&&!styleElements.length} onchoose={chooseColor}/>
         <p class="hint">{inline?'Selected text only':colorRole&&colorRole!=='mixed'?`${COLOR_LABELS[colorRole]} · Follows document colors`:colorRole==='mixed'?'Mixed color links':'Custom color'}</p>
-        <details class="format-custom-options"><summary><span>Custom color</span><ChevronDown size={14} aria-hidden="true"/></summary>{#if colors.length}<div class="color-presets">{#each colors as value}<button class="color-swatch" style:background={value} style:color={swatchInk(value)} aria-label={`Text color ${value}`} aria-pressed={!color.mixed&&color.value?.toLowerCase()===value.toLowerCase()} onclick={()=>apply({fill:value})}>{#if !color.mixed&&color.value?.toLowerCase()===value.toLowerCase()}<Check size={16}/>{/if}</button>{/each}</div>{/if}<form class="text-custom-value" onsubmit={customColor}><ColorField label="Text color" value={hex} opaque allowClear={false} onvaliditychange={valid=>colorValid=valid} onchange={value=>{hex=value;}}/><Button variant="secondary" type="submit" disabled={!colorValid||!numericFields.valid}>Apply</Button></form></details>
+        <details class="format-custom-options"><summary><span>Custom color</span><ChevronDown size={14} aria-hidden="true"/></summary>{#if colors.length}<div class="color-presets">{#each colors as value}<button class="color-swatch" style:background={value} style:color={swatchInk(value)} aria-label={`Text color ${value}`} aria-pressed={!color.mixed&&color.value?.toLowerCase()===value.toLowerCase()} onclick={()=>apply({fill:value})}>{#if !color.mixed&&color.value?.toLowerCase()===value.toLowerCase()}<Check size={16}/>{/if}</button>{/each}</div>{/if}<form class="text-custom-value" onsubmit={customColor}><ColorField label="Text color" opaque={opaqueColor} value={hex} allowClear={false} onvaliditychange={valid=>colorValid=valid} onchange={value=>{hex=value;}}/><Button variant="secondary" type="submit" disabled={!colorValid||!numericFields.valid}>Apply</Button></form></details>
       {:else if menu==='style'}
-        <div class="text-style-buttons"><button class="text-btn" aria-label="Italic" aria-pressed={italic} onclick={()=>apply({italic:italic!==true})}><Italic size={16}/>Italic</button><button class="text-btn" aria-label="Underline" aria-pressed={underline} onclick={()=>apply({underline:underline!==true})}><Underline size={16}/>Underline</button></div>
-        <span class="text-format-label">Paragraph alignment</span>
+        <div class="text-style-buttons"><button class="text-btn" aria-label="Italic" aria-pressed={italic} onclick={()=>apply({italic:italic!==true})}><Italic size={16}/>Italic</button><button class="text-btn" aria-label="Underline" aria-pressed={underline} onclick={()=>apply({underline:underline!==true,...(underline!==true?{strikethrough:false}:{})})}><Underline size={16}/>Underline</button><button class="text-btn" aria-label="Strikethrough" aria-pressed={strike} onclick={()=>apply({strikethrough:strike!==true,...(strike!==true?{underline:false}:{})})}><Strikethrough size={16}/>Strikethrough</button></div>
+        <span class="text-format-label">{alignmentLabel}</span>
         <PropertyChoice label="Text alignment" icons value={alignment.mixed?'':alignment.value} options={[{value:'left',label:'Left',icon:AlignLeft},{value:'center',label:'Center',icon:AlignCenter},{value:'right',label:'Right',icon:AlignRight}]} onchange={value=>void apply({align:value as 'left'|'center'|'right'})}/>
-      {/if}
+      {/if}{/key}
     </div>
   </div>
 </div>

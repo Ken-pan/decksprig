@@ -4,6 +4,16 @@ import {vNodeToString,type SVGVNode} from 'zrender/lib/svg/core.js';
 import type SVGPainter from 'zrender/lib/svg/Painter.js';
 import type {Chart} from './chart-schema';
 import {chartTextLabel,chartTextValue,type ChartTextTarget} from './chart-text';
+function svgString(v:SVGVNode):string{
+  const attribute=(value:string)=>value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  // zrender serializes attribute values verbatim. CSS font stacks and chart
+  // accessibility labels can contain quotes/ampersands, which must remain XML.
+  const encode=(node:SVGVNode):SVGVNode=>({...node,attrs:Object.fromEntries(Object.entries(node.attrs??{}).filter(([,value])=>value!==undefined&&value!==null&&value!==false).map(([key,value])=>[key,value===true?'true':typeof value==='string'?attribute(value):value])),children:node.children?.map(encode)});
+  return vNodeToString(encode(v),{newline:true});
+}
+export function renderStaticChartSvg(chart:EChartsType):string{
+  return svgString((chart.getZr().painter as SVGPainter).renderToVNode({animation:false,willUpdate:false,compress:true,useViewBox:true}));
+}
 /** Pinned renderer identities resolve labels even when strings repeat or truncate. */
 export function renderEditableChartText(chart:EChartsType,c:Chart):string{
   const formats=new Map<string,'axis'|'labels'>();
@@ -41,5 +51,5 @@ export function renderEditableChartText(chart:EChartsType,c:Chart):string{
     const {target:t,rect:r}=found,key=`${t.kind}:${t.index??''}`,first=!claimed.has(key);claimed.add(key);
     return {tag:'g',key:`edit-${v.key}`,attrs:{'data-chart-text':t.kind,'data-chart-text-index':t.index??'','data-focus-key':`chart:${key}`,role:'button',tabindex:first?0:-1,'aria-label':`${chartTextLabel(t)}: ${chartTextValue(c,t)} · Click to edit`},children:[{tag:'rect',key:`hit-${v.key}`,attrs:{x:r.x-4,y:r.y-4,width:Math.max(8,r.width)+8,height:Math.max(16,r.height)+8,transform:found.transform,fill:'transparent','data-chart-text-hit':true}},v]};
   }
-  return vNodeToString(mark(svg),{newline:true});
+  return svgString(mark(svg));
 }

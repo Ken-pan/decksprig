@@ -50,17 +50,18 @@ export async function exportKeynote(bytes: Buffer, options?:{nativeSource:NonNul
     return {key:(await readFile(target)).toString('base64'),renderer:'Keynote',fidelity:plan?'native-source':'converted',nativeEdits:plan?applied:undefined,fontRestoration:plan?undefined:{expected:fontRestoration.expected,applied},warning};
   });nativeQueue=result.catch(()=>{});return result;
 }
-export async function convertUpload(bytes: Buffer, filename: string, native = false) {
+export async function convertUpload(bytes: Buffer, filename: string, native = false, signal?: AbortSignal) {
   if (native || /\.key$/i.test(filename)) {
     const result = nativeQueue.then(() => convertInternal(bytes, filename, native));
     nativeQueue = result.catch(() => {}); return result;
   }
-  return convertInternal(bytes, filename, native);
+  return convertInternal(bytes, filename, native, signal);
 }
-async function convertInternal(bytes: Buffer, filename: string, native = false) {
+async function convertInternal(bytes: Buffer, filename: string, native = false, signal?: AbortSignal) {
   const ext = filename.toLowerCase().endsWith('.key') ? '.key' : filename.toLowerCase().endsWith('.pptx') ? '.pptx' : null;
   if (!ext) throw new Error('Only .pptx and .key files are supported.');
   await verifyArchive(bytes);
+  signal?.throwIfAborted();
   const dir = resolve(DATA, 'imports', crypto.randomUUID());
   await mkdir(dir, {recursive: true});
   const source = resolve(dir, `source${ext}`), pdf = resolve(dir, 'source.pdf'), pptx = resolve(dir, 'converted.pptx');
@@ -94,9 +95,9 @@ async function convertInternal(bytes: Buffer, filename: string, native = false) 
     renderer = 'Keynote';
   } else {
     if (!(await converters()).libreoffice) throw new Error('No converter found. Install LibreOffice or attach a PDF exported from the original app.');
-    await exec(libre, [`-env:UserInstallation=file://${resolve(dir, 'lo-profile')}`, '--headless', '--convert-to', 'pdf', '--outdir', dir, source], {timeout: 120000, maxBuffer: 100000});
+    await exec(libre, [`-env:UserInstallation=file://${resolve(dir, 'lo-profile')}`, '--headless', '--convert-to', 'pdf', '--outdir', dir, source], {timeout: 120000, maxBuffer: 100000, signal});
   }
-  return {pdf: (await readFile(pdf)).toString('base64'), pptx: ext === '.key' ? (await readFile(pptx)).toString('base64') : undefined, renderer,
+  return {pdf: await readFile(pdf), pptx: ext === '.key' ? await readFile(pptx) : undefined, renderer,
     nativeSource:ext==='.key'?{provider:'Keynote',id:dir.split('/').at(-1)!,sha256:createHash('sha256').update(bytes).digest('hex')}:undefined,
     warning: ext === '.key' ? 'Source renders come from Keynote. The editable version is converted through PPTX. Review complex effects and animations.' : `Rendered by ${renderer}. Results may differ from PowerPoint. Attach a PDF exported from PowerPoint as the source reference.`};
 }

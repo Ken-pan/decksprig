@@ -50,7 +50,7 @@ test('project-owned AI artwork embeds each source once with original bytes and p
       const themed=e.resource?.id.startsWith('blue-black:');
       assert.deepEqual(Buffer.from(p.src!.split(',')[1],'base64'),themed?(await loadResource(e.resource!.id,c.system.colors.accent)).bytes:await readFile(`public${e.src}`));
       assert.deepEqual(p.resource,themed?{...e.resource,color:c.system.colors.accent}:e.resource);
-      if(media.resource){assert.match(media.resource.creator!,/Decksprig.*AI-generated/);const original=media.resource.kind==='photo'?new URL(media.resource.sourceUrl).pathname:e.src;assert.equal(createHash('sha256').update(await readFile(`public${original}`)).digest('hex'),media.resource.originalSha256);}
+      if(media.resource){assert.match(media.resource.creator!,/Deckleaf.*AI-generated/);const original=media.resource.kind==='photo'?new URL(media.resource.sourceUrl).pathname:e.src;assert.equal(createHash('sha256').update(await readFile(`public${original}`)).digest('hex'),media.resource.originalSha256);}
     }
   }
   await assert.rejects(embedTemplateArtwork(templateDeck('portfolio'),async()=>{throw new Error('offline');}),/offline/);

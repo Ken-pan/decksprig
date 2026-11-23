@@ -18,11 +18,12 @@
   const editor=getContext<Editor|undefined>('numeric-editor'),id=$props.id();
   let surface=$state<PopoverPanel>(),hsv=$state<Hsva>({h:0,s:0,v:1,a:1}),hex=$state('#ffffff'),invalid=$state(false),sampling=$state(false),error=$state('');
   let mode=$state<'custom'|'tokens'>('custom');
-  let format=$state<ColorFormat>('hex'),room=$state(500),channelValidity=$state<Record<string,boolean>>({});
+  let format=$state<ColorFormat>('hex'),room=$state(500),largeTargets=$state(false),channelValidity=$state<Record<string,boolean>>({});
   const channelsValid=$derived(Object.values(channelValidity).every(Boolean));
   const usableRoom=$derived(room-(onrole&&roles.length?56:0)-(invalid||!channelsValid||error?64:0));
   const compact=$derived(usableRoom<400),tiny=$derived(usableRoom<350),minimal=$derived(usableRoom<230);
   const channels=$derived(format==='hex'?[]:colorChannels(hsv,format));
+  const tokenSelect=$derived(Math.min(520,room)<(largeTargets?148:128)+roles.length*48);
   const channelLabels=$derived(format==='rgb'?['Red','Green','Blue']:format==='hsl'?['Hue','Saturation','Lightness']:['Hue','Saturation','Brightness']);
   let expected='',frame=0,pending:Hsva|undefined,disposed=false,sample:AbortController|undefined;
   type Drag={node:HTMLElement;id:number;before:Hsva;beforeColor:string;gesture?:ReturnType<typeof beginPropertyGesture>};
@@ -84,10 +85,10 @@
     catch(reason){if(!request.signal.aborted&&open&&(reason as Error).name!=='AbortError')error='Color sampling is unavailable.';}
     finally{if(sample===request){sampling=false;sample=undefined;}}
   }
-  onMount(()=>{const resize=()=>room=Math.max(120,visualBounds().height-24);resize();window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);return()=>{window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);};});
+  onMount(()=>{const targets=matchMedia('(max-width:760px),(pointer:coarse)'),resize=()=>{room=Math.max(120,visualBounds().height-24);largeTargets=targets.matches;};resize();targets.addEventListener('change',resize);window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);return()=>{targets.removeEventListener('change',resize);window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);};});
   onDestroy(()=>{finish();disposed=true;cancelAnimationFrame(frame);sample?.abort();});
 </script>
-<PopoverPanel bind:this={surface} title={label} {anchor} returnFocus={()=>anchor} bind:open width={288} height={Math.min(520,room)} minHeight={520} autoHeight viewportOnly class={`ui-color-popover ${compact?'compact':''} ${tiny?'tiny':''} ${minimal?'minimal':''}`} onopen={initialize} onkeydown={key}>
+<PopoverPanel bind:this={surface} title={label} {anchor} returnFocus={()=>anchor} bind:open width={288} height={Math.min(520,room)} minHeight={520} autoHeight viewportOnly class={`ui-color-popover ${mode==='tokens'?'tokens':''} ${compact?'compact':''} ${tiny?'tiny':''} ${minimal?'minimal':''}`} onopen={initialize} onkeydown={key}>
   {#if onrole&&roles.length}
     <div class="picker-modes" role="tablist" aria-label="Color source">
       {#each ['custom','tokens'] as item}<button type="button" role="tab" id={`${id}-${item}-tab`} aria-controls={`${id}-${item}-panel`} aria-selected={mode===item} tabindex={mode===item?0:-1} data-mode={item} onclick={()=>mode=item as 'custom'|'tokens'} onkeydown={modeKey}>{item==='custom'?'Custom':'Tokens'}</button>{/each}
@@ -95,7 +96,7 @@
   {/if}
   {#if mode==='tokens'&&onrole&&roles.length}
     <div class="picker-tokens" role="tabpanel" id={`${id}-tokens-panel`} aria-labelledby={`${id}-tokens-tab`}>
-      {#if room<340}<select class="picker-token-select" aria-label="Color token" value={roleValue} onchange={event=>chooseToken(event.currentTarget.value)}><option value="" disabled>Choose a token</option>{#each roles as role}<option value={role.value}>{role.label}</option>{/each}</select>
+      {#if tokenSelect}<select class="picker-token-select" aria-label="Color token" value={roleValue} onchange={event=>chooseToken(event.currentTarget.value)}><option value="" disabled>Choose a token</option>{#each roles as role}<option value={role.value}>{role.label}</option>{/each}</select>
       {:else}{#each roles as role}<button type="button" class="picker-token" aria-label={`Color token: ${role.label}`} aria-pressed={roleValue===role.value} onclick={()=>chooseToken(role.value)}><i style:background={role.color} aria-hidden="true"></i><span>{role.label}</span>{#if roleValue===role.value}<Check size={14} aria-hidden="true"/>{/if}</button>{/each}{/if}
     </div>
   {:else}

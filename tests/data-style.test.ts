@@ -39,7 +39,7 @@ test('table presentation handles numeric alignment, header contrast, bands, bord
 test('styles are atomic and invalid chart/table customization rejects the complete transaction',()=>{
   const slide=blankSlide(),table=element('table',{cells:[['A','Value'],['B','42']]}),chart=element('chart',{chart:sampleChart()});slide.elements=[table,chart];const deck=newDeck('Atomic styles',[slide]),before=JSON.stringify(deck);
   assert.throws(()=>applyOperations(deck,[{op:'update_element',slideId:slide.id,elementId:table.id,patch:{tableStyle:{padding:-1}}}]),/padding|greater/);
-  assert.throws(()=>applyOperations(deck,[{op:'update_element',slideId:slide.id,elementId:chart.id,patch:{chart:{...sampleChart(),visual:{donutHole:90}}}}]),/donutHole|80/);
+  assert.throws(()=>applyOperations(deck,[{op:'update_element',slideId:slide.id,elementId:chart.id,patch:{chart:{...sampleChart(),visual:{donutHole:91}}}}]),/donutHole|90/);
   assert.equal(JSON.stringify(deck),before);
   const next=applyOperations(deck,[{op:'update_element',slideId:slide.id,elementId:table.id,patch:{tableStyle:tablePresetStyle('banded')}}],0,'ai');assert.equal(next.revision,1);assert.deepEqual(next.slides[0].elements[0].cells,table.cells);assert.equal(next.slides[0].elements[0].fontFamily,table.fontFamily);
 });

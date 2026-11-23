@@ -1,5 +1,6 @@
 import { uid, type Deck, type Slide, type SlideElement } from './model';
 import type { Operation } from './operations';
+import {resolveObjectMotion} from './motion-sequence';
 
 export function createNextMotionState(deck: Deck, source: Slide): {slide: Slide; operations: Operation[]} {
   if(deck.slides.length>=500)throw new Error('This document has reached the 500-slide limit.');
@@ -37,4 +38,23 @@ export function entranceSequence(slide:Slide,trigger:'auto'|'click') {
     canMoveEarlier:index>0&&!locked[index]&&!locked[index-1],
     canMoveLater:index<groups.length-1&&!locked[index]&&!locked[index+1],
   }));
+}
+
+/** One click block includes every dependent with/after-previous child. */
+export function objectMotionSequence(slide:Slide){
+  const plan=resolveObjectMotion(slide),cues=[...new Set(plan.entries.map(e=>e.cue))].sort((a,b)=>a-b);
+  const groups=cues.map(cue=>{const entries=plan.entries.filter(e=>e.cue===cue),elements=entries.map(entry=>slide.elements.find(e=>e.id===entry.id)!);return {cue,order:Math.min(...entries.map(e=>e.order)),entries,elements};});
+  const click=groups.filter(g=>g.cue>0);
+  return groups.map(group=>{const index=click.indexOf(group),locked=group.elements.some(e=>e.locked);return {...group,canMoveEarlier:index>0&&!locked&&!click[index-1].elements.some(e=>e.locked),canMoveLater:index>=0&&index<click.length-1&&!locked&&!click[index+1].elements.some(e=>e.locked)};});
+}
+
+export function moveObjectMotionGroup(slide:Slide,cue:number,direction:number):Operation[]{
+  if(direction!==-1&&direction!==1)return [];
+  const groups=objectMotionSequence(slide).filter(g=>g.cue>0),index=groups.findIndex(g=>g.cue===cue),a=groups[index],b=groups[index+direction];
+  if(!a||!b||[...a.elements,...b.elements].some(e=>e.locked))return [];
+  const first=index<index+direction?a:b,second=first===a?b:a;
+  const oldOrders=(group:typeof a)=>[...new Set(group.entries.map(e=>e.order))].sort((x,y)=>x-y),slots=[...oldOrders(first),...oldOrders(second)].sort((x,y)=>x-y);
+  const mapping=new Map<number,number>();let slot=0;
+  for(const group of [second,first])for(const order of oldOrders(group))mapping.set(order,slots[slot++]);
+  return [...first.elements,...second.elements].filter(e=>mapping.get(e.animation!.order)!==e.animation!.order).map(e=>({op:'update_element',slideId:slide.id,elementId:e.id,patch:{animation:{...e.animation!,order:mapping.get(e.animation!.order)!}}}));
 }

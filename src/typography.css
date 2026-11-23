@@ -7,7 +7,6 @@ body { font-weight: var(--ui-weight-normal); }
 .ui-button[data-size='lg'] { height: auto; padding-block: 8px; }
 .seg button { height: auto; padding-block: 6px; }
 kbd { height: auto; min-height: 20px; padding-block: 2px; font-size: var(--ui-meta); line-height: var(--ui-line-control); letter-spacing: 0; }
-.topbar { height: auto; min-height: 56px; padding-block: 8px; }
 
 .modal .modal-head, .ui-dialog-header.modal-head { height: auto; padding-block: 16px; }
 .modal .modal-head h2, .ui-dialog-header h2 { line-height: var(--ui-line-title); letter-spacing: 0; }
@@ -32,6 +31,15 @@ kbd { height: auto; min-height: 20px; padding-block: 2px; font-size: var(--ui-me
 .t-eyebrow, .t-label, .t-meta { font-size: var(--ui-meta); line-height: var(--ui-line-body); letter-spacing: 0; }
 
 @media (max-width: 760px) {
-  .topbar { min-height: 54px; }
   .modal .modal-head { padding-block: 12px; }
 }
+
+/* Optical UI roles: keep authored slide SVG and fonts independent. */
+:is(.editor-app,.modal,[popover]) :is(button,h3)>svg.lucide { stroke-width:1.5; }
+.property-panel h3 { font-weight:var(--ui-weight-medium); }
+.property-panel h3>svg { width:16px; height:16px; }
+.thumb-number { font-weight:var(--ui-weight-normal); font-variant-numeric:tabular-nums; }
+.seg button[aria-pressed='true'],.ui-button.primary,.ui-button[aria-pressed='true'] { font-weight:var(--ui-weight-medium); }
+
+/* Native paragraph end styles also participate in cold text measurement. */
+.text-paragraph::after{content:var(--deck-end-content,none);font-size:var(--deck-end-size,inherit);font-family:var(--deck-end-font,inherit);pointer-events:none}

@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, readFile, unlink, rename } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, unlink, rename, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import { gzipSync } from 'node:zlib';
-import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL,workspaceTemplateId } from '../src/core/workspace-startup';
+import { brotliCompressSync, gzipSync } from 'node:zlib';
+import { initializeWorkspace,workspaceEntryId,workspaceDocumentURL } from '../src/core/workspace-startup';
 import { slideFontFamilies } from '../src/core/font-loading';
 import { blankSlide, element, newDeck } from '../src/core/model';
 import { applyOperations } from '../src/core/operations';
@@ -19,15 +19,6 @@ test('default entry never restores a document, while document and resource links
   assert.equal(workspaceEntryId('?library=unknown', 'previous'), null);
   assert.equal(workspaceEntryId('?document=chosen&library=blue-black', 'previous'), 'chosen');
   assert.equal(workspaceDocumentURL('https://example.com/app?document=old&x=1#slide', 'doc:two'), '/app?document=doc%3Atwo&x=1#slide');
-});
-
-test('template links name a known collection and never replace an explicit document', () => {
-  const ids = ['portfolio', 'review'];
-  assert.equal(workspaceTemplateId('?template=review', ids), 'review');
-  assert.equal(workspaceTemplateId('?template=unknown', ids), null);
-  assert.equal(workspaceTemplateId('?template=', ids), null);
-  assert.equal(workspaceTemplateId('?template=review&document=chosen', ids), null);
-  assert.equal(workspaceTemplateId('', ids), null);
 });
 
 test('startup opens only an explicit document without listing the library', async () => {
@@ -92,4 +83,42 @@ test('production assets negotiate gzip, validate cache and never serve stale com
     assert.equal(changed.status,200);assert.equal(changed.headers.get('content-encoding'),null);assert.equal(await changed.text(),'updated stylesheet');
     const head=await fetch(url,{method:'HEAD'});assert.equal(await head.text(),'');assert.equal(head.headers.get('content-length'),String('updated stylesheet'.length));
   } finally { await new Promise<void>(ok=>server.close(()=>ok())); }
+});
+
+test('compact production assets stream original bytes with Brotli, gzip and identity clients', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'deck-static-compact-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const file = join(directory, 'codec.wasm');
+  const bytes = Buffer.concat([Buffer.from([0, 97, 115, 109]), Buffer.alloc(65_536, 90)]);
+  const compressed = brotliCompressSync(bytes);
+  await writeFile(file + '.stored.br', compressed);
+  const server = createServer((req, res) => {
+    void serveStatic(req, res, file).catch(() => { res.writeHead(404); res.end(); });
+  });
+  await new Promise<void>(ok => server.listen(0, '127.0.0.1', ok));
+  try {
+    const url = `http://127.0.0.1:${(server.address() as {port:number}).port}/codec.wasm`;
+    const tags = new Set<string>();
+    for (const [accept, encoding] of [['br, gzip', 'br'], ['br;q=0, gzip', 'gzip'], ['identity', null]] as const) {
+      const headers = {'Accept-Encoding': accept};
+      const response = await fetch(url, {headers});
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('Content-Type'), 'application/wasm');
+      assert.equal(response.headers.get('Content-Encoding'), encoding);
+      assert.equal(response.headers.get('Vary'), 'Accept-Encoding');
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes);
+      const etag = response.headers.get('ETag')!;
+      tags.add(etag);
+      assert.equal((await fetch(url, {headers: {...headers, 'If-None-Match': etag}})).status, 304);
+      const head = await fetch(url, {headers, method: 'HEAD'});
+      assert.equal(head.headers.get('Content-Encoding'), encoding);
+      assert.equal(head.headers.get('Content-Length'), encoding === 'br' ? String(compressed.length) : null);
+      assert.equal(await head.text(), '');
+    }
+    assert.equal(tags.size, 3);
+    await writeFile(file, 'plain file takes precedence');
+    assert.equal(await (await fetch(url, {headers: {'Accept-Encoding': 'br'}})).text(), 'plain file takes precedence');
+  } finally {
+    await new Promise<void>(ok => server.close(() => ok()));
+  }
 });

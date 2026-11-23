@@ -2,7 +2,7 @@ import type {Deck,SlideElement} from './model';
 import type {Operation} from './operations';
 import {selectionBounds,type Bounds} from './interactions';
 import {selectionRoots,descendants,groupBox,arrangementParent} from './container-tree';
-import {contentBounds} from './page-layout';
+import {contentBounds} from './page-layout-geometry';
 import {layoutArrangement,layoutArrangementOperations} from './arrangement-layout';
 
 // Optional alignment controls produce the same atomic manual/AI operations.
