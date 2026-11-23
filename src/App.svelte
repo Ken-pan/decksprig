@@ -1101,7 +1101,7 @@
             {@render settingsContent(true)}
           </PopoverPanel>
         {#if editor.deck}
-          <button class="text-btn export-entry" disabled={Boolean(proposalDeck)} onclick={openExport}>Export</button>
+          <button class="icon-btn export-entry" aria-label="Export" disabled={!!proposalDeck} onclick={openExport}></button>
           <Button variant="secondary" class="present-entry" aria-label="Present" onclick={() => startPresentation()} title={editor.deck?.slides.every(s=>s.hidden)?'Unhide a slide before presenting':'Present'} disabled={!editor.deck || Boolean(proposalDeck) || editor.deck.slides.every(s=>s.hidden)}><Play size={16} aria-hidden="true" /><span>Present</span></Button>
         {/if}
       </div>
