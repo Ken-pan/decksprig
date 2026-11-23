@@ -4,14 +4,22 @@
 .document-navigation { left:0; width:var(--ui-rail-width); --brand-mark-color:light-dark(#000000,#ffffff); }
 .workspace-tools { right:0; width:var(--ui-panel-width); justify-content:flex-end; gap:4px; border-bottom:1px solid var(--border-subtle); }
 .workspace-tools .editing-panel-picker > button { flex:none; white-space:nowrap; }
+/* Match the other toolbar icons while keeping Export's accessible name. */
+.workspace-tools .export-entry::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  forced-color-adjust: none;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5m-5 5V3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 /* Keep the named panel picker inside its panel when text grows. Present keeps
    its accessible name and tooltip in the compact icon treatment. */
 @media(min-width:761px) {
  .workspace:not(.right-hidden)>.workspace-tools { container:workspace-actions / inline-size; }
- @container workspace-actions (max-width:17.5rem) {
+ @container workspace-actions (max-width:15.5rem) {
   .workspace-tools .present-entry > span { display:none; }
   .workspace-tools .present-entry { min-width:36px; padding-inline:8px; }
-  .workspace-tools .export-entry { padding-inline:6px; }
  }
 }
 /* Touch targets retain 44px without pushing the panel picker over its edge. */
